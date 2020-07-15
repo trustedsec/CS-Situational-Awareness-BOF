@@ -1,0 +1,193 @@
+%recordmapping = %(
+A => 1,
+NS => 2,
+MD => 3,
+MF => 4,
+CNAME => 5,
+SOA  => 6,
+MB  => 7,
+MG => 8,
+MR => 9,
+WKS => 0xb,
+PTR => 0xc,
+HINFO => 0xd,
+MINFO => 0xe,
+MX => 0xf,
+TEXT => 0x10,
+RP => 0x11,
+AFSDB => 0x12,
+X25 => 0x13,
+ISDN => 0x14,
+RT => 0x15,
+AAAA => 0x1c,
+SRV => 0x21,
+WINSR => 0xff02,
+KEY => 0x0019,
+ANY => 0xff);
+
+sub readbof {
+    local('$barch $handle $data $args');
+	$barch  = barch($1);
+
+	# read in the right BOF file
+	println(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
+	$handle = openf(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
+	$data   = readb($handle, -1);
+	closef($handle);
+	if(strlen($data) == 0)
+	{
+		berror($1, "could not read bof file");
+	}
+
+	# pack our arguments
+	#$args   = bof_pack($1, "zi", "Hello World", 1234);
+
+	# announce what we're doing
+	btask($1, "Running $2");
+    return $data;
+}
+
+alias ipconfig {
+
+	beacon_inline_execute($1, readbof($1, "ipconfig"), "go", $null);
+}
+
+beacon_command_register(
+"ipconfig", 
+"runs an internal ipconfig command", 
+"Synopsis: ipconfig \n\nLists out adapters, system hostname and configured dns server");
+
+alias nslookup {
+	local('$args $barch $lookup $server $type');
+	
+	if(size(@_) < 2)
+	{
+		berror($1, beacon_command_detail("nslookup"));
+		return;
+	}
+	$barch  = barch($1);
+	$lookup = $2;
+	$server = iff(-istrue $3, $3, "");
+	$type = iff(-istrue $4, iff(uc($4) in %recordmapping, %recordmapping[uc($4)], %recordmapping["A"]) , %recordmapping["A"]);
+	btask($1, $server);
+	if($server eq "127.0.0.1"){
+		berror($1, "Localhost dns query's have a potential to crash, refusing");
+		return;
+	}
+	if($barch eq "x86"){
+	btask($1, "x86 beacons do not support custom dns nameservers, overriding to default")
+	$server = ""
+	}
+	$args = bof_pack($1, "zzs", $lookup, $server, $type);
+	beacon_inline_execute($1, readbof($1, "nslookup"), "go", $args);
+}
+
+beacon_command_register(
+	"nslookup", 
+	"internally perform a dns query", 
+	"Synopsis: nslookup <lookup value> <lookup server> <TYPE> \n\nPerform a DNS Query:\n<lookup value> is the ip or hostname you want to query\n<lookup server> is the server you want to query (use 0 or exclude for system default)\n<TYPE> record type to query");
+
+alias netview {
+	local('$args $domain');
+
+	$domain = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Z", $domain);
+	beacon_inline_execute($1, readbof($1, "netview"), "go", $args);
+}
+
+beacon_command_register(
+	"netview",
+	"lists local workstations and servers",
+	"Synopsis: netview <optional netbios domain name>"
+);
+
+alias listdns {
+	beacon_inline_execute($1, readbof($1, "listdns"), "go", $null);
+}
+
+beacon_command_register(
+	"listdns",
+	"lists dns cache entries",
+	"Synopsis: listdns (does not take arguments)  Note this will query each found hostname for its ip address"
+);
+
+alias netuser {
+	local('$args $domain');
+	if(size(@_) < 2){
+		berror($1, beacon_command_detail("netuser"));
+		return;
+	}
+	$domain = iff(-istrue $3, $3, "");
+	$args = bof_pack($1, "ZZ", $2, $domain);
+	beacon_inline_execute($1, readbof($1, "netuser"), "go", $args);
+}
+
+beacon_command_register(
+	"netuser",
+	"list user info",
+	"Synopsis: netuser <username> <optional: dns or netbios domain name, if not given run against local computer>"
+);
+
+alias windowlist {
+	beacon_inline_execute($1, readbof($1, "windowlist"), "go", $null);
+}
+
+beacon_command_register(
+	"windowlist",
+	"list visible windows",
+	"Synopsis: List windows visible on the users desktop"
+);
+
+alias netstat {
+	beacon_inline_execute($1, readbof($1, "netstat"), "go", $null);
+}
+
+beacon_command_register(
+	"netstat",
+	"get local ipv4 udp/tcp listening and connected ports"
+	"Synopsis: List listening and connected ipv4 udp and tcp connections"
+);
+
+alias routeprint {
+	beacon_inline_execute($1, readbof($1, "routeprint"), "go", $null);
+}
+
+beacon_command_register(
+	"routeprint",
+	"prints ipv4 routes on the machine",
+	"Synopsis: Lists targets ipv4 routes"
+);
+
+alias whoami {
+	beacon_inline_execute($1, readbof($1, "whoami"), "go", $null);
+}
+
+beacon_command_register (
+	"whoami",
+	"internal version of whoami /all"
+	"run this to get the info from whoami /all without starting cmd.exe"
+);
+
+alias userenum {
+	local('$args')
+	$args = bof_pack($1, "i", 0);
+	beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args);
+}
+
+alias domainenum {
+	local('$args')
+	$args = bof_pack($1, "i", 1);
+	beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args);
+}
+
+beacon_command_register(
+	"domainenum",
+	"list usersaccounts in the current domain",
+	"This command lists out domain user accounts"
+);
+
+beacon_command_register(
+	"userenum",
+	"List computer user accounts",
+	"This command lists user accounts on the current computer"
+)
