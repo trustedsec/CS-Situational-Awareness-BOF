@@ -1,7 +1,7 @@
 # Situational Awareness BOF
 This Repo intends to serve two purposes.  First it provides a nice set of basic situational awareness commands implemented in BOF.  This allows you to perform some checks on a host before you begin executing commands that may be more invasive.
 
-Its larger goal is providing a code example and workflow for others to begin making more BOF files.  It is a companion document of the blog post made here(link)
+Its larger goal is providing a code example and workflow for others to begin making more BOF files.  It is a companion document of the blog post made here: https://www.trustedsec.com/blog/a-developers-introduction-to-beacon-object-files/
 
 ## Making a new BOF
 If you want to use the same workflow as this repository, your basic steps are as follows
