@@ -7,10 +7,18 @@
 #include "bofdefs.h"
 #include "base.c"
 
-char* netuser_enum(int usedomain){
-    LPUSER_INFO_0 pBuf = NULL;
-    LPUSER_INFO_0 pTmpBuf;
-    DWORD dwLevel = 0;
+/*%enumtype = %(
+	all => 1,
+	locked => 2,
+	disabled =>3,
+	active =>4);
+
+)*/
+
+char* netuser_enum(int usedomain, int userfilter){
+    LPVOID pBuf = NULL;
+    LPUSER_INFO_1 pTmpBuf; // we can use this for lvl 0 as well since the name is in the same place for both
+    DWORD dwLevel = 1;
     DWORD dwPrefMaxLen = MAX_PREFERRED_LENGTH;
     DWORD dwEntriesRead = 0;
     DWORD dwTotalEntries = 0;
@@ -24,14 +32,7 @@ char* netuser_enum(int usedomain){
     if (usedomain == 1){
         NETAPI32$NetGetAnyDCName(NULL, NULL, (LPBYTE*)&pszServerName);
     }
-
-    //if (argc == 2)
-    //pszServerName =  (LPTSTR) argv[1];
-    //wprintf(L"\nUser account on %s: \n", pszServerName);
-    //
-    // Call the NetUserEnum function, specifying level 0;
-    //   enumerate global user account types only.
-    //
+    dwLevel = (userfilter == 1) ? 0 : 1;
     do // begin do
     {
         nStatus = NETAPI32$NetUserEnum((LPCWSTR) pszServerName,
@@ -55,8 +56,48 @@ char* netuser_enum(int usedomain){
                     if (pTmpBuf == NULL){
                         break;
                     }
-					internal_printf("-- %S\n", pTmpBuf->usri0_name);         
-                    pTmpBuf++;
+                    if(userfilter == 1)
+                    {
+					    goto printu;         
+                    }
+                    else if (userfilter == 2)
+                    {
+                        if (pTmpBuf->usri1_flags & UF_LOCKOUT)
+					        goto printu;
+                        else
+                            goto nextu;                       
+                    }
+                    else if (userfilter == 3)
+                    {
+                        if (pTmpBuf->usri1_flags & UF_ACCOUNTDISABLE)
+					        goto printu;
+                        else
+                            goto nextu;                       
+                    }
+                    else if (userfilter == 4)
+                    {
+                        if (!(pTmpBuf->usri1_flags & (UF_ACCOUNTDISABLE | UF_LOCKOUT)))
+					        goto printu;
+                        else
+                            goto nextu;                       
+                    }
+                    else
+                    {
+                        //something is wrong
+                        break;
+                    }  
+                    printu:
+                    internal_printf("-- %S\n", pTmpBuf->usri1_name); 
+                    nextu:
+                    if(dwLevel)
+                    {   
+                        pTmpBuf++;
+                    }
+                    else
+                    {
+                        pTmpBuf = (LPUSER_INFO_1)((LPUSER_INFO_0)pTmpBuf + 1);
+                    }
+                    
                     dwTotalCount++;
                 }
             }
@@ -100,8 +141,9 @@ VOID go(
 		return;
 	}
 	BeaconDataParse(&parser, Buffer, Length);
-	int d = BeaconDataInt(&parser);
-	netuser_enum(d);
+	int usedomain = BeaconDataInt(&parser);
+    int userfilter = BeaconDataInt(&parser);
+	netuser_enum(usedomain, userfilter);
 	printoutput(TRUE);
 	bofstop();
 };
