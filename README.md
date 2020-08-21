@@ -25,9 +25,11 @@ Realistically, this could be compressed into a helper script, but those steps we
 |routeprint|routeprint| prints ipv4 configured routes|
 |whoami|whoami| simulates whoami /all|
 |windowlist|windowlist| lists visible windows in the current users session|
+|driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 
 #### credits
 The functional code for most of these commands was taken from the reactos project or code examples hosted on MSDN.  
+The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df09f83d3620013f5d370d3b9
 
 ##### compiler used
 The follow compiler was used.  This project has not been tested with other compilers.
