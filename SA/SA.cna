@@ -232,3 +232,13 @@ beacon_command_register(
 	You may specify one of (all, active, locked, disabled) to filter accounts returned
 	defaults to all if not specified;"
 )
+
+alias driversigs {
+	beacon_inline_execute($1, readbof($1, "driversigs"), "go", $null);
+}
+
+beacon_command_register(
+	"driversigs",
+	"checks drivers for known edr vendor names",
+	"Run the command and we will accept enumerate services and check the binary signatures for known edr vendor names"
+);
