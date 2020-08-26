@@ -109,6 +109,7 @@ beacon_command_register(
 );
 
 alias listdns {
+
 	beacon_inline_execute($1, readbof($1, "listdns"), "go", $null);
 }
 
