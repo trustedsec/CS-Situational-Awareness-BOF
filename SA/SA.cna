@@ -243,3 +243,16 @@ beacon_command_register(
 	"checks drivers for known edr vendor names",
 	"Run the command and we will accept enumerate services and check the binary signatures for known edr vendor names"
 );
+
+alias netshares{
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Z", $name);
+	beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
+}
+
+beacon_command_register(
+	"netshares",
+	"list shares on local or remote computer",
+	"netshares <\\computername>"
+);
