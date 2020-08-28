@@ -13,8 +13,8 @@ typedef PCWSTR (*myInetNtopW)(
 
 void query_domain(const char * domainname, unsigned short wType, const char * dnsserver)
 {
-    PDNS_RECORD pdns = NULL;
-    DWORD options = 0; //0 also just happends to be DNS_QUERY_STANDARD which is what we want for this
+    PDNS_RECORD pdns = NULL, base = NULL;
+    DWORD options = DNS_QUERY_WIRE_ONLY; 
     DWORD status = 0;
     struct in_addr inaddr;
     PIP4_ARRAY pSrvList = NULL;
@@ -23,6 +23,7 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
     DNS_FREE_TYPE freetype;
     HMODULE WS = LoadLibraryA("WS2_32");
     myInetNtopW inetntow;
+    wchar_t *addr;
     int (*intinet_pton)(INT, LPCSTR, PVOID);
     if(WS == NULL)
     {
@@ -60,9 +61,10 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
         pSrvList->AddrCount = 1; 
         options = DNS_QUERY_WIRE_ONLY;
     }
-    status = DNSAPI$DnsQuery_A(domainname, wType, options, pSrvList, &pdns, NULL);
+    status = DNSAPI$DnsQuery_A(domainname, wType, options, pSrvList, &base, NULL);
     if(pSrvList != NULL)
         KERNEL32$LocalFree(pSrvList);
+    pdns = base;
     if(status != 0 || pdns == NULL)
     {
 		internal_printf("Query for domain name failed\n");
@@ -85,19 +87,14 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
         goto END;
     }
 
-
+    addr = intAlloc(255 * 2);
     //this logic was modified from https://www.codeproject.com/Articles/21246/DNS-Query-MFC-based-Application DnsView.cpp
     do {
-            wchar_t addr[255] = {0};
-                        if(pdns->wType == DNS_TYPE_A)
+
+            if(pdns->wType == DNS_TYPE_A)
             {
-            inaddr.S_un.S_addr = pdns->Data.A.IpAddress;
-            if(inetntow(AF_INET, (LPVOID) &inaddr, addr, 254) == NULL)
-            {
-                    BeaconPrintf(CALLBACK_ERROR, "bad convert");
-                    goto END;
-            }
-            internal_printf("A %s [%S]\n", pdns->pName, addr);
+                DWORD test = pdns->Data.A.IpAddress;
+                internal_printf("A %s %d.%d.%d.%d\n", pdns->pName, test & 0x000000ff, (test & 0x0000ff00) >> 8, (test & 0x00ff0000) >> 16, (test & 0xff000000) >> 24);
             }else if(pdns->wType == DNS_TYPE_NS){
                     internal_printf("NS %s %s\n", pdns->pName, pdns->Data.NS.pNameHost);
             }else if(pdns->wType == DNS_TYPE_MD){
@@ -192,10 +189,13 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
             }    
 
         pdns = pdns->pNext;
+        memset(addr, 0, 255 * 2);
     } while (pdns);
-    //DnsRecordListFree(pdns, freetype);
-    DNSAPI$DnsFree(pdns, freetype);
     END:
+    if(addr)
+    {intFree(addr); }
+    if(base)
+    {DNSAPI$DnsFree(base, freetype);}
     FreeLibrary(WS);
 
 }
