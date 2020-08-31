@@ -3,7 +3,7 @@
 #include "base.c"
 #include <lm.h>
 
-void listShares( wchar_t *servername)
+void listSharesAdmin( wchar_t *servername)
 {
 	PSHARE_INFO_2 output = NULL, current = NULL;
 	DWORD entries = 0, pos = 0, totalentrieshint = 0; 
@@ -34,14 +34,49 @@ void listShares( wchar_t *servername)
 
 }
 
+
+void listSharesUser( wchar_t *servername)
+{
+	PSHARE_INFO_0 output = NULL, current = NULL;
+	DWORD entries = 0, pos = 0, totalentrieshint = 0; 
+	DWORD resume = 0;
+	NET_API_STATUS stat = 0;
+	//System allocated data automatically, we free it later with NetApiBufferFree Must free even on fail
+   internal_printf("Share: \n");
+   internal_printf("---------------------------------------------------------------------\n");
+
+	do{
+		stat = NETAPI32$NetShareEnum(servername, 0, (LPBYTE *) &output, MAX_PREFERRED_LENGTH, &entries, &totalentrieshint, &resume);
+		if(stat == ERROR_SUCCESS || stat == ERROR_MORE_DATA)
+		{
+			current = output;
+			for(pos = 0; pos < entries; pos++)
+			{
+				internal_printf("%S%\n",current->shi0_netname);
+				current++;
+			}
+		}
+		else
+		{
+			internal_printf("Unable to list share : %ld\n", stat);
+		}
+		
+		NETAPI32$NetApiBufferFree(output);
+	}while(stat == ERROR_MORE_DATA);
+
+}
+
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
 ) 
 {
 	datap parser = {0};
+	int asAdmin = 0;
 	BeaconDataParse(&parser, Buffer, Length);
+
 	wchar_t * sharename = ( wchar_t *)BeaconDataExtract(&parser, NULL);
+	asAdmin = BeaconDataInt(&parser);
 	if(*sharename == 0)
 	{
 		sharename = NULL;
@@ -50,7 +85,15 @@ VOID go(
 	{
 		return;
 	}
-	listShares(sharename);
+	if(asAdmin)
+	{
+		listSharesAdmin(sharename);
+	}
+	else
+	{
+		listSharesUser(sharename);
+	}
+	
 	printoutput(TRUE);
 	bofstop();
 };

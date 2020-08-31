@@ -247,7 +247,7 @@ beacon_command_register(
 alias netshares{
 	local('$args $name')
 	$name = iff(-istrue $2, $2, "");
-	$args = bof_pack($1, "Z", $name);
+	$args = bof_pack($1, "Zi", $name, 0);
 	beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
 }
 
@@ -255,4 +255,17 @@ beacon_command_register(
 	"netshares",
 	"list shares on local or remote computer",
 	"netshares <\\computername>"
+);
+
+alias netsharesAdmin{
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 1);
+	beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
+}
+
+beacon_command_register(
+	"netsharesAdmin",
+	"list shares on local or remote computer and gets more info then standard netshares(requires admin)",
+	"netsharesAdmin <\\computername>"
 );
