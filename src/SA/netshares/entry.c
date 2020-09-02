@@ -11,7 +11,7 @@ void listSharesAdmin( wchar_t *servername)
 	NET_API_STATUS stat = 0;
 	//System allocated data automatically, we free it later with NetApiBufferFree Must free even on fail
    internal_printf("Share:              Local Path:                   Uses:   Descriptor:\n");
-   internal_printf("---------------------------------------------------------------------\n");
+   internal_printf("---------------------%S----------------------------------\n", servername == NULL ? L"(Local)" : servername);
 
 	do{
 		stat = NETAPI32$NetShareEnum(servername, 2, (LPBYTE *) &output, MAX_PREFERRED_LENGTH, &entries, &totalentrieshint, &resume);
@@ -43,7 +43,7 @@ void listSharesUser( wchar_t *servername)
 	NET_API_STATUS stat = 0;
 	//System allocated data automatically, we free it later with NetApiBufferFree Must free even on fail
    internal_printf("Share: \n");
-   internal_printf("---------------------------------------------------------------------\n");
+   internal_printf("---------------------%S----------------------------------\n", servername == NULL ? L"(Local)" : servername);
 
 	do{
 		stat = NETAPI32$NetShareEnum(servername, 0, (LPBYTE *) &output, MAX_PREFERRED_LENGTH, &entries, &totalentrieshint, &resume);

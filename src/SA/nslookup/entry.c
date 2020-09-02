@@ -16,14 +16,13 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
     PDNS_RECORD pdns = NULL, base = NULL;
     DWORD options = DNS_QUERY_WIRE_ONLY; 
     DWORD status = 0;
-    struct in_addr inaddr;
+    struct in_addr inaddr = {0};
     PIP4_ARRAY pSrvList = NULL;
     unsigned int i = 0;
     LPSTR errormsg = NULL;
     DNS_FREE_TYPE freetype;
     HMODULE WS = LoadLibraryA("WS2_32");
     myInetNtopW inetntow;
-    wchar_t *addr;
     int (*intinet_pton)(INT, LPCSTR, PVOID);
     if(WS == NULL)
     {
@@ -87,7 +86,6 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
         goto END;
     }
 
-    addr = intAlloc(255 * 2);
     //this logic was modified from https://www.codeproject.com/Articles/21246/DNS-Query-MFC-based-Application DnsView.cpp
     do {
 
@@ -189,11 +187,8 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
             }    
 
         pdns = pdns->pNext;
-        memset(addr, 0, 255 * 2);
     } while (pdns);
     END:
-    if(addr)
-    {intFree(addr); }
     if(base)
     {DNSAPI$DnsFree(base, freetype);}
     FreeLibrary(WS);
@@ -227,14 +222,11 @@ VOID go(
 #else
 int main(int argc, char ** argv)
 {
-        if(!bofstart())
-                return 1;
         char * target = argv[1];
         char * server = argv[2];
+        server = strlen(server) == 0 ? NULL : server;
         unsigned short type = (unsigned short)atoi(argv[3]);
         query_domain(target, type,server);
-        printoutput();
-        bofstop();
         return 0;
 }
 #endif

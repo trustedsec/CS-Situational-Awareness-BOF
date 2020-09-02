@@ -134,7 +134,9 @@ DECLSPEC_IMPORT NET_API_STATUS WINAPI NETAPI32$NetApiBufferFree(LPVOID Buffer);
 #pragma comment(lib "Dnsapi")
 #define KERNEL32$VirtualAlloc VirtualAlloc
 #define KERNEL32$VirtualFree VirtualFree
-__forceinline LPVOID intAlloc(SIZE_T size, DWORD type) { return KERNEL32$VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, type);}
+#define KERNEL32$WideCharToMultiByte WideCharToMultiByte
+#define Kernel32$WideCharToMultiByte WideCharToMultiByte
+__forceinline LPVOID intAlloc(SIZE_T size) { return KERNEL32$VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);}
 __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, MEM_RELEASE);}
 
 //Iphlpapi.lib
@@ -162,4 +164,5 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define BeaconPrintf(x, y, ...) printf(y, ##__VA_ARGS__)
 #define NETAPI32$NetServerEnum NetServerEnum
 #define NETAPI32$NetApiBufferFree NetApiBufferFree
+#define internal_printf printf
 #endif

@@ -11,10 +11,13 @@ HANDLE trash = 1; // Needed for x64 to not give relocation error
 #pragma GCC diagnostic pop
 
 int bofstart();
+#ifdef BOF
 void internal_printf(const char* format, ...);
+#endif
 char * Utf16ToUtf8(const wchar_t* input);
 void printoutput();
 void bofstop();
+#ifdef BOF
 int bofstart()
 {   
     output.original=NULL;
@@ -78,6 +81,7 @@ void printoutput(BOOL done)
     if(done) {BeaconFormatFree(&output);}
     else {BeaconFormatReset(&output);}
 }
+#endif
 
 char* Utf16ToUtf8(const wchar_t* input)
 {
