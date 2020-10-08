@@ -269,3 +269,45 @@ beacon_command_register(
 	"list shares on local or remote computer and gets more info then standard netshares(requires admin)",
 	"netsharesAdmin <\\computername>"
 );
+
+sub bnetgroup{
+	local('$args $domain $group $type')
+	$type = $2;
+	if($type < 0 || $type > 1)
+	{
+		berror($1, "Invalid type passed to bnetgroup");
+		return;
+	}
+	if($type == 1) #list group members
+	{
+		$group = $3;
+		$domain = iff(-istrue $4, $4, "");
+	}
+	else # list groups
+	{
+		$group = "";
+		$domain = iff(-istrue $3, $3, "");
+	}
+	$args = bof_pack($1, "sZZ", $type, $domain, $group);
+	beacon_inline_execute($1, readbof($1, "netgroup"), "go", $args);
+}
+
+alias netGroupList {
+	bnetgroup($1, 0, $2);
+}
+
+alias netGroupListMembers {
+	bnetgroup($1, 1, $2, $3);
+}
+
+beacon_command_register(
+	"netGroupList",
+	"List Groups in this domain (or specified domain if given)",
+	"netGroupList: <opt: domainname>"
+);
+
+beacon_command_register(
+	"netGroupListMembers",
+	"List the members of the specified group in this domain (or specified domain if given)",
+	"netGroupListMembers: <Group Name> <opt: domainname>"
+);
