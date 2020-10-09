@@ -21,6 +21,10 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netstat|netstat| tcp / udp ipv4 netstat listing|
 |netuser|netuser [username] [opt: domain]| Pulls info about specific user.  Pulls from domain if a domainname is specified|
 |netview|netview| Gets a list of reachable servers in the current domain|
+|netGroupList|netGroupList [opt: domain]|Lists Groups from the default (or specified) domain|
+|netGroupListMembers|netGroupListMembers [groupname] [opt: domain]| Lists group members from the default (or specified) domain|
+|netLocalGroupList|netLocalGroupList [opt: server]|List local groups from the local (or specified) computer|
+|netLocalGroupListMembers|netLocalGroupListMembers [groupname] [opt: server]| Lists local groups from the local (or specified) computer|
 |nslookup|nslookup [hostname] [opt:dns server] [opt: record type]| Makes a dns query.<br/>  dns server is the server you want to query (do not specify or 0 for default) <br/>record type is something like A, AAAA, or ANY.  Some situations are limited due to observed crashes.|
 |routeprint|routeprint| prints ipv4 configured routes|
 |whoami|whoami| simulates whoami /all|
