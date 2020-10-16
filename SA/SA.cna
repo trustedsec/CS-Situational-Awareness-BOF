@@ -353,3 +353,12 @@ beacon_command_register(
 	"List the members of the specified group in this server (or specified server if given)",
 	"netGroupListMembers: <Group Name> <opt: servername>"
 );
+
+sub bschtasksenum{
+	local('$args $server $taskname');
+	beacon_inline_execute($1, readbof($1, "schtasksenum"), "go", $null);
+}
+
+alias schtasksenum{
+	bschtasksenum($1);
+}
