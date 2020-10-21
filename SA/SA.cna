@@ -383,8 +383,9 @@ alias schtasksquery{
 	$server = "";
 	if ( size(@_) < 2)
 	{
-		berror($1, "incorrect");
-		#printerror
+		berror($1, "Invalid Usage");
+		berror($1, beacon_command_detail("schtasksquery"));
+		return;
 	} else if(size(@_) == 2)
 	{
 		$taskname = $2;
@@ -394,7 +395,9 @@ alias schtasksquery{
 		$taskname = $3;
 	} else 
 	{
-		berror($1, "incorrect");
+		berror($1, "Invalid Usage");
+		berror($1, beacon_command_detail("schtasksquery"));
+		return;
 	}
 	bschtasksquery($1, $server, $taskname);
 }
@@ -406,4 +409,18 @@ beacon_command_register(
 	Note the task name must be given by full path including taskname, ex. 
 	schtasksquery \\Microsoft\\Windows\\MUI\\LpRemove"
 );
+
+sub bcacls{
+	beacon_inline_execute($1, readbof($1, "cacls"), "go",  bof_pack($1, "Z", $2));
+}
+
+alias cacls{
+	if( size(@_) < 2)
+	{
+		berror($1, "requires file path");
+		berror($1, beacon_command_detail("cacls"));
+		return;
+	}
+	bcacls($1, $2);
+}
 
