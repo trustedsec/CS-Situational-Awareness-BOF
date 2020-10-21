@@ -30,6 +30,8 @@ Realistically, this could be compressed into a helper script, but those steps we
 |whoami|whoami| simulates whoami /all|
 |windowlist|windowlist| lists visible windows in the current users session|
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
+|schtasksenum|schtasksenum [opt: server]| Enumerates all scheduled tasks on the local or if provided remote machine|
+|schtasksquery|schtasksquery [opt: server] [taskpath]| Queries the given task from the local or if provided remote machine|
 
 #### credits
 The functional code for most of these commands was taken from the reactos project or code examples hosted on MSDN.  

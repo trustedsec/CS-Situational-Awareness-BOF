@@ -353,3 +353,57 @@ beacon_command_register(
 	"List the members of the specified group in this server (or specified server if given)",
 	"netGroupListMembers: <Group Name> <opt: servername>"
 );
+
+sub bschtasksenum{
+	local('$args');
+	$args = bof_pack($1, "Z", iff(-istrue $2, $2, ""));
+	beacon_inline_execute($1, readbof($1, "schtasksenum"), "go", $args);
+}
+
+alias schtasksenum{
+	bschtasksenum($1, $2);
+}
+
+beacon_command_register(
+	"schtasksenum",
+	"enumerates all scheduled tasks on the local or target machine",
+	"schtasksenum <opt:target>"
+);
+
+
+sub bschtasksquery{
+	local('$args');
+	$args = bof_pack($1, "ZZ", $2, $3);
+	beacon_inline_execute($1, readbof($1, "schtasksquery"), "go", $args);
+}
+
+
+alias schtasksquery{
+	local('$server $taskname')
+	$server = "";
+	if ( size(@_) < 2)
+	{
+		berror($1, "incorrect");
+		#printerror
+	} else if(size(@_) == 2)
+	{
+		$taskname = $2;
+	} else if(size(@_) == 3)
+	{
+		$server = $2;
+		$taskname = $3;
+	} else 
+	{
+		berror($1, "incorrect");
+	}
+	bschtasksquery($1, $server, $taskname);
+}
+
+beacon_command_register(
+	"schtasksquery",
+	"lists the details of the requested task",
+	"schtasksquery <opt:server> <taskname>
+	Note the task name must be given by full path including taskname, ex. 
+	schtasksquery \\Microsoft\\Windows\\MUI\\LpRemove"
+);
+
