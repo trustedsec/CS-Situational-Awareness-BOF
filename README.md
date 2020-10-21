@@ -16,6 +16,8 @@ Realistically, this could be compressed into a helper script, but those steps we
 ## Available commands
 |command|Usage|notes|
 |-------|-----|-----|
+|cacls|cacls [filepath]|lists user permissions for the specified file, wildcards supported|
+|driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
@@ -27,11 +29,12 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netLocalGroupListMembers|netLocalGroupListMembers [groupname] [opt: server]| Lists local groups from the local (or specified) computer|
 |nslookup|nslookup [hostname] [opt:dns server] [opt: record type]| Makes a dns query.<br/>  dns server is the server you want to query (do not specify or 0 for default) <br/>record type is something like A, AAAA, or ANY.  Some situations are limited due to observed crashes.|
 |routeprint|routeprint| prints ipv4 configured routes|
-|whoami|whoami| simulates whoami /all|
-|windowlist|windowlist| lists visible windows in the current users session|
-|driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 |schtasksenum|schtasksenum [opt: server]| Enumerates all scheduled tasks on the local or if provided remote machine|
 |schtasksquery|schtasksquery [opt: server] [taskpath]| Queries the given task from the local or if provided remote machine|
+|whoami|whoami| simulates whoami /all|
+|windowlist|windowlist| lists visible windows in the current users session|
+
+
 
 #### credits
 The functional code for most of these commands was taken from the reactos project or code examples hosted on MSDN.  
