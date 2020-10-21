@@ -11,7 +11,7 @@
 //So were using a queue
 
 
-void getTask(const wchar_t * server, const wchar_t * taskname)
+void enumTasks(const wchar_t * server)
 {
 	//Set up com
 	HRESULT hr = OLE32$CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
@@ -28,6 +28,7 @@ void getTask(const wchar_t * server, const wchar_t * taskname)
 	VARIANT VNull;
 	VARIANT Vindex;
 	VARIANT Vdate;
+	BSTR rootpath = NULL;
 	TASK_STATE tstate;
 	VARIANT_BOOL isEnabled = 0;
 	DATE taskdate = 0;
@@ -39,12 +40,8 @@ void getTask(const wchar_t * server, const wchar_t * taskname)
 	Vindex.lVal = 0;
 	long taskCount = 0;
 	long curCount = 0;
-	IID CTaskScheduler;
-	IID IIDTaskService;
-	//IID IIDTaskFolder;
-	OLE32$CLSIDFromString(L"{0f87369f-a4e5-4cfc-bd3e-73e6154572dd}", &CTaskScheduler);
-	OLE32$IIDFromString(L"{2faba4c7-4da9-4013-9697-20cc3fd40f85}", &IIDTaskService);
-	//OLE32$IIDFromString(L"{8cfac062-a080-4c15-9a88-aa7c2af80dfc}", &IIDTaskFolder);
+	IID CTaskScheduler = {0x0f87369f,0xa4e5,0x4cfc,{0xbd,0x3e,0x73,0xe6,0x15,0x45,0x72,0xdd}};
+	IID IIDTaskService = {0x2faba4c7, 0x4da9, 0x4013, {0x96, 0x97, 0x20, 0xcc, 0x3f, 0xd4, 0x0f, 0x85}};
 	ITaskService *pService = NULL;
     hr = OLE32$CoCreateInstance( &CTaskScheduler,
                            NULL,
@@ -72,7 +69,7 @@ void getTask(const wchar_t * server, const wchar_t * taskname)
 	ITaskFolder *pCurFolder = NULL;
 	ITaskFolderCollection *pSubfolders = NULL;
 	ITaskFolder *pFolder = NULL;
-	BSTR rootpath = NULL;
+
 	rootpath = OLEAUT32$SysAllocString(L"\\");
 	hr = pService->lpVtbl->GetFolder(pService, rootpath, &pCurFolder);
     if( FAILED(hr) )
@@ -193,11 +190,15 @@ VOID go(
 	IN ULONG Length 
 ) 
 {
+	datap parser;
+	const wchar_t * hostname;
+	BeaconDataParse(&parser, Buffer, Length);
+	hostname = (const wchar_t *)BeaconDataExtract(&parser, NULL);
 	if(!bofstart())
 	{
 		return;
 	}
-	getTask(L"", L"BIG");
+	enumTasks(hostname);
 	printoutput(TRUE);
 	bofstop();
 };
