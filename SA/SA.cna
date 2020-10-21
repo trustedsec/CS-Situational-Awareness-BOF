@@ -383,8 +383,9 @@ alias schtasksquery{
 	$server = "";
 	if ( size(@_) < 2)
 	{
-		berror($1, "incorrect");
-		#printerror
+		berror($1, "Invalid Usage");
+		berror($1, beacon_command_detail("schtasksquery"));
+		return;
 	} else if(size(@_) == 2)
 	{
 		$taskname = $2;
@@ -394,7 +395,9 @@ alias schtasksquery{
 		$taskname = $3;
 	} else 
 	{
-		berror($1, "incorrect");
+		berror($1, "Invalid Usage");
+		berror($1, beacon_command_detail("schtasksquery"));
+		return;
 	}
 	bschtasksquery($1, $server, $taskname);
 }
@@ -407,3 +410,31 @@ beacon_command_register(
 	schtasksquery \\Microsoft\\Windows\\MUI\\LpRemove"
 );
 
+sub bcacls{
+	beacon_inline_execute($1, readbof($1, "cacls"), "go",  bof_pack($1, "Z", $2));
+}
+
+alias cacls{
+	if( size(@_) < 2)
+	{
+		berror($1, "requires file path");
+		berror($1, beacon_command_detail("cacls"));
+		return;
+	}
+	bcacls($1, $2);
+}
+
+beacon_command_register(
+	"cacls",
+	"lists file permissions",
+	"cacls <file path>
+	Wildcards are supported
+	ex
+		cacls C:\\windows\\system32\\*
+		cacls C:\\windows\\system32\\cmd.exe
+	Key:
+		F: Full access
+		R: Read & Execute access
+		C: Read, Write, Execute, Delete
+		W: Write access"
+);
