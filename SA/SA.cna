@@ -424,3 +424,17 @@ alias cacls{
 	bcacls($1, $2);
 }
 
+beacon_command_register(
+	"cacls",
+	"lists file permissions",
+	"cacls <file path>
+	Wildcards are supported
+	ex
+		cacls C:\\windows\\system32\\*
+		cacls C:\\windows\\system32\\cmd.exe
+	Key:
+		F: Full access
+		R: Read & Execute access
+		C: Read, Write, Execute, Delete
+		W: Write access"
+);

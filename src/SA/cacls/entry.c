@@ -5,37 +5,7 @@
 #include <windef.h>
 
 
-static char * resolveAccessName(DWORD mask)
-{
-	if(mask & FILE_WRITE_ATTRIBUTES){return IDS_FILE_WRITE_ATTRIBUTES;}
-	else if(mask & FILE_READ_ATTRIBUTES){return IDS_FILE_READ_ATTRIBUTES;}
-	else if(mask & FILE_DELETE_CHILD){ return IDS_FILE_DELETE_CHILD;}
-	else if(mask & FILE_EXECUTE){return IDS_FILE_EXECUTE;}
-	else if(mask & FILE_WRITE_EA){return IDS_FILE_WRITE_EA;}
-	else if(mask & FILE_READ_EA){return IDS_FILE_READ_EA;}
-	else if(mask & FILE_APPEND_DATA){return IDS_FILE_APPEND_DATA;}
-	else if(mask & FILE_WRITE_DATA){return IDS_FILE_WRITE_DATA;}
-	else if(mask & FILE_READ_DATA){return IDS_FILE_READ_DATA;}
-	else if(mask & FILE_GENERIC_EXECUTE){return IDS_FILE_GENERIC_EXECUTE;}
-	else if(mask & FILE_GENERIC_WRITE){return IDS_FILE_GENERIC_WRITE;}
-	else if(mask & FILE_GENERIC_READ){return IDS_FILE_GENERIC_READ;}
-	else if(mask & GENERIC_ALL){return IDS_GENERIC_ALL;}
-	else if(mask & GENERIC_EXECUTE){return IDS_GENERIC_EXECUTE;}
-	else if(mask & GENERIC_WRITE){return IDS_GENERIC_WRITE;}
-	else if(mask & GENERIC_READ){return IDS_GENERIC_READ;}
-	else if(mask & MAXIMUM_ALLOWED){return IDS_MAXIMUM_ALLOWED;}
-	else if(mask & ACCESS_SYSTEM_SECURITY){return IDS_ACCESS_SYSTEM_SECURITY;}
-	else if(mask & SPECIFIC_RIGHTS_ALL){return IDS_SPECIFIC_RIGHTS_ALL;}
-	else if(mask & STANDARD_RIGHTS_REQUIRED){return IDS_STANDARD_RIGHTS_REQUIRED;}
-	else if(mask & SYNCHRONIZE){return IDS_SYNCHRONIZE;}
-	else if(mask & WRITE_OWNER){return IDS_WRITE_OWNER;}
-	else if(mask & WRITE_DAC){return IDS_WRITE_DAC;}
-	else if(mask & READ_CONTROL){return IDS_READ_CONTROL;}
-	else if(mask & DELETE){return IDS_DELETE;}
-	else if(mask & STANDARD_RIGHTS_ALL){return IDS_STANDARD_RIGHTS_ALL;}
-	else{return "UNKNOWN||UNHANDLED";}
-
-}
+//credit to the ReactOS project for this code
 
 static BOOL
 PrintFileDacl(IN LPWSTR FilePath,
@@ -462,7 +432,6 @@ VOID go(
 	const wchar_t * targetpath = NULL;
 	BeaconDataParse(&parser, Buffer, Length);
 	targetpath = (const wchar_t*) BeaconDataExtract(&parser, NULL);
-	//const BOOL mode = MSVCRT$wcsrchr(targetpath, L'*') ? 1 : 0; //1 = recursive, 0 = single file or folder
 	if(!bofstart())
 	{
 		return;
