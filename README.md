@@ -31,6 +31,9 @@ Realistically, this could be compressed into a helper script, but those steps we
 |routeprint|routeprint| prints ipv4 configured routes|
 |schtasksenum|schtasksenum [opt: server]| Enumerates all scheduled tasks on the local or if provided remote machine|
 |schtasksquery|schtasksquery [opt: server] [taskpath]| Queries the given task from the local or if provided remote machine|
+|sc_qc|sc_qc [service name] [opt: server]| sc qc impelmentation in bof|
+|sc_query|sc_query [opt: service name] [opt: server]| sc query implementation in bof|
+|sc_qdescription|sc_qdescription [service name] [opt: server] | sc qdescription implementation in bof|
 |whoami|whoami| simulates whoami /all|
 |windowlist|windowlist| lists visible windows in the current users session|
 
