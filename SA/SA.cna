@@ -438,3 +438,97 @@ beacon_command_register(
 		C: Read, Write, Execute, Delete
 		W: Write access"
 );
+
+alias sc_query {
+	local('$hostname $servicename $args');
+	$hostname = $null;
+	$servicename = $null;
+
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+
+	$args = bof_pack($1, "zz", $hostname, $servicename);
+	beacon_inline_execute($1, readbof($1, "sc_query"), "go", $args);
+
+}
+
+beacon_command_register(
+	"sc_query", 
+	"queries a services status", 
+	"Synopsis: sc_query <opt: service name> <opt: hostname>
+give no parameters to enumerate all services
+Give just a service name to query just that service
+Give \"\" as the service name and a remote host to enumerate all services on a remote host
+Give both to query a specific service on a remote host"
+);
+
+alias sc_qc {
+	local('$hostname $servicename $args');
+
+
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qc"));
+		return;
+	}
+
+
+	$args = bof_pack($1, "zz", $hostname, $servicename);
+	beacon_inline_execute($1, readbof($1, "sc_qc"), "go", $args);
+}
+
+beacon_command_register(
+	"sc_qc", 
+	"queries a services configuration", 
+	"Synopsis: sc_qc  <service name> <opt: hostname>
+	 hostname is optional, and the local system is targeted if it is not found"
+);
+
+
+alias sc_qdescription {
+	local('$hostname $servicename $args');
+
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qdescription"));
+		return;
+	}
+
+		$args = bof_pack($1, "zz", $hostname, $servicename);
+		beacon_inline_execute($1, readbof($1, "sc_qdescription"), "go", $args);
+
+}
+
+beacon_command_register(
+	"sc_qdescription", 
+	"queries a services description", 
+	"Synopsis: sc_qdescription <service name> <opt: hostname>
+	hostname is optional, and the local system is targeted if it is not found");
