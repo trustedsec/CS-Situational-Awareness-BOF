@@ -31,6 +31,25 @@ locked => 2,
 disabled => 3,
 active => 4);
 
+%reghives = %(
+HKCR => 0,
+HKCU => 1,
+HKLM => 2,
+HKU  => 3);
+#sleep can't handle the actual values... so we'll just add them on the c side :(
+
+%regtypes = %(
+REG_SZ => 1,
+REG_EXPAND_SZ => 2,
+REG_BINARY => 3,
+REG_DWORD => 4,
+REG_MULTI_SZ => 7,
+REG_QWORD => 11);
+
+%inttypes = %( 
+	REG_DWORD => 1, 
+	REG_QWORD => 1);
+
 
 sub readbof {
     local('$barch $handle $data $args');
@@ -532,3 +551,112 @@ beacon_command_register(
 	"queries a services description", 
 	"Synopsis: sc_qdescription <service name> <opt: hostname>
 	hostname is optional, and the local system is targeted if it is not found");
+
+alias reg_query
+{
+	#I need hostname Hive, path, key type value(s)
+	#test if val in pos 1 is in Hive, if not, then assume it is a hostname
+	# values at end, if multisz pack them using a variable bof string
+	local('$hostname $hive $path $key $i')
+	$packstr = "zizz";
+	if(size(@_) < 3){
+		berror($1, beacon_command_detail("reg_query"));
+		return;
+	}
+	else{
+		if($2 in %reghives)
+		{
+			#targeting local system
+			$hostname = $null;
+			$i = 1;
+		}
+		else{
+			$hostname = "\\\\" . $2;
+			$i = 2;
+		}
+		if (@_[$i] in %reghives)
+		{
+			$hive = %reghives[@_[$i]];
+			$i++;
+		}
+		else
+		{
+			berror($1, beacon_command_detail("reg_query"));
+			berror($1, "Provided registry hive value is invalid");
+			return;
+		}
+		$path = @_[$i];
+		println($path);
+		$i++;
+		if($i < size(@_))
+		{
+			$key = @_[$i];
+			println("set subkey value to $key");
+		}
+		else
+		{
+			$key = "";
+		}
+		$args = bof_pack($1, "zizzi", $hostname, $hive, $path, $key, 0);
+		beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
+	}
+
+}
+beacon_command_register(
+	"reg_query",
+	"querys registry Key OR value",
+"<opt:hostname> <hive> <path> <opt: value to query>
+hive should be one of:
+	HKLM
+	HKCU
+	HKU
+	HKCR
+If a value to query is not specified, that one key is enumerated");
+
+alias reg_query_recursive{
+	local('$hostname $hive $path $i')
+	$packstr = "zizz";
+	if(size(@_) < 3){
+		berror($1, beacon_command_detail("reg_query_recursive"));
+		return;
+	}
+	else{
+		if($2 in %reghives)
+		{
+			#targeting local system
+			$hostname = $null;
+			$i = 1;
+		}
+		else{
+			$hostname = "\\\\" . $2;
+			$i = 2;
+		}
+		if (@_[$i] in %reghives)
+		{
+			$hive = %reghives[@_[$i]];
+			$i++;
+		}
+		else
+		{
+			berror($1, beacon_command_detail("reg_query_recursive"));
+			berror($1, "Provided registry hive value is invalid");
+			return;
+		}
+		$path = @_[$i];
+		println($path);
+		$i++;
+		$args = bof_pack($1, "zizzi", $hostname, $hive, $path, "", 1);
+		beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
+	}
+}
+
+beacon_command_register(
+	"reg_query_recursive",
+	"recursivly querys registry key",
+"<opt:hostname> <hive> <path> 
+hive should be one of:
+	HKLM
+	HKCU
+	HKU
+	HKCR
+If a value to query is not specified, that one key is enumerated");
