@@ -39,6 +39,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |whoami|whoami| simulates whoami /all|
 |windowlist|windowlist| lists visible windows in the current users session|
 
+Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote systems and has the ability to recursively enumerate a whole key.
 
 
 #### credits
