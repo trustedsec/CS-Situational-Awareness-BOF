@@ -64,7 +64,6 @@ VOID ReturnDateTime(DWORD dwSeconds)
     PCHAR TimeBuffer[80];
 
     Time.QuadPart = ((LONGLONG)dwSeconds * TICKSPERSEC) + TICKSTO1970;
-    // Time.QuadPart = ((LONGLONG)dwSeconds - TICKSTO1970);
     
     FileTime.dwLowDateTime = Time.u.LowPart;
     FileTime.dwHighDateTime = Time.u.HighPart;
@@ -208,8 +207,9 @@ void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
             	(MSVCRT$strcmp(pAttribute, "badPasswordTime") == 0)||
             	(MSVCRT$strcmp(pAttribute, "lastLogonTimestamp") == 0)){
             	internal_printf("\n%s: ", pAttribute);
-            	internal_printf("%s", *ppValue);
-            	// ReturnDateTime(*ppValue);
+            	// TODO: Implement transformations for various attribute data types.
+                internal_printf("%s", *ppValue);
+            	
             } else
                 internal_printf("\n%s: %s", pAttribute, *ppValue); // Output the first attribute value
 
@@ -259,6 +259,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 
 	//////////////////////////////
 	// Initialise LDAP Session
+    // Taken from https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ldap/searching-a-directory
 	//////////////////////////////
     LDAP* pLdapConnection = InitialiseLDAPConnection(hostName, distinguishedName);
 
