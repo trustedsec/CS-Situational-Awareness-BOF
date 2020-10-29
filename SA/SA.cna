@@ -73,6 +73,52 @@ sub readbof {
     return $data;
 }
 
+
+beacon_command_register(
+"ldapsearch", 
+"BOF - Perform LDAP search.", 
+"ldapsearch <query> [attribute] [result_count]
+
+Useful queries:
+
+- Kerberoastable:\n(&(samAccountType=805306368)(servicePrincipalName=*)(!samAccountName=krbtgt)(!(UserAccountControl:1.2.840.113556.1.4.803:=2)))
+
+- AS-REP Roastable:\n(&(samAccountType=805306368)(userAccountControl:1.2.840.113556.1.4.803:=4194304))
+
+- Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))");
+
+alias ldapsearch {
+	local('$args');
+	
+	if(size(@_) < 2)
+	{
+		berror($1, beacon_command_detail("ldapsearch"));
+		return;
+	}
+
+	if(size(@_) == 4)
+	{
+		# pack our arguments
+		$args   = bof_pack($1, "zzi", $2, $3, $4);
+	}
+
+	if(size(@_) == 3)
+	{
+		# pack our arguments
+		$args   = bof_pack($1, "zzi", $2, $3, 0);
+	}
+
+	if(size(@_) == 2)
+	{
+		# pack our arguments
+		$args   = bof_pack($1, "zzi", $2, "", 0);
+	}
+	
+	# execute it.
+	beacon_inline_execute($1, readbof($1, "ldapsearch"), "go", $args);
+}
+
+
 alias ipconfig {
 
 	beacon_inline_execute($1, readbof($1, "ipconfig"), "go", $null);
