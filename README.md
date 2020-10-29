@@ -19,6 +19,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |cacls|cacls [filepath]|lists user permissions for the specified file, wildcards supported|
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
+|ldapsearch|ldapsearch| Executes LDAP searches |
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
 |netuser|netuser [username] [opt: domain]| Pulls info about specific user.  Pulls from domain if a domainname is specified|
