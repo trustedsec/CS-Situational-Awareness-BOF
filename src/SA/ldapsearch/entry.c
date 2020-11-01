@@ -7,7 +7,8 @@
 #include <stdint.h>
 #include "bofdefs.h"
 #include "base.c"
-#include <string.h>
+
+#define MAX_ATTRIBUTES 100
 
 LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 	LDAP* pLdapConnection = NULL;
@@ -49,26 +50,30 @@ LDAPMessage* ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, ch
 	if(ldap_attributes){
         internal_printf("[*] Returning specific attribute(s): %s\n",ldap_attributes);
 
-        int MAX_ATTRIBUTES = 100;
         PCHAR attr[MAX_ATTRIBUTES];
-        int attribute_count = 0;
-        char *token;
-        const char s[2] = ","; //delimiter
+        #ifndef _X86_ 
+            int attribute_count = 0;
+            char *token;
+            const char s[2] = ","; //delimiter
 
-        token = MSVCRT$strtok(ldap_attributes, s);
-        
-        while( token != NULL ) {
-            if(attribute_count < MAX_ATTRIBUTES){
-                attr[attribute_count] = token;
-                attribute_count++;
-                token = MSVCRT$strtok(NULL, s);
-            } else{
-                internal_printf("[!] Cannot return more than %i attributes, will omit additional attributes.\n", MAX_ATTRIBUTES);
-                break;
+            token = MSVCRT$strtok(ldap_attributes, s);
+
+            while( token != NULL ) {
+                if(attribute_count < MAX_ATTRIBUTES){
+                    attr[attribute_count] = token;
+                    attribute_count++;
+                    token = MSVCRT$strtok(NULL, s);
+                } else{
+                    internal_printf("[!] Cannot return more than %i attributes, will omit additional attributes.\n", MAX_ATTRIBUTES);
+                    break;
+                }
             }
-        }
-		
-        attr[attribute_count] = NULL;
+            attr[attribute_count] = NULL;
+        #else
+            attr[0] = ldap_attributes;
+            attr[1] = NULL;
+        #endif
+
 
 		errorCode = WLDAP32$ldap_search_s(
         pLdapConnection,    // Session handle
@@ -79,7 +84,7 @@ LDAPMessage* ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, ch
         0,                  // Get both attributes and values
         &pSearchResult);    // [out] Search results
 	} else {
-        internal_printf("[*] Returning all attributes.\n\n");
+        internal_printf("[*] Returning all attributes.\n");
 
 		errorCode = WLDAP32$ldap_search_s(
         pLdapConnection,    // Session handle
@@ -195,11 +200,11 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 
     if ((results_count == 0) || (results_count > numberOfEntries)){
 		results_limit = numberOfEntries;
-  	    internal_printf("\n\n[*] Result count: %d\n", numberOfEntries);
+  	    internal_printf("\n[*] Result count: %d\n", numberOfEntries);
     }
     else { 
     	results_limit = results_count;
-    	internal_printf("[*] Result count: %d (showing max. %d)\n", numberOfEntries, results_count);
+    	internal_printf("\n[*] Result count: %d (showing max. %d)\n", numberOfEntries, results_count);
     }
 
 
@@ -278,6 +283,7 @@ VOID go(
 	results_count = BeaconDataInt(&parser);
 
     ldap_attributes = *ldap_attributes == 0 ? NULL : ldap_attributes;
+
 
 	if(!bofstart())
 	{
