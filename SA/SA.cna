@@ -77,7 +77,7 @@ sub readbof {
 beacon_command_register(
 "ldapsearch", 
 "BOF - Perform LDAP search.", 
-"ldapsearch <query> [attribute] [result_count]
+"ldapsearch <query> [comma_separated_attributes] [result_count]
 
 Useful queries:
 
@@ -88,7 +88,7 @@ Useful queries:
 - Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))");
 
 alias ldapsearch {
-	local('$args');
+	local('$args $attributes $result_limit');
 	
 	if(size(@_) < 2)
 	{
@@ -96,24 +96,11 @@ alias ldapsearch {
 		return;
 	}
 
-	if(size(@_) == 4)
-	{
-		# pack our arguments
-		$args   = bof_pack($1, "zzi", $2, $3, $4);
-	}
+	$attributes = iff(-istrue $3, $3, "");
+	$result_limit = iff(-istrue $4, $4, 0);
 
-	if(size(@_) == 3)
-	{
-		# pack our arguments
-		$args   = bof_pack($1, "zzi", $2, $3, 0);
-	}
+	$args   = bof_pack($1, "zzi", $2, $attributes, $result_limit);
 
-	if(size(@_) == 2)
-	{
-		# pack our arguments
-		$args   = bof_pack($1, "zzi", $2, "", 0);
-	}
-	
 	# execute it.
 	beacon_inline_execute($1, readbof($1, "ldapsearch"), "go", $args);
 }

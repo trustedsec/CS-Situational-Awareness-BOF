@@ -9,23 +9,6 @@
 #include "base.c"
 #include <string.h>
 
-char* GetDomainControllerHostName(){
-	DWORD dwRet;
-	PDOMAIN_CONTROLLER_INFO pdcInfo;
-
-	dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
-	if (ERROR_SUCCESS == dwRet) {
-		internal_printf("[*] Using DC: %s\n", pdcInfo->DomainControllerName);		
-	} else {
- 	    BeaconPrintf(CALLBACK_ERROR, "Failed to identify PDC, are we domain joined?");
-	}
-
-	PCHAR hostName = pdcInfo->DomainControllerName + 2; // Remove preceeding backslashes
-
-	NETAPI32$NetApiBufferFree(pdcInfo);
-	return hostName;
-}
-
 LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 	LDAP* pLdapConnection = NULL;
 
@@ -35,9 +18,6 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
     {
       	BeaconPrintf(CALLBACK_ERROR, "Failed to establish LDAP connection on 389.");
         return NULL;
-    }
-    else {
-		internal_printf("[+] Initialised Connection.\n");
     }
 
 	//////////////////////////////
@@ -51,26 +31,44 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
                 NULL,                 // Credential structure
                 LDAP_AUTH_NEGOTIATE); // Auth mode
 
-    if(lRtn == LDAP_SUCCESS)
+    if(lRtn != LDAP_SUCCESS)
     {
-    	internal_printf("[+] Bind Successful.\n");
-    }
-    else
-    {
-      	BeaconPrintf(CALLBACK_ERROR, "Bind Failed: %u", lRtn);
+    	BeaconPrintf(CALLBACK_ERROR, "Bind Failed: %u", lRtn);
         WLDAP32$ldap_unbind(pLdapConnection);
     }
     return pLdapConnection;
 }
 
 LDAPMessage* ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes){
-	ULONG errorCode = LDAP_SUCCESS;
+	
+    internal_printf("[*] Filter: %s\n",ldap_filter);
+
+    ULONG errorCode = LDAP_SUCCESS;
     LDAPMessage* pSearchResult = NULL;
     
-	if(strlen(ldap_attributes) != 0){
-		PCHAR attr[2];
-		attr[0] = ldap_attributes;
-        attr[1] = NULL;
+	if(ldap_attributes){
+        internal_printf("[*] Returning specific attribute(s): %s\n",ldap_attributes);
+
+        int MAX_ATTRIBUTES = 100;
+        PCHAR attr[MAX_ATTRIBUTES];
+        int attribute_count = 0;
+        char *token;
+        const char s[2] = ","; //delimiter
+
+        token = MSVCRT$strtok(ldap_attributes, s);
+        
+        while( token != NULL ) {
+            if(attribute_count < MAX_ATTRIBUTES){
+                attr[attribute_count] = token;
+                attribute_count++;
+                token = MSVCRT$strtok(NULL, s);
+            } else{
+                internal_printf("[!] Cannot return more than %i attributes, will omit additional attributes.\n", MAX_ATTRIBUTES);
+                break;
+            }
+        }
+		
+        attr[attribute_count] = NULL;
 
 		errorCode = WLDAP32$ldap_search_s(
         pLdapConnection,    // Session handle
@@ -81,12 +79,14 @@ LDAPMessage* ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, ch
         0,                  // Get both attributes and values
         &pSearchResult);    // [out] Search results
 	} else {
+        internal_printf("[*] Returning all attributes.\n\n");
+
 		errorCode = WLDAP32$ldap_search_s(
         pLdapConnection,    // Session handle
         distinguishedName,  // DN to start search
         LDAP_SCOPE_SUBTREE, // Scope
         ldap_filter,        // Filter
-        NULL,               // Retrieve list of attributes
+        NULL,               // Retrieve all attributes
         0,                  // Get both attributes and values
         &pSearchResult);    // [out] Search results
 	}   
@@ -99,51 +99,11 @@ LDAPMessage* ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, ch
         if(pSearchResult != NULL)
             WLDAP32$ldap_msgfree(pSearchResult);
     }
-    else {
-    	internal_printf("[+] LDAP Search Succeeded.\n");
-    }
     return pSearchResult;
 
 }
 
 void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
- //    ULONG iValue = 0;
-
-	// // Print status if no values are returned (NULL ptr)
- //    if(ppValue == NULL)
- //    {
- //    	internal_printf("%s: [NO ATTRIBUTE VALUE RETURNED]", pAttribute);
- //    }
-
- //    // Output the attribute values
- //    else
- //    {
- //        iValue = WLDAP32$ldap_count_values(ppValue);
- //        if(!iValue)
- //        {
- //        	internal_printf("%s: [BAD VALUE LIST]", pAttribute);
- //        }
- //        else
- //        {
- //            if((MSVCRT$strcmp(pAttribute, "pwdLastSet") == 0)||
- //            	(MSVCRT$strcmp(pAttribute, "lastLogon") == 0)||
- //            	(MSVCRT$strcmp(pAttribute, "badPasswordTime") == 0)||
- //            	(MSVCRT$strcmp(pAttribute, "lastLogonTimestamp") == 0)){
- //            	internal_printf("\n%s: ", pAttribute);
- //            	// TODO: Implement transformations for various attribute data types.
- //                internal_printf("%s", *ppValue);
-            	
- //            } else
- //                internal_printf("\n%s: %s", pAttribute, *ppValue); // Output the first attribute value
-
- //            // Output more values if available
- //            ULONG z;
- //            for(z=1; z<iValue; z++)
- //            {
- //                internal_printf(", %s", ppValue[z]);
- //            }
- //        }
- //    }
     internal_printf("\n%s: ", pAttribute);
     internal_printf("%s", *ppValue);
     ppValue++;
@@ -156,14 +116,6 @@ void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
 
 
 void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count){
-	internal_printf("[*] Using filter: %s\n",ldap_filter);
-	
-	if(strlen(ldap_attributes)==0)
-		internal_printf("[*] Returning all attributes.\n\n");
-	else
-		internal_printf("[*] Returning specific attribute: %s\n\n",ldap_attributes);
-	
-
 	char szDN[1024];
 	ULONG ulSize = sizeof(szDN)/sizeof(szDN[0]);
 	BOOL res = SECUR32$GetUserNameExA(1, szDN, &ulSize);
@@ -173,7 +125,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 
 	distinguishedName = MSVCRT$strstr(szDN, dc);
 	if(distinguishedName != NULL) {
-    	internal_printf("[*] Using distinguished name: %s\n", distinguishedName);	
+    	internal_printf("[*] Distinguished name: %s\n", distinguishedName);	
 	}
 	else{
 		BeaconPrintf(CALLBACK_ERROR, "Failed to retrieve distinguished name.");
@@ -183,13 +135,24 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 	////////////////////////////
 	// Retrieve PDC
 	////////////////////////////
-	PCHAR hostName = GetDomainControllerHostName();
+    DWORD dwRet;
+    PDOMAIN_CONTROLLER_INFO pdcInfo;
+
+    dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
+    if (ERROR_SUCCESS == dwRet) {
+        internal_printf("[*] DC: %s\n", pdcInfo->DomainControllerName);       
+    } else {
+        BeaconPrintf(CALLBACK_ERROR, "Failed to identify PDC, are we domain joined?");
+    }
+
 
 	//////////////////////////////
 	// Initialise LDAP Session
     // Taken from https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ldap/searching-a-directory
 	//////////////////////////////
-    LDAP* pLdapConnection = InitialiseLDAPConnection(hostName, distinguishedName);
+    LDAP* pLdapConnection = InitialiseLDAPConnection(pdcInfo->DomainControllerName + 2, distinguishedName);
+
+    NETAPI32$NetApiBufferFree(pdcInfo);
 
     if(!pLdapConnection)
         return;
@@ -232,7 +195,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 
     if ((results_count == 0) || (results_count > numberOfEntries)){
 		results_limit = numberOfEntries;
-  	    internal_printf("[*] Result count: %d\n", numberOfEntries);
+  	    internal_printf("\n\n[*] Result count: %d\n", numberOfEntries);
     }
     else { 
     	results_limit = results_count;
@@ -313,6 +276,8 @@ VOID go(
 	ldap_filter = BeaconDataExtract(&parser, NULL);
 	ldap_attributes = BeaconDataExtract(&parser, NULL);
 	results_count = BeaconDataInt(&parser);
+
+    ldap_attributes = *ldap_attributes == 0 ? NULL : ldap_attributes;
 
 	if(!bofstart())
 	{
