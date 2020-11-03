@@ -117,14 +117,14 @@ int PrintModules(DWORD processID)
 // TODO: Add an argument to exclude Microsoft DLLs.
 void go(char * args, int length) {
 
-  	if(!bofstart()) {
-		  return;
-	  }
+    if(!bofstart()) {
+      return;
+    }
 
     PrintModules(KERNEL32$GetCurrentProcessId());
 
     printoutput(TRUE);
-	  bofstop();
+    bofstop();
 
     return;
 }
