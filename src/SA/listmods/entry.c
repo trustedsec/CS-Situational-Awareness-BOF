@@ -89,6 +89,9 @@ int PrintModules(DWORD processID)
         } 
     }
 
+    // Free hMods allocated space
+    intFree(hMods);
+
     // Release the handle to the process.
     KERNEL32$CloseHandle(hProcess);
     return 0;
