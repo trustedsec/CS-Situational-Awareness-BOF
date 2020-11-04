@@ -4,40 +4,13 @@
 #include "bofdefs.h"
 #include "base.c"
 
-DECLSPEC_IMPORT LPVOID WINAPI KERNEL32$OpenProcess(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwProcessId);
-DECLSPEC_IMPORT DWORD KERNEL32$GetCurrentProcessId();
-DECLSPEC_IMPORT HGLOBAL KERNEL32$GlobalAlloc(UINT uFlags, SIZE_T dwBytes);
-DECLSPEC_IMPORT HGLOBAL KERNEL32$GlobalFree(HGLOBAL hMem);
-DECLSPEC_IMPORT WINBOOL WINAPI PSAPI$EnumProcessModulesEx(HANDLE hProcess, HMODULE *lphModule, DWORD cb, LPDWORD lpcbNeeded, DWORD dwFilterFlag);
-DECLSPEC_IMPORT DWORD PSAPI$GetModuleFileNameExA(HANDLE hProcess, HMODULE hModule, LPSTR lpFilename, DWORD nSize);
-
-typedef DWORD GetFileVersionInfoSizeA_t(
-  LPCSTR  lptstrFilename,
-  LPDWORD lpdwHandle
-);
-
-typedef WINBOOL GetFileVersionInfoA_t(
-  LPCSTR lptstrFilename,
-  DWORD  dwHandle,
-  DWORD  dwLen,
-  LPVOID lpData
-);
-
-typedef WINBOOL VerQueryValueA_t(
-  LPCVOID pBlock,
-  LPCSTR  lpSubBlock,
-  LPVOID  *lplpBuffer,
-  PUINT   puLen
-);
-
 // Inspired from: https://www.codeguru.com/cpp/w-p/win32/versioning/article.php/c4539/Versioning-in-Windows.htm
 int PrintSingleModule(char* szFile){
     DWORD dwLen, dwUseless;
     LPTSTR lpVI;
     char* companyName;
 
-    GetFileVersionInfoSizeA_t* GetFileVersionInfoSizeA = (GetFileVersionInfoSizeA_t*) GetProcAddress(LoadLibraryA("Api-ms-win-core-version-l1-1-0.dll"), "GetFileVersionInfoSizeA");
-    dwLen = GetFileVersionInfoSizeA((LPTSTR)szFile, &dwUseless);
+    dwLen = VERSION$GetFileVersionInfoSizeA((LPTSTR)szFile, &dwUseless);
     if (dwLen==0){
         internal_printf("%-50sERROR: Could not GetFileVersionInfoSizeA() on the DLL.\n", szFile);
         return 1;
@@ -56,21 +29,19 @@ int PrintSingleModule(char* szFile){
         LPVOID lpCompanyName;
         UINT cbBufSize;
 
-        GetFileVersionInfoA_t* GetFileVersionInfoA = (GetFileVersionInfoA_t*) GetProcAddress(LoadLibraryA("Api-ms-win-core-version-l1-1-0.dll"), "GetFileVersionInfoA");
-        GetFileVersionInfoA((LPTSTR)szFile, 0, dwLen, lpVI);
+        VERSION$GetFileVersionInfoA((LPTSTR)szFile, 0, dwLen, lpVI);
 
         //First, to get string information, we need to get
         //language information.
-        VerQueryValueA_t* VerQueryValueA = (VerQueryValueA_t*) GetProcAddress(LoadLibraryA("Api-ms-win-core-version-l1-1-0.dll"), "VerQueryValueA");
-        VerQueryValueA(lpVI, "\\VarFileInfo\\Translation", (LPVOID*)&langInfo, &cbLang);
+        VERSION$VerQueryValueA(lpVI, "\\VarFileInfo\\Translation", (LPVOID*)&langInfo, &cbLang);
 
         // Get Description
         MSVCRT$sprintf(szVerDescription, "\\StringFileInfo\\%04x%04x\\%s", langInfo[0], langInfo[1], "FileDescription");
-        VerQueryValueA(lpVI, szVerDescription, &lpDescription, &cbBufSize);
+        VERSION$VerQueryValueA(lpVI, szVerDescription, &lpDescription, &cbBufSize);
 
         // Get Company Name
         MSVCRT$sprintf(szVerCompanyName, "\\StringFileInfo\\%04x%04x\\%s", langInfo[0], langInfo[1], "CompanyName");
-        VerQueryValueA(lpVI, szVerCompanyName, &lpCompanyName, &cbBufSize);
+        VERSION$VerQueryValueA(lpVI, szVerCompanyName, &lpCompanyName, &cbBufSize);
 
         // Print line
         internal_printf("%-50s%-25s%-25s\n", szFile, (LPTSTR)lpCompanyName, (LPTSTR)lpDescription);
@@ -85,9 +56,9 @@ int PrintSingleModule(char* szFile){
 
 int PrintModules(DWORD processID)
 {
-    HMODULE hMods[256];     // if 1024 -> Unknown symbol '___chkstk_ms'
+    HMODULE* hMods; 
     HANDLE hProcess;
-    DWORD cbNeeded;
+    DWORD cbNeeded, cbNeeded2;
     unsigned int i;
     char szModName[MAX_PATH];
 
@@ -99,7 +70,17 @@ int PrintModules(DWORD processID)
     if (NULL == hProcess)
         return 1;
 
-    if(PSAPI$EnumProcessModulesEx(hProcess, hMods, sizeof(hMods), &cbNeeded, LIST_MODULES_ALL)) {
+    // Get size needed before requesting hMods
+    if(!PSAPI$EnumProcessModulesEx(hProcess, 0, 0, &cbNeeded, LIST_MODULES_ALL)){
+        internal_printf("Failed to enumerate modules\n");
+        return 1;
+    }
+
+    // Allocating space for hMods
+    hMods = (HMODULE*)intAlloc(cbNeeded);
+    
+    // Requesting hMods
+    if(PSAPI$EnumProcessModulesEx(hProcess, hMods, cbNeeded, &cbNeeded2, LIST_MODULES_ALL)) {
         for (i = 0; i < (cbNeeded / sizeof(HMODULE)); i++ ) {
             // Get the full path to the module's file.
             if (PSAPI$GetModuleFileNameExA(hProcess, hMods[i], szModName, sizeof(szModName))) {
