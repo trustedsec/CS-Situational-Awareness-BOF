@@ -12,7 +12,7 @@ int PrintSingleModule(char* szFile){
 
     dwLen = VERSION$GetFileVersionInfoSizeA((LPTSTR)szFile, &dwUseless);
     if (dwLen==0){
-        internal_printf("%-50sERROR: Could not GetFileVersionInfoSizeA() on the DLL.\n", szFile);
+        internal_printf("%-60s ERROR: Could not GetFileVersionInfoSizeA() on the DLL.\n", szFile);
         return 1;
     }
 
@@ -23,8 +23,8 @@ int PrintSingleModule(char* szFile){
         BOOL bRet = FALSE;
         WORD* langInfo;
         UINT cbLang;
-        char szVerDescription[128];
-        char szVerCompanyName[128];
+        char szVerDescription[256];
+        char szVerCompanyName[256];
         LPVOID lpDescription;
         LPVOID lpCompanyName;
         UINT cbBufSize;
@@ -44,7 +44,7 @@ int PrintSingleModule(char* szFile){
         VERSION$VerQueryValueA(lpVI, szVerCompanyName, &lpCompanyName, &cbBufSize);
 
         // Print line
-        internal_printf("%-50s%-25s%-25s\n", szFile, (LPTSTR)lpCompanyName, (LPTSTR)lpDescription);
+        internal_printf("%-60s %-25s%-25s\n", szFile, (LPTSTR)lpCompanyName, (LPTSTR)lpDescription);
 
         //Cleanup
         KERNEL32$GlobalFree((HGLOBAL)lpVI);
@@ -63,12 +63,14 @@ int PrintModules(DWORD processID)
     char szModName[MAX_PATH];
 
     // Print the process identifier. (debug)
-    //BeaconPrintf(CALLBACK_OUTPUT, "Process ID: %u\n", processID );
+    internal_printf("Printing modules of process ID: %u\n", processID);
 
     // Get a handle to the process.
     hProcess = KERNEL32$OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
-    if (NULL == hProcess)
+    if (NULL == hProcess){
+        internal_printf("ERROR: Failed to open process.\n");
         return 1;
+    }
 
     // Get size needed before requesting hMods
     if(!PSAPI$EnumProcessModulesEx(hProcess, 0, 0, &cbNeeded, LIST_MODULES_ALL)){
@@ -77,6 +79,7 @@ int PrintModules(DWORD processID)
     }
 
     // Allocating space for hMods
+    //internal_printf("Allocating %d bytes to store hMods.\n", cbNeeded);
     hMods = (HMODULE*)intAlloc(cbNeeded);
     
     // Requesting hMods
@@ -97,15 +100,25 @@ int PrintModules(DWORD processID)
     return 0;
 }
 
-// TODO: Perform recon on arbitrary PID. Could be a useful check before remote injection. 
 // TODO: Add an argument to exclude Microsoft DLLs.
 void go(char * args, int length) {
+	  datap parser;
+    int pid;
+    int pid_arg;
+    BeaconDataParse(&parser, args, length);
+	  pid_arg = BeaconDataInt(&parser);
 
     if(!bofstart()) {
       return;
     }
 
-    PrintModules(KERNEL32$GetCurrentProcessId());
+    if(pid_arg == 0){
+        pid = KERNEL32$GetCurrentProcessId();
+    } else {
+      pid = pid_arg;
+    }
+
+    PrintModules(pid);
 
     printoutput(TRUE);
     bofstop();

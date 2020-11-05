@@ -139,13 +139,17 @@ beacon_command_register(
 );
 
 alias listmods {
-	beacon_inline_execute($1, readbof($1, "listmods"), "go", $null);
+	local('$args $pid');
+
+	$pid = iff(-istrue $2, $2, 0);
+	$args = bof_pack($1, "i", $pid);
+	beacon_inline_execute($1, readbof($1, "listmods"), "go", $args);
 }
 
 beacon_command_register(
 	"listmods",
 	"lists process modules",
-	"Synopsis: listmods (does not take arguments) "
+	"Synopsis: listmods <opt: pid> "
 );
 
 alias netuser {
