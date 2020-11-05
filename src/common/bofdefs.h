@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <windns.h>
 #include <dbghelp.h>
+#include <winldap.h>
 
 //KERNEL32
 #ifdef BOF
