@@ -76,12 +76,13 @@ WINBASEAPI wchar_t *__cdecl MSVCRT$wcstok(wchar_t * __restrict__ _Str,const wcha
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsstr(const wchar_t *_Str,const wchar_t *_SubStr);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcscat(wchar_t * __restrict__ _Dest,const wchar_t * __restrict__ _Source);
 WINBASEAPI int __cdecl MSVCRT$_wcsicmp(const wchar_t *_Str1,const wchar_t *_Str2);
-WINBASEAPI wchar_t * MSVCRT$wcsncat(wchar_t * __restrict__ _Dest,const wchar_t * __restrict__ _Source,size_t _Count);
+WINBASEAPI wchar_t * __cdecl MSVCRT$wcsncat(wchar_t * __restrict__ _Dest,const wchar_t * __restrict__ _Source,size_t _Count);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsrchr(const wchar_t *_Str,wchar_t _Ch);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsrchr(const wchar_t *_Str,wchar_t _Ch);
 
 DECLSPEC_IMPORT int __cdecl MSVCRT$strcmp(const char *_Str1,const char *_Str2);
-DECLSPEC_IMPORT PCHAR WINAPI MSVCRT$strstr(const char *haystack, const char *needle);
+DECLSPEC_IMPORT PCHAR __cdecl MSVCRT$strstr(const char *haystack, const char *needle);
+DECLSPEC_IMPORT char *__cdecl MSVCRT$strtok(char * __restrict__ _Str,const char * __restrict__ _Delim);
 
 
 //DNSAPI
@@ -224,15 +225,19 @@ DECLSPEC_IMPORT LDAPMessage*  WINAPI WLDAP32$ldap_first_entry(LDAP *ld,LDAPMessa
 DECLSPEC_IMPORT LDAPMessage*  WINAPI WLDAP32$ldap_next_entry(LDAP*,LDAPMessage*);
 DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_first_attribute(LDAP *ld,LDAPMessage *entry,BerElement **ptr);
 DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_count_values(PCHAR);
-DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_get_values(LDAP *ld,LDAPMessage *entry,const PSTR attr);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_value_free(PCHAR);
-DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_next_attribute(LDAP *ld,LDAPMessage *entry,BerElement **ptr);
+DECLSPEC_IMPORT PCHAR * WINAPI WLDAP32$ldap_get_values(LDAP *ld,LDAPMessage *entry,const PSTR attr);
+DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_value_free(PCHAR *);
+DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_next_attribute(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
 DECLSPEC_IMPORT VOID WINAPI WLDAP32$ber_free(BerElement *pBerElement,INT fbuf);
 DECLSPEC_IMPORT VOID WINAPI WLDAP32$ldap_memfree(PCHAR);
 
 DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_unbind(LDAP*);
 DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_unbind_s(LDAP*);
 DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_msgfree(LDAPMessage*);
+
+//RPCRT4
+RPCRTAPI RPC_STATUS RPC_ENTRY RPCRT4$UuidToStringA(UUID *Uuid,RPC_CSTR *StringUuid);
+RPCRTAPI RPC_STATUS RPC_ENTRY RPCRT4$RpcStringFreeA(RPC_CSTR *String);
 
 #else
 //Not Kept up to date, update if required
