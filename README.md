@@ -21,6 +21,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
 |ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] | Executes LDAP searches |
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
+|listmods|listmods [opt: pid]| List a process modules (DLL). Target current process if pid is empty. Complement to driversigs to determine if our process was injected by edr/av.|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
 |netuser|netuser [username] [opt: domain]| Pulls info about specific user.  Pulls from domain if a domainname is specified|
 |netview|netview| Gets a list of reachable servers in the current domain|
@@ -47,6 +48,8 @@ Note the reason for including reg_query when CS has a built in reg query(v) comm
 The functional code for most of these commands was taken from the reactos project or code examples hosted on MSDN.  
 The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df09f83d3620013f5d370d3b9
 
+Thank you to martindube for his contribution of listmods
+
 ##### compiler used
 The follow compiler was used.  This project has not been tested with other compilers.
 ```
@@ -58,3 +61,5 @@ Configured with: ../configure --target=x86_64-w64-mingw32 --with-sysroot=/usr/lo
 Thread model: posix
 gcc version 9.3.0 (GCC) 
 ```
+
+

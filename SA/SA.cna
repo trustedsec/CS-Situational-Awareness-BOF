@@ -171,6 +171,20 @@ beacon_command_register(
 	"Synopsis: listdns (does not take arguments)  Note this will query each found hostname for its ip address"
 );
 
+alias listmods {
+	local('$args $pid');
+
+	$pid = iff(-istrue $2, $2, 0);
+	$args = bof_pack($1, "i", $pid);
+	beacon_inline_execute($1, readbof($1, "listmods"), "go", $args);
+}
+
+beacon_command_register(
+	"listmods",
+	"lists process modules",
+	"Synopsis: listmods <opt: pid> "
+);
+
 alias netuser {
 	local('$args $domain');
 	if(size(@_) < 2){
