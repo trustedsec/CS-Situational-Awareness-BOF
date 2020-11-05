@@ -20,6 +20,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
+|listmods|listmods [opt: pid]| List a process modules (DLL). Target current process if pid is empty. Complement to driversigs to determine if our process was injected by edr/av.|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
 |netuser|netuser [username] [opt: domain]| Pulls info about specific user.  Pulls from domain if a domainname is specified|
 |netview|netview| Gets a list of reachable servers in the current domain|
