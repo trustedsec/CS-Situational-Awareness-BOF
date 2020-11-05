@@ -48,7 +48,8 @@ Note the reason for including reg_query when CS has a built in reg query(v) comm
 The functional code for most of these commands was taken from the reactos project or code examples hosted on MSDN.  
 The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df09f83d3620013f5d370d3b9
 
-Thank you to martindube for his contribution of listmods
+Thank you to martindube for his contribution of listmods</br>
+Thank you to ajpc500 for their contribution of ldapsearch
 
 ##### compiler used
 The follow compiler was used.  This project has not been tested with other compilers.
