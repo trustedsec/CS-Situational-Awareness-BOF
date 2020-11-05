@@ -19,6 +19,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |cacls|cacls [filepath]|lists user permissions for the specified file, wildcards supported|
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
+|ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] | Executes LDAP searches |
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
 |listmods|listmods [opt: pid]| List a process modules (DLL). Target current process if pid is empty. Complement to driversigs to determine if our process was injected by edr/av.|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
