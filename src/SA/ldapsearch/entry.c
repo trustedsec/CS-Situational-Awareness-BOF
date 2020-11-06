@@ -159,6 +159,12 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
     LDAPMessage* pSearchResult = NULL;
     char* distinguishedName = NULL;
     BerElement* pBer = NULL;
+    LDAPMessage* pEntry = NULL;
+    PCHAR pEntryDN = NULL;
+    ULONG iCnt = 0;
+    PCHAR pAttribute = NULL;
+    PCHAR* ppValue = NULL;
+    ULONG results_limit = 0;
 
 	distinguishedName = MSVCRT$strstr(szDN, "DC");
 	if(distinguishedName != NULL) {
@@ -221,13 +227,6 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
     //////////////////////////////
 	// Get Search Result Count
 	//////////////////////////////
-    LDAPMessage* pEntry = NULL;
-    PCHAR pEntryDN = NULL;
-    ULONG iCnt = 0;
-    PCHAR pAttribute = NULL;
-    PCHAR* ppValue = NULL;
-
-    ULONG results_limit = 0;
 
     if ((results_count == 0) || (results_count > numberOfEntries)){
 		results_limit = numberOfEntries;
