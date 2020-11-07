@@ -4,19 +4,20 @@
 #ifndef bufsize
 #define bufsize 8192
 #endif
-#pragma GCC diagnostic ignored "-Wint-conversion"
+
+//#pragma GCC diagnostic ignored "-Wint-conversion"
 //formatp output = {1}; // this is just done so its we don't go into .bss which isn't handled properly
-char * output = 1;
+char * output = (char*)1;
 WORD currentoutsize = 1;
-HANDLE trash = 1; // Needed for x64 to not give relocation error
-#pragma GCC diagnostic pop
+HANDLE trash = (HANDLE)1; // Needed for x64 to not give relocation error
+//#pragma GCC diagnostic pop
 
 int bofstart();
 #ifdef BOF
 void internal_printf(const char* format, ...);
 #endif
 char * Utf16ToUtf8(const wchar_t* input);
-void printoutput();
+void printoutput(BOOL done);
 void bofstop();
 #ifdef BOF
 int bofstart()
@@ -24,7 +25,7 @@ int bofstart()
     //output.original=NULL;
     //handle any global initilization here
     //BeaconFormatAlloc(&output, bufsize+256);
-    output = MSVCRT$calloc(bufsize, 1);
+    output = (char*)MSVCRT$calloc(bufsize, 1);
     currentoutsize = 0;
     return 1;
 
@@ -35,12 +36,12 @@ void internal_printf(const char* format, ...){
     int transfersize = 0;
     char * curloc = NULL;
     char* intBuffer = NULL;
-    char* transferBuffer = intAlloc(bufsize);
+    char* transferBuffer = (char*)intAlloc(bufsize);
     va_list args;
     va_start(args, format);
     buffersize = MSVCRT$vsnprintf(NULL, 0, format, args); // +1 because vsprintf goes to buffersize-1 , and buffersize won't return with the null
     va_end(args);
-    intBuffer = intAlloc(buffersize);
+    intBuffer = (char*)intAlloc(buffersize);
     /*Print string to memory buffer*/
     va_start(args, format);
     MSVCRT$vsnprintf(intBuffer, buffersize, format, args); // tmpBuffer2 has a null terminated string
