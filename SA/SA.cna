@@ -707,3 +707,44 @@ hive should be one of:
 	HKU
 	HKCR
 If a value to query is not specified, that one key is enumerated");
+
+
+#2 = system
+sub btasklist{ 
+	local('$args $system');
+	blog($1, "Retrieving list of currently running processes");
+	$args = bof_pack($1, "Z", $2);
+	beacon_inline_execute($1, readbof($1, "tasklist"), "go", $args);
+}
+
+alias tasklist{
+    local('$system')
+	
+	$system = "";
+	
+	if ((size(@_) < 1) || (size(@_) > 2))
+	{
+    	berror($1, beacon_command_detail("tasklist"));
+		berror($1, "Invalid number of arguments");
+		return;
+	}
+	if (size(@_) > 1)
+	{
+    	$system = $2;
+	}
+	btasklist($1, $system);
+}
+
+beacon_command_register(
+	"tasklist",
+	"This tool displays a list of currently running processes on either a local or remote machine.",
+	"
+Command: tasklist
+Summary: This tool displays a list of currently running processes on either a 
+         local or remote machine.
+Usage:   tasklist (system)
+         system       - Specifies the remote system to connect to. 
+Note:    You must have a valid login token for the system specified if not 
+         local. This token can be obtained using make_token.
+"
+);
