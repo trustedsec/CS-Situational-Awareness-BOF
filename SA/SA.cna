@@ -737,13 +737,61 @@ alias tasklist{
 
 beacon_command_register(
 	"tasklist",
-	"This tool displays a list of currently running processes on either a local or remote machine.",
+	"Lists currently running processes",
 	"
 Command: tasklist
-Summary: This tool displays a list of currently running processes on either a 
-         local or remote machine.
+Summary: This command displays a list of currently running processes on either 
+         a local or remote machine.
 Usage:   tasklist (system)
-         system       - Specifies the remote system to connect to. 
+         system       - Optional. Specifies the remote system to connect to. Do 
+		                not include or use '.' to indicate the command should 
+						be run on the local system.
+Note:    You must have a valid login token for the system specified if not 
+         local. This token can be obtained using make_token.
+"
+);
+
+
+#2 = system, 3 = query
+sub bwmi_query{ 
+	local('$args $system $query');
+	blog($1, "Running WMI query");
+	$args = bof_pack($1, "ZZ", $2, $3);
+	beacon_inline_execute($1, readbof($1, "wmi_query"), "go", $args);
+}
+
+alias wmi_query{
+    local('$system $query')
+	
+	$system = "";
+	$query = "";
+	
+	if ((size(@_) < 2) || (size(@_) > 3))
+	{
+    	berror($1, beacon_command_detail("tasklist"));
+		berror($1, "Invalid number of arguments");
+		return;
+	}
+   	$query = $2;
+	if (size(@_) > 2)
+	{
+    	$system = $3;
+	}
+	bwmi_query($1, $system, $query);
+}
+
+beacon_command_register(
+	"wmi_query",
+	"Runs a general WMI query",
+	"
+Command: wmi_query
+Summary: This command runs a general WMI query on either a local or remote 
+         machine and displays the results in a comma separated table.
+Usage:   wmi_query [query] (system)
+         query        - The query to run. The query should be in WQL.
+         system       - Optional. Specifies the remote system to connect to. Do 
+                        not include or use '.' to indicate the command should 
+                        be run on the local system.
 Note:    You must have a valid login token for the system specified if not 
          local. This token can be obtained using make_token.
 "
