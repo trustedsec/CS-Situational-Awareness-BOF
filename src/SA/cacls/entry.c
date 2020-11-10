@@ -13,6 +13,52 @@ enum searchtype{
     Fail
 };
 
+typedef struct _AR
+{
+    DWORD Access;
+    const char * uID;
+}AR, *pAR;
+pAR AccessRights = (pAR)1;
+
+#define LOVEIT(a, b, c) a.Access = b; a.uID = c
+
+void LovingIt() // Fix bof's inability to handle initialized ** type values
+{
+    AccessRights = (pAR)intAlloc(26 * sizeof(AR));
+    LOVEIT(AccessRights[0], FILE_WRITE_ATTRIBUTES, IDS_FILE_WRITE_ATTRIBUTES);
+    LOVEIT(AccessRights[1], FILE_READ_ATTRIBUTES, IDS_FILE_READ_ATTRIBUTES);
+    LOVEIT(AccessRights[2], FILE_DELETE_CHILD, IDS_FILE_DELETE_CHILD);
+    LOVEIT(AccessRights[3], FILE_EXECUTE, IDS_FILE_EXECUTE);
+    LOVEIT(AccessRights[4], FILE_WRITE_EA, IDS_FILE_WRITE_EA);
+    LOVEIT(AccessRights[5], FILE_READ_EA, IDS_FILE_READ_EA);
+    LOVEIT(AccessRights[6], FILE_APPEND_DATA, IDS_FILE_APPEND_DATA);
+    LOVEIT(AccessRights[7], FILE_WRITE_DATA, IDS_FILE_WRITE_DATA);
+    LOVEIT(AccessRights[8], FILE_READ_DATA, IDS_FILE_READ_DATA);
+    LOVEIT(AccessRights[9], FILE_GENERIC_EXECUTE, IDS_FILE_GENERIC_EXECUTE);
+    LOVEIT(AccessRights[10], FILE_GENERIC_WRITE, IDS_FILE_GENERIC_WRITE);
+    LOVEIT(AccessRights[11], FILE_GENERIC_READ, IDS_FILE_GENERIC_READ);
+    LOVEIT(AccessRights[12], GENERIC_ALL, IDS_GENERIC_ALL);
+    LOVEIT(AccessRights[13], GENERIC_EXECUTE, IDS_GENERIC_EXECUTE);
+    LOVEIT(AccessRights[14], GENERIC_WRITE, IDS_GENERIC_WRITE);
+    LOVEIT(AccessRights[15], GENERIC_READ, IDS_GENERIC_READ);
+    LOVEIT(AccessRights[16], MAXIMUM_ALLOWED, IDS_MAXIMUM_ALLOWED);
+    LOVEIT(AccessRights[17], ACCESS_SYSTEM_SECURITY, IDS_ACCESS_SYSTEM_SECURITY);
+    LOVEIT(AccessRights[18], SPECIFIC_RIGHTS_ALL, IDS_SPECIFIC_RIGHTS_ALL);
+    LOVEIT(AccessRights[19], STANDARD_RIGHTS_REQUIRED, IDS_STANDARD_RIGHTS_REQUIRED);
+    LOVEIT(AccessRights[20], SYNCHRONIZE, IDS_SYNCHRONIZE);
+    LOVEIT(AccessRights[21], WRITE_OWNER, IDS_WRITE_OWNER);
+    LOVEIT(AccessRights[22], WRITE_DAC, IDS_WRITE_DAC);
+    LOVEIT(AccessRights[23], READ_CONTROL, IDS_READ_CONTROL);
+    LOVEIT(AccessRights[24], DELETE, IDS_DELETE);
+    LOVEIT(AccessRights[25], STANDARD_RIGHTS_ALL, IDS_STANDARD_RIGHTS_ALL);
+}
+
+void DoneLovingIt()
+{
+    intFree(AccessRights);
+}
+
+
 
 static BOOL
 PrintFileDacl(IN LPWSTR FilePath,
@@ -25,6 +71,7 @@ PrintFileDacl(IN LPWSTR FilePath,
     DWORD SDSize = 0;
     WCHAR FullFileName[MAX_PATH + 1];
     BOOL Error = FALSE, Ret = FALSE;
+    DWORD x = 0, x2 = 0;
     if(ST == File)
     {
         Length = KERNEL32$lstrlenW(FilePath) + KERNEL32$lstrlenW(FileName);
@@ -215,7 +262,7 @@ BuildSidString:
                             else
                             {
                                 internal_printf("%s", IDS_DENY);
-                                //goto PrintSpecialAccess;
+                                goto PrintSpecialAccess;
                             }
                         }
                         else
@@ -239,65 +286,27 @@ BuildSidString:
                             }
                             else
                             {
-                                internal_printf("trash");
-//                                 DWORD x, x2;
-//                                 static const struct
-//                                 {
-//                                     DWORD Access;
-//                                     const char * uID;
-//                                 }
-//                                 AccessRights[] =
-//                                 {
-//                                     {FILE_WRITE_ATTRIBUTES, IDS_FILE_WRITE_ATTRIBUTES},
-//                                     {FILE_READ_ATTRIBUTES, IDS_FILE_READ_ATTRIBUTES},
-//                                     {FILE_DELETE_CHILD, IDS_FILE_DELETE_CHILD},
-//                                     {FILE_EXECUTE, IDS_FILE_EXECUTE},
-//                                     {FILE_WRITE_EA, IDS_FILE_WRITE_EA},
-//                                     {FILE_READ_EA, IDS_FILE_READ_EA},
-//                                     {FILE_APPEND_DATA, IDS_FILE_APPEND_DATA},
-//                                     {FILE_WRITE_DATA, IDS_FILE_WRITE_DATA},
-//                                     {FILE_READ_DATA, IDS_FILE_READ_DATA},
-//                                     {FILE_GENERIC_EXECUTE, IDS_FILE_GENERIC_EXECUTE},
-//                                     {FILE_GENERIC_WRITE, IDS_FILE_GENERIC_WRITE},
-//                                     {FILE_GENERIC_READ, IDS_FILE_GENERIC_READ},
-//                                     {GENERIC_ALL, IDS_GENERIC_ALL},
-//                                     {GENERIC_EXECUTE, IDS_GENERIC_EXECUTE},
-//                                     {GENERIC_WRITE, IDS_GENERIC_WRITE},
-//                                     {GENERIC_READ, IDS_GENERIC_READ},
-//                                     {MAXIMUM_ALLOWED, IDS_MAXIMUM_ALLOWED},
-//                                     {ACCESS_SYSTEM_SECURITY, IDS_ACCESS_SYSTEM_SECURITY},
-//                                     {SPECIFIC_RIGHTS_ALL, IDS_SPECIFIC_RIGHTS_ALL},
-//                                     {STANDARD_RIGHTS_REQUIRED, IDS_STANDARD_RIGHTS_REQUIRED},
-//                                     {SYNCHRONIZE, IDS_SYNCHRONIZE},
-//                                     {WRITE_OWNER, IDS_WRITE_OWNER},
-//                                     {WRITE_DAC, IDS_WRITE_DAC},
-//                                     {READ_CONTROL, IDS_READ_CONTROL},
-//                                     {DELETE, IDS_DELETE},
-//                                     {STANDARD_RIGHTS_ALL, IDS_STANDARD_RIGHTS_ALL},
-//                                 };
+                                internal_printf("%s", IDS_ALLOW);
+PrintSpecialAccess:
+                                internal_printf("%s", IDS_SPECIAL_ACCESS);
+                                /* print the special access rights */
+                                x = 26;
+                                while (x != 0)
+                                {
+                                    if ((Ace->Mask & AccessRights[x].Access) == AccessRights[x].Access)
+                                    {
+                                        internal_printf("\n%S ", FullFileName);
+                                        for (x2 = 0; x2 < IndentAccess; x2++)
+                                        {
+                                            internal_printf("%s", L" ");
+                                        }
 
-//                                 internal_printf("%s", IDS_ALLOW);
+                                        internal_printf("%s", AccessRights[x].uID);
+                                    }
+                                    x--;
+                                }
 
-// PrintSpecialAccess:
-//                                 internal_printf("%s", IDS_SPECIAL_ACCESS);
-
-//                                 /* print the special access rights */
-//                                 x = ARRAYSIZE(AccessRights);
-//                                 while (x-- != 0)
-//                                 {
-//                                     if ((Ace->Mask & AccessRights[x].Access) == AccessRights[x].Access)
-//                                     {
-//                                         internal_printf("\n%S ", FullFileName);
-//                                         for (x2 = 0; x2 < IndentAccess; x2++)
-//                                         {
-//                                             internal_printf("%s", L" ");
-//                                         }
-
-//                                         internal_printf("%s", AccessRights[x].uID);
-//                                     }
-//                                 }
-
-//                                 internal_printf("%s", L"\n");
+                                internal_printf("%s", L"\n");
 //                             }
                             }
                         }
@@ -411,7 +420,6 @@ PrintDaclsOfFiles(LPCWSTR pszFiles)
             return FALSE;
         case Folder:
         {
-            BeaconPrintf(CALLBACK_OUTPUT, "Would run on folder %S : %S", pszFiles, FilePath);
             if(!PrintFileDacl(FilePath, L"", ST))
             {
                 BeaconPrintf(CALLBACK_ERROR, "Unable to list permissions of file %S", pszFiles);
@@ -424,7 +432,6 @@ PrintDaclsOfFiles(LPCWSTR pszFiles)
         default:
             break;
     }
-        return FALSE;
 
     //again lets see if this is a folder
     
@@ -433,7 +440,10 @@ PrintDaclsOfFiles(LPCWSTR pszFiles)
      */
     hFind = KERNEL32$FindFirstFileW(pszFiles, &FindData);
     if (hFind == INVALID_HANDLE_VALUE)
+    {
+        BeaconPrintf(CALLBACK_ERROR, "Error starting search handle\n");
         return FALSE;
+    }
 
     do
     {
@@ -483,7 +493,9 @@ VOID go(
 	{
 		return;
 	}
+    LovingIt();
 	PrintDaclsOfFiles(targetpath);
+    DoneLovingIt();
 	printoutput(TRUE);
 	bofstop();
 };
