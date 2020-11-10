@@ -3,13 +3,29 @@
 #include "bofdefs.h"
 #include "base.c"
 
+BOOL ALL = TRUE;
+int JUNK = 1; // just to make it not get relocation error
+
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam){
-    char WindowName[80], ClassName[80];
-    USER32$GetWindowTextA(hwnd, WindowName, 80);
-    USER32$GetClassNameA(hwnd, ClassName, 80);
-    if (WindowName[0] != 0 && USER32$IsWindowVisible(hwnd)){
-		internal_printf("Name : %s\n", WindowName);
+    char WindowName[128] = {0};
+    DWORD WinLen = USER32$GetWindowTextA(hwnd, WindowName, 127);
+
+    if (WindowName[0] != 0 && WinLen){
+		if(ALL)
+		{
+	 		internal_printf("%-40s : %s\n", WindowName, (USER32$IsWindowVisible(hwnd) ? "Visible" : "Hidden"));
+		}
+		else
+		{
+			if(USER32$IsWindowVisible(hwnd))
+			{
+				internal_printf("%s\n", WindowName);
+			}
+		}
+		
     }
+
+	
 
     return 1;
 }
@@ -20,6 +36,9 @@ VOID go(
 	IN ULONG Length 
 ) 
 {
+	datap parser;
+	BeaconDataParse(&parser, Buffer, Length);
+	ALL = (BOOL)BeaconDataInt(&parser);
 	if(!bofstart())
 	{
 		return;
