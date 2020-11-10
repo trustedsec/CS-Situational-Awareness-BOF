@@ -50,7 +50,8 @@ The functional code for most of these commands was taken from the reactos projec
 The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df09f83d3620013f5d370d3b9
 
 Thank you to martindube for his contribution of listmods</br>
-Thank you to ajpc500 for their contribution of ldapsearch
+Thank you to ajpc500 for their contribution of ldapsearch</br>
+Thank you to Kapn-kaos for their contribution of tasklist
 
 ##### compiler used
 The follow compiler was used.  This project has not been tested with other compilers.
