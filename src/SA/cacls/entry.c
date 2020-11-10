@@ -328,7 +328,6 @@ PrintSpecialAccess:
 
                         AceIndex++;
                     }
-                                                            return 1;
                     if (!Error)
                         Ret = TRUE;
                 }
