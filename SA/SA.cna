@@ -203,7 +203,7 @@ beacon_command_register(
 );
 
 alias windowlist {
-	beacon_inline_execute($1, readbof($1, "windowlist"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "windowlist"), "go", bof_pack($1, "i", iff($2 eq "all", 1, 0)));
 }
 
 beacon_command_register(
