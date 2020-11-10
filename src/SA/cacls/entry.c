@@ -7,9 +7,17 @@
 
 //credit to the ReactOS project for this code
 
+enum searchtype{
+    File,
+    Folder,
+    Fail
+};
+
+
 static BOOL
 PrintFileDacl(IN LPWSTR FilePath,
-              IN LPWSTR FileName)
+              IN LPWSTR FileName,
+              IN enum searchtype ST)
 {
 	GENERIC_MAPPING FileGenericMapping = {0};
     SIZE_T Length;
@@ -17,17 +25,23 @@ PrintFileDacl(IN LPWSTR FilePath,
     DWORD SDSize = 0;
     WCHAR FullFileName[MAX_PATH + 1];
     BOOL Error = FALSE, Ret = FALSE;
-
-    Length = KERNEL32$lstrlenW(FilePath) + KERNEL32$lstrlenW(FileName);
-    if (Length > MAX_PATH)
+    if(ST == File)
     {
-        /* file name too long */
-        KERNEL32$SetLastError(ERROR_FILE_NOT_FOUND);
-        return FALSE;
-    }
+        Length = KERNEL32$lstrlenW(FilePath) + KERNEL32$lstrlenW(FileName);
+        if (Length > MAX_PATH)
+        {
+            /* file name too long */
+            KERNEL32$SetLastError(ERROR_FILE_NOT_FOUND);
+            return FALSE;
+        }
 
-    KERNEL32$lstrcpynW(FullFileName, FilePath, MAX_PATH);
-    KERNEL32$lstrcatW(FullFileName, FileName);
+        KERNEL32$lstrcpynW(FullFileName, FilePath, MAX_PATH);
+        KERNEL32$lstrcatW(FullFileName, FileName);
+    }else
+    {
+        KERNEL32$lstrcpynW(FullFileName, FilePath, MAX_PATH);
+    }
+    
 
     /* find out how much memory we need */
     if (!ADVAPI32$GetFileSecurityW(FullFileName,
@@ -52,7 +66,6 @@ PrintFileDacl(IN LPWSTR FilePath,
             PACL Dacl;
             BOOL DaclPresent;
             BOOL DaclDefaulted;
-
             if (ADVAPI32$GetSecurityDescriptorDacl(SecurityDescriptor,
                                           &DaclPresent,
                                           &Dacl,
@@ -124,6 +137,7 @@ PrintFileDacl(IN LPWSTR FilePath,
                                     goto BuildSidString;
                                 }
                             }
+
                         }
                         else
                         {
@@ -151,7 +165,7 @@ BuildSidString:
                         }
 
                         /* print the domain and/or user if possible, or the SID string */
-                        if (Name != NULL && Domain[0] != L'\0')
+                        if (Name != NULL && Domain != NULL && Domain[0] != L'\0')
                         {
                             internal_printf("%S\\%S:", Domain, Name);
                             IndentAccess = (DWORD)KERNEL32$lstrlenW(Domain) + KERNEL32$lstrlenW(Name);
@@ -159,9 +173,11 @@ BuildSidString:
                         else
                         {
                             LPWSTR DisplayString = (Name != NULL ? Name : SidString);
-
-                            internal_printf( "%S:", DisplayString);
-                            IndentAccess = (DWORD)KERNEL32$lstrlenW(DisplayString);
+                            if(DisplayString)
+                            {
+                                internal_printf( "%S:", DisplayString);
+                                IndentAccess = (DWORD)KERNEL32$lstrlenW(DisplayString);
+                            }
                         }
 
                         /* print the ACE Flags */
@@ -199,7 +215,7 @@ BuildSidString:
                             else
                             {
                                 internal_printf("%s", IDS_DENY);
-                                goto PrintSpecialAccess;
+                                //goto PrintSpecialAccess;
                             }
                         }
                         else
@@ -223,64 +239,66 @@ BuildSidString:
                             }
                             else
                             {
-                                DWORD x, x2;
-                                static const struct
-                                {
-                                    DWORD Access;
-                                    const char * uID;
-                                }
-                                AccessRights[] =
-                                {
-                                    {FILE_WRITE_ATTRIBUTES, IDS_FILE_WRITE_ATTRIBUTES},
-                                    {FILE_READ_ATTRIBUTES, IDS_FILE_READ_ATTRIBUTES},
-                                    {FILE_DELETE_CHILD, IDS_FILE_DELETE_CHILD},
-                                    {FILE_EXECUTE, IDS_FILE_EXECUTE},
-                                    {FILE_WRITE_EA, IDS_FILE_WRITE_EA},
-                                    {FILE_READ_EA, IDS_FILE_READ_EA},
-                                    {FILE_APPEND_DATA, IDS_FILE_APPEND_DATA},
-                                    {FILE_WRITE_DATA, IDS_FILE_WRITE_DATA},
-                                    {FILE_READ_DATA, IDS_FILE_READ_DATA},
-                                    {FILE_GENERIC_EXECUTE, IDS_FILE_GENERIC_EXECUTE},
-                                    {FILE_GENERIC_WRITE, IDS_FILE_GENERIC_WRITE},
-                                    {FILE_GENERIC_READ, IDS_FILE_GENERIC_READ},
-                                    {GENERIC_ALL, IDS_GENERIC_ALL},
-                                    {GENERIC_EXECUTE, IDS_GENERIC_EXECUTE},
-                                    {GENERIC_WRITE, IDS_GENERIC_WRITE},
-                                    {GENERIC_READ, IDS_GENERIC_READ},
-                                    {MAXIMUM_ALLOWED, IDS_MAXIMUM_ALLOWED},
-                                    {ACCESS_SYSTEM_SECURITY, IDS_ACCESS_SYSTEM_SECURITY},
-                                    {SPECIFIC_RIGHTS_ALL, IDS_SPECIFIC_RIGHTS_ALL},
-                                    {STANDARD_RIGHTS_REQUIRED, IDS_STANDARD_RIGHTS_REQUIRED},
-                                    {SYNCHRONIZE, IDS_SYNCHRONIZE},
-                                    {WRITE_OWNER, IDS_WRITE_OWNER},
-                                    {WRITE_DAC, IDS_WRITE_DAC},
-                                    {READ_CONTROL, IDS_READ_CONTROL},
-                                    {DELETE, IDS_DELETE},
-                                    {STANDARD_RIGHTS_ALL, IDS_STANDARD_RIGHTS_ALL},
-                                };
+                                internal_printf("trash");
+//                                 DWORD x, x2;
+//                                 static const struct
+//                                 {
+//                                     DWORD Access;
+//                                     const char * uID;
+//                                 }
+//                                 AccessRights[] =
+//                                 {
+//                                     {FILE_WRITE_ATTRIBUTES, IDS_FILE_WRITE_ATTRIBUTES},
+//                                     {FILE_READ_ATTRIBUTES, IDS_FILE_READ_ATTRIBUTES},
+//                                     {FILE_DELETE_CHILD, IDS_FILE_DELETE_CHILD},
+//                                     {FILE_EXECUTE, IDS_FILE_EXECUTE},
+//                                     {FILE_WRITE_EA, IDS_FILE_WRITE_EA},
+//                                     {FILE_READ_EA, IDS_FILE_READ_EA},
+//                                     {FILE_APPEND_DATA, IDS_FILE_APPEND_DATA},
+//                                     {FILE_WRITE_DATA, IDS_FILE_WRITE_DATA},
+//                                     {FILE_READ_DATA, IDS_FILE_READ_DATA},
+//                                     {FILE_GENERIC_EXECUTE, IDS_FILE_GENERIC_EXECUTE},
+//                                     {FILE_GENERIC_WRITE, IDS_FILE_GENERIC_WRITE},
+//                                     {FILE_GENERIC_READ, IDS_FILE_GENERIC_READ},
+//                                     {GENERIC_ALL, IDS_GENERIC_ALL},
+//                                     {GENERIC_EXECUTE, IDS_GENERIC_EXECUTE},
+//                                     {GENERIC_WRITE, IDS_GENERIC_WRITE},
+//                                     {GENERIC_READ, IDS_GENERIC_READ},
+//                                     {MAXIMUM_ALLOWED, IDS_MAXIMUM_ALLOWED},
+//                                     {ACCESS_SYSTEM_SECURITY, IDS_ACCESS_SYSTEM_SECURITY},
+//                                     {SPECIFIC_RIGHTS_ALL, IDS_SPECIFIC_RIGHTS_ALL},
+//                                     {STANDARD_RIGHTS_REQUIRED, IDS_STANDARD_RIGHTS_REQUIRED},
+//                                     {SYNCHRONIZE, IDS_SYNCHRONIZE},
+//                                     {WRITE_OWNER, IDS_WRITE_OWNER},
+//                                     {WRITE_DAC, IDS_WRITE_DAC},
+//                                     {READ_CONTROL, IDS_READ_CONTROL},
+//                                     {DELETE, IDS_DELETE},
+//                                     {STANDARD_RIGHTS_ALL, IDS_STANDARD_RIGHTS_ALL},
+//                                 };
 
-                                internal_printf("%s", IDS_ALLOW);
+//                                 internal_printf("%s", IDS_ALLOW);
 
-PrintSpecialAccess:
-                                internal_printf("%s", IDS_SPECIAL_ACCESS);
+// PrintSpecialAccess:
+//                                 internal_printf("%s", IDS_SPECIAL_ACCESS);
 
-                                /* print the special access rights */
-                                x = ARRAYSIZE(AccessRights);
-                                while (x-- != 0)
-                                {
-                                    if ((Ace->Mask & AccessRights[x].Access) == AccessRights[x].Access)
-                                    {
-                                        internal_printf("\n%S ", FullFileName);
-                                        for (x2 = 0; x2 < IndentAccess; x2++)
-                                        {
-                                            internal_printf("%s", L" ");
-                                        }
+//                                 /* print the special access rights */
+//                                 x = ARRAYSIZE(AccessRights);
+//                                 while (x-- != 0)
+//                                 {
+//                                     if ((Ace->Mask & AccessRights[x].Access) == AccessRights[x].Access)
+//                                     {
+//                                         internal_printf("\n%S ", FullFileName);
+//                                         for (x2 = 0; x2 < IndentAccess; x2++)
+//                                         {
+//                                             internal_printf("%s", L" ");
+//                                         }
 
-                                        internal_printf("%s", AccessRights[x].uID);
-                                    }
-                                }
+//                                         internal_printf("%s", AccessRights[x].uID);
+//                                     }
+//                                 }
 
-                                internal_printf("%s", L"\n");
+//                                 internal_printf("%s", L"\n");
+//                             }
                             }
                         }
 
@@ -290,16 +308,18 @@ PrintSpecialAccess:
                         if (Name != NULL)
                         {
                             intFree(Name);
+                            Name = NULL;
                         }
 
                         if (SidString != NULL)
                         {
                             KERNEL32$LocalFree((HLOCAL)SidString);
+                            SidString = NULL;
                         }
 
                         AceIndex++;
                     }
-
+                                                            return 1;
                     if (!Error)
                         Ret = TRUE;
                 }
@@ -329,14 +349,24 @@ AddBackslash(LPWSTR FilePath)
         KERNEL32$lstrcatW(pch, L"\\");
 }
 
-static BOOL
+static enum searchtype
 GetPathOfFile(LPWSTR FilePath, LPCWSTR pszFiles)
 {
     WCHAR FullPath[MAX_PATH];
     LPWSTR pch;
     DWORD attrs;
+    //First lets check if we are pointing at a folder
 
+    attrs = KERNEL32$GetFileAttributesW(pszFiles);
+    if(attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY))
+    {
+        KERNEL32$GetFullPathNameW(pszFiles, MAX_PATH, FilePath, NULL); 
+        return Folder;
+    }
+    // if we get here its probably not a folder, lets follow file logic
     KERNEL32$lstrcpynW(FilePath, pszFiles, MAX_PATH);
+
+
     pch = MSVCRT$wcsrchr(FilePath, L'\\');
     if (pch != NULL)
     {
@@ -344,7 +374,7 @@ GetPathOfFile(LPWSTR FilePath, LPCWSTR pszFiles)
         if (!KERNEL32$GetFullPathNameW(FilePath, MAX_PATH, FullPath, NULL))
         {
             BeaconPrintf(CALLBACK_ERROR, "Failed to resolve path: 0x%x", KERNEL32$GetLastError());
-            return FALSE;
+            return Fail;
         }
         KERNEL32$lstrcpynW(FilePath, FullPath, MAX_PATH);
 
@@ -352,30 +382,52 @@ GetPathOfFile(LPWSTR FilePath, LPCWSTR pszFiles)
         if (attrs == 0xFFFFFFFF || !(attrs & FILE_ATTRIBUTE_DIRECTORY))
         {
             BeaconPrintf(CALLBACK_ERROR, "Failed to resolve attributes: %u", ERROR_DIRECTORY);
-            return FALSE;
+            return Fail;
         }
     }
     else
         KERNEL32$GetCurrentDirectoryW(MAX_PATH, FilePath);
 
     AddBackslash(FilePath);
-    return TRUE;
+    return File;
 }
 
 static BOOL
 PrintDaclsOfFiles(LPCWSTR pszFiles)
 {
-    WCHAR FilePath[MAX_PATH];
+    WCHAR FilePath[MAX_PATH] = {0};
     WIN32_FIND_DATAW FindData;
     HANDLE hFind;
     DWORD LastError;
-
+    enum searchtype ST;
     /*
      * get the file path
      */
-    if (!GetPathOfFile(FilePath, pszFiles))
+    ST = GetPathOfFile(FilePath, pszFiles);
+    switch (ST)
+    {
+        case Fail:
+            BeaconPrintf(CALLBACK_ERROR, "Unable to resolve file path");
+            return FALSE;
+        case Folder:
+        {
+            BeaconPrintf(CALLBACK_OUTPUT, "Would run on folder %S : %S", pszFiles, FilePath);
+            if(!PrintFileDacl(FilePath, L"", ST))
+            {
+                BeaconPrintf(CALLBACK_ERROR, "Unable to list permissions of file %S", pszFiles);
+                return FALSE;
+            }
+            return TRUE;
+        }
+        case File:
+            break;
+        default:
+            break;
+    }
         return FALSE;
 
+    //again lets see if this is a folder
+    
     /*
      * search for the files
      */
@@ -388,17 +440,12 @@ PrintDaclsOfFiles(LPCWSTR pszFiles)
         if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
             continue;
 
-        if (!PrintFileDacl(FilePath, FindData.cFileName))
+        if (!PrintFileDacl(FilePath, FindData.cFileName, ST))
         {
             LastError = KERNEL32$GetLastError();
             if (LastError == ERROR_ACCESS_DENIED)
             {
                 BeaconPrintf(CALLBACK_ERROR, "Unable to list permissions of file %S", FindData.cFileName);
-                // if (!OptionC)
-                // {
-                //     FindClose(hFind);
-                //     return FALSE;
-                // }
             }
             else
             {
