@@ -5,7 +5,7 @@
 
 #pragma GCC diagnostic ignored "-Wint-conversion"
 char ** EServiceStatus = 1;
-char ** EServcieStartup = 1;
+char ** EServiceStartup = 1;
 char ** EServiceError = 1;
 const char * gServiceName = 1;
 #pragma GCC diagnostic pop
@@ -13,7 +13,7 @@ const char * gServiceName = 1;
 void init_enums()
 {
 	EServiceStatus = antiStringResolve(8, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
-	EServcieStartup = antiStringResolve(6, "BOOT_DRIVER", "SYSTEM_START_DRIVER", "AUTO_START", "DEMAND_START", "DISABLED");
+	EServiceStartup = antiStringResolve(6, "BOOT_DRIVER", "SYSTEM_START_DRIVER", "AUTO_START", "DEMAND_START", "DISABLED");
 	EServiceError = antiStringResolve(4, "IGNORE", "NORMAL", "SEVERE", "CRITICAL");
 }
 
@@ -39,7 +39,7 @@ char * resolveType(DWORD T)
 void cleanup_enums()
 {
 	intFree(EServiceStatus);
-	intFree(EServcieStartup);
+	intFree(EServiceStartup);
 	intFree(EServiceError);
 }
 
@@ -127,7 +127,7 @@ DWORD get_service_config(SC_HANDLE scService)
 \t%-20s : %s\n",
 gServiceName,
 "TYPE", lpServiceConfig->dwServiceType, resolveType(lpServiceConfig->dwServiceType),
-"START_TYPE", lpServiceConfig->dwStartType, EServcieStartup[lpServiceConfig->dwStartType],
+"START_TYPE", lpServiceConfig->dwStartType, EServiceStartup[lpServiceConfig->dwStartType],
 "ERROR_CONTROL", lpServiceConfig->dwErrorControl, EServiceError[lpServiceConfig->dwErrorControl],
 "BINARY_PATH_NAME", lpServiceConfig->lpBinaryPathName,
 "LOAD_ORDER_GROUP", (lpServiceConfig->lpLoadOrderGroup) ? lpServiceConfig->lpLoadOrderGroup : "",
@@ -136,7 +136,7 @@ gServiceName,
 "DEPENDENCIES", (lpServiceConfig->lpDependencies && lpServiceConfig->lpDependencies[0] == SC_GROUP_IDENTIFIERA) ?  "(GROUP) " : "", make_long_str(lpServiceConfig->lpDependencies),
 "SERVICE_START_NAME", lpServiceConfig->lpServiceStartName
 );
-		//internal_printf("StartType: %s\nDisplayName: %s\nStartName: %s\nBinPath: %s\nLoadOrderGroup: %s\nError Mode: %s\n", EServcieStartup[lpServiceConfig->dwStartType], lpServiceConfig->lpDisplayName, lpServiceConfig->lpServiceStartName, lpServiceConfig->lpBinaryPathName, lpServiceConfig->lpLoadOrderGroup ? lpServiceConfig->lpLoadOrderGroup : "", EServiceError[lpServiceConfig->dwErrorControl]);
+		//internal_printf("StartType: %s\nDisplayName: %s\nStartName: %s\nBinPath: %s\nLoadOrderGroup: %s\nError Mode: %s\n", EServiceStartup[lpServiceConfig->dwStartType], lpServiceConfig->lpDisplayName, lpServiceConfig->lpServiceStartName, lpServiceConfig->lpBinaryPathName, lpServiceConfig->lpLoadOrderGroup ? lpServiceConfig->lpLoadOrderGroup : "", EServiceError[lpServiceConfig->dwErrorControl]);
 		
 		dwResult = ERROR_SUCCESS;
 	} while (0);

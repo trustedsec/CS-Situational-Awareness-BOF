@@ -599,6 +599,82 @@ beacon_command_register(
 	"Synopsis: sc_qdescription <service name> <opt: hostname>
 	hostname is optional, and the local system is targeted if it is not found");
 
+#2 = hostname
+#3 = servicename
+sub bsc_qfailure{
+	beacon_inline_execute($1, readbof($1, "sc_qfailure"), "go", bof_pack($1, "zz", $2, $3))
+}
+
+alias sc_qfailure{
+	local('$hostname $servicename $args');
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qfailure"));
+		return;
+	}
+
+	bsc_qfailure($1, $hostname, $servicename);
+}
+
+beacon_command_register(
+	"sc_qfailure",
+	"list service failure actions",
+	"usage: sc_qfailure [servicename] [opt: hostname]"
+);
+
+sub bsc_qtriggerinfo{
+	beacon_inline_execute($1, readbof($1, "sc_qtriggerinfo"), "go", bof_pack($1, "zz", $2, $3))
+}
+
+alias sc_qtriggerinfo{
+	local('$hostname $servicename $args');
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qtriggerinfo"));
+		return;
+	}
+
+	bsc_qtriggerinfo($1, $hostname, $servicename);
+}
+
+beacon_command_register(
+	"sc_qtriggerinfo",
+	"lists service triggers",
+	"usage: sc_qtriggers [servicename] [opt: hostname]"
+);
+
+
+alias sc_enum{
+	#$2 = NULL if not given which is what makes this ok
+	beacon_inline_execute($1, readbof($1, "sc_enum"), "go", bof_pack($1, "z", $2));
+}
+
+beacon_command_register(
+	"sc_enum",
+	"Enumerate all service configs in depth",
+	"usage: sc_enum [opt: hostname]"
+);
+
 alias reg_query
 {
 	#I need hostname Hive, path, key type value(s)

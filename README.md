@@ -35,7 +35,10 @@ Realistically, this could be compressed into a helper script, but those steps we
 |routeprint|routeprint| prints ipv4 configured routes|
 |schtasksenum|schtasksenum [opt: server]| Enumerates all scheduled tasks on the local or if provided remote machine|
 |schtasksquery|schtasksquery [opt: server] [taskpath]| Queries the given task from the local or if provided remote machine|
-|sc_qc|sc_qc [service name] [opt: server]| sc qc impelmentation in bof|
+|sc_enum| sc_enum [opt:server] | Enumerates all services for qc, query, qfailure, and qtriggers info |
+|sc_qc|sc_qc [service name] [opt:server]| sc qc impelmentation in bof|
+|sc_qfailure|sc_qfailure [service name] [opt:server] | Queries a service for failure conditions |
+|sc_qtriggers|sc_qtriggers [service name] [opt:server] | Queries a service for trigger conditions |
 |sc_query|sc_query [opt: service name] [opt: server]| sc query implementation in bof|
 |sc_qdescription|sc_qdescription [service name] [opt: server] | sc qdescription implementation in bof|
 |tasklist|tasklist [opt: server]| Get a list of running processes including PID, PPID and ComandLine (uses wmi)|
