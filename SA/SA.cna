@@ -664,6 +664,17 @@ beacon_command_register(
 );
 
 
+alias sc_enum{
+	#$2 = NULL if not given which is what makes this ok
+	beacon_inline_execute($1, readbof($1, "sc_enum"), "go", bof_pack($1, "z", $2));
+}
+
+beacon_command_register(
+	"sc_enum",
+	"Enumerate all service configs in depth",
+	"usage: sc_enum [opt: hostname]"
+);
+
 alias reg_query
 {
 	#I need hostname Hive, path, key type value(s)

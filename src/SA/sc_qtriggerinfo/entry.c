@@ -5,7 +5,6 @@
 
 #pragma GCC diagnostic ignored "-Wint-conversion"
 char ** ETriggerType = 1;
-char ** EServiceError = 1;
 char ** Estartstop = 1;
 const char * gServiceName = 1;
 #pragma GCC diagnostic pop
@@ -81,8 +80,10 @@ DWORD get_service_triggers(SC_HANDLE scService)
 		{
 			RPC_CSTR guid = NULL;
 			RPCRT4$UuidToStringA(lpServiceConfig->pTriggers[x].pTriggerSubtype, &guid);
-			internal_printf("\t%s\n", Estartstop[lpServiceConfig->pTriggers[x].dwAction]);
-			internal_printf("\t  %-20s : %s\n", ETriggerType[lpServiceConfig->pTriggers[x].dwTriggerType], (guid) ? (char *)guid : "(FAILED)");
+			internal_printf("\t%s\n", (lpServiceConfig->pTriggers[x].dwAction > 0 && lpServiceConfig->pTriggers[x].dwAction < 3) ? Estartstop[lpServiceConfig->pTriggers[x].dwAction] : "(FAILED TO RESOLVE)");
+			internal_printf("\t  %-20s : %s\n", 
+			(lpServiceConfig->pTriggers[x].dwTriggerType < 21 && lpServiceConfig->pTriggers[x].dwTriggerType > 0) ? ETriggerType[lpServiceConfig->pTriggers[x].dwTriggerType] : "(FAILED TO RESOLVE)",
+			(guid) ? (char *)guid : "(FAILED)");
 			if(guid) {RPCRT4$RpcStringFreeA(&guid);} //set to null on loop
 			if( (lpServiceConfig->pTriggers[x].dwTriggerType == 20 || lpServiceConfig->pTriggers[x].dwTriggerType == 1 || lpServiceConfig->pTriggers[x].dwTriggerType == 4\
 				|| lpServiceConfig->pTriggers[x].dwTriggerType == 6) && lpServiceConfig->pTriggers[x].cDataItems)

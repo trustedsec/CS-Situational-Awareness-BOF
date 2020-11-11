@@ -4,18 +4,15 @@
 #include "anticrash.c"
 
 #pragma GCC diagnostic ignored "-Wint-conversion"
-char ** EAction = 1;
 const char * gServiceName = 1;
 #pragma GCC diagnostic pop
-
-void init_enums()
+char * resolveAction(DWORD a)
 {
-	EAction = antiStringResolve(4, "NONE", "RESTART", "REBOOT", "COMMAND");
-}
-
-void cleanup_enums()
-{
-	intFree(EAction);
+	if(a == 0){return "NONE";}
+	else if(a == 1){return "RESTART";}
+	else if(a == 2){return "REBOOT";}
+	else if(a == 3){return "COMMAND";}
+	else{return "(FAILED TO RESOLVE)";}
 }
 
 DWORD get_service_failure(SC_HANDLE scService)
@@ -57,7 +54,8 @@ gServiceName,
 );
 		for(DWORD x = 0; x < lpServiceConfig->cActions; x++)
 		{
-			internal_printf("\t%-30s : %s -- Delay = %u milliseconds\n", "FAILURE_ACTIONS", EAction[lpServiceConfig->lpsaActions[x].Type], lpServiceConfig->lpsaActions[x].Delay);
+			internal_printf("%d\n\n", lpServiceConfig->lpsaActions[x].Type);
+			internal_printf("\t%-30s : %s -- Delay = %u milliseconds\n", "FAILURE_ACTIONS", resolveAction(lpServiceConfig->lpsaActions[x].Type), lpServiceConfig->lpsaActions[x].Delay);
 		}
 		dwResult = ERROR_SUCCESS;
 	} while (0);
@@ -118,7 +116,6 @@ VOID go(
 	const char * hostname = NULL;
 	const char * servicename = NULL;
 	datap parser;
-	init_enums();
 	BeaconDataParse(&parser, Buffer, Length);
 	hostname = BeaconDataExtract(&parser, NULL);
 	servicename = BeaconDataExtract(&parser, NULL);
@@ -133,6 +130,5 @@ VOID go(
 		BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %u", result);
 	}
 	printoutput(TRUE);
-	cleanup_enums();
 	bofstop();
 };
