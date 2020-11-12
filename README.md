@@ -35,12 +35,15 @@ Realistically, this could be compressed into a helper script, but those steps we
 |routeprint|routeprint| prints ipv4 configured routes|
 |schtasksenum|schtasksenum [opt: server]| Enumerates all scheduled tasks on the local or if provided remote machine|
 |schtasksquery|schtasksquery [opt: server] [taskpath]| Queries the given task from the local or if provided remote machine|
-|sc_qc|sc_qc [service name] [opt: server]| sc qc impelmentation in bof|
+|sc_enum| sc_enum [opt:server] | Enumerates all services for qc, query, qfailure, and qtriggers info |
+|sc_qc|sc_qc [service name] [opt:server]| sc qc impelmentation in bof|
+|sc_qfailure|sc_qfailure [service name] [opt:server] | Queries a service for failure conditions |
+|sc_qtriggers|sc_qtriggers [service name] [opt:server] | Queries a service for trigger conditions |
 |sc_query|sc_query [opt: service name] [opt: server]| sc query implementation in bof|
 |sc_qdescription|sc_qdescription [service name] [opt: server] | sc qdescription implementation in bof|
 |tasklist|tasklist [opt: server]| Get a list of running processes including PID, PPID and ComandLine (uses wmi)|
 |whoami|whoami| simulates whoami /all|
-|windowlist|windowlist| lists visible windows in the current users session|
+|windowlist|windowlist [opt:all]| lists visible windows in the current users session|
 |wmi_query|wmi_query query [opt: server] [opt: namespace]| Run a wmi query and display results in CSV format|
 
 Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote systems and has the ability to recursively enumerate a whole key.
@@ -51,7 +54,8 @@ The functional code for most of these commands was taken from the reactos projec
 The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df09f83d3620013f5d370d3b9
 
 Thank you to martindube for his contribution of listmods</br>
-Thank you to ajpc500 for their contribution of ldapsearch
+Thank you to ajpc500 for their contribution of ldapsearch</br>
+Thank you to Kapn-kaos for their contribution of tasklist
 
 ##### compiler used
 The follow compiler was used.  This project has not been tested with other compilers.

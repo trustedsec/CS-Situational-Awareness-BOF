@@ -46,37 +46,37 @@ REG_DWORD => 4,
 REG_MULTI_SZ => 7,
 REG_QWORD => 11);
 
-%inttypes = %(
-    REG_DWORD => 1,
-    REG_QWORD => 1);
+%inttypes = %( 
+	REG_DWORD => 1, 
+	REG_QWORD => 1);
 
 
 sub readbof {
     local('$barch $handle $data $args');
-    $barch  = barch($1);
+	$barch  = barch($1);
 
-    # read in the right BOF file
-    println(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
-    $handle = openf(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
-    $data   = readb($handle, -1);
-    closef($handle);
-    if(strlen($data) == 0)
-    {
-        berror($1, "could not read bof file");
-    }
+	# read in the right BOF file
+	println(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
+	$handle = openf(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
+	$data   = readb($handle, -1);
+	closef($handle);
+	if(strlen($data) == 0)
+	{
+		berror($1, "could not read bof file");
+	}
 
-    # pack our arguments
-    #$args   = bof_pack($1, "zi", "Hello World", 1234);
+	# pack our arguments
+	#$args   = bof_pack($1, "zi", "Hello World", 1234);
 
-    # announce what we're doing
-    btask($1, "Running $2");
+	# announce what we're doing
+	btask($1, "Running $2");
     return $data;
 }
 
 
 beacon_command_register(
-"ldapsearch",
-"BOF - Perform LDAP search.",
+"ldapsearch", 
+"BOF - Perform LDAP search.", 
 "ldapsearch <query> [comma_separated_attributes] [result_count]
 
 Useful queries:
@@ -88,448 +88,448 @@ Useful queries:
 - Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))");
 
 alias ldapsearch {
-    local('$args $attributes $result_limit');
+	local('$args $attributes $result_limit');
+	
+	if(size(@_) < 2)
+	{
+		berror($1, beacon_command_detail("ldapsearch"));
+		return;
+	}
 
-    if(size(@_) < 2)
-    {
-        berror($1, beacon_command_detail("ldapsearch"));
-        return;
-    }
+	$attributes = iff(-istrue $3, $3, "");
+	$result_limit = iff(-istrue $4, $4, 0);
 
-    $attributes = iff(-istrue $3, $3, "");
-    $result_limit = iff(-istrue $4, $4, 0);
+	$args   = bof_pack($1, "zzi", $2, $attributes, $result_limit);
 
-    $args   = bof_pack($1, "zzi", $2, $attributes, $result_limit);
-
-    # execute it.
-    beacon_inline_execute($1, readbof($1, "ldapsearch"), "go", $args);
+	# execute it.
+	beacon_inline_execute($1, readbof($1, "ldapsearch"), "go", $args);
 }
 
 
 alias ipconfig {
 
-    beacon_inline_execute($1, readbof($1, "ipconfig"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "ipconfig"), "go", $null);
 }
 
 beacon_command_register(
-"ipconfig",
-"runs an internal ipconfig command",
+"ipconfig", 
+"runs an internal ipconfig command", 
 "Synopsis: ipconfig \n\nLists out adapters, system hostname and configured dns server");
 
 alias nslookup {
-    local('$args $barch $lookup $server $type');
-
-    if(size(@_) < 2)
-    {
-        berror($1, beacon_command_detail("nslookup"));
-        return;
-    }
-    $barch  = barch($1);
-    $lookup = $2;
-    $server = iff(-istrue $3, $3, "");
-    $type = iff(-istrue $4, iff(uc($4) in %recordmapping, %recordmapping[uc($4)], %recordmapping["A"]) , %recordmapping["A"]);
-    btask($1, $server);
-    if($server eq "127.0.0.1"){
-        berror($1, "Localhost dns query's have a potential to crash, refusing");
-        return;
-    }
-    if($barch eq "x86"){
-    btask($1, "x86 beacons do not support custom dns nameservers, overriding to default")
-    $server = ""
-    }
-    $args = bof_pack($1, "zzs", $lookup, $server, $type);
-    beacon_inline_execute($1, readbof($1, "nslookup"), "go", $args);
+	local('$args $barch $lookup $server $type');
+	
+	if(size(@_) < 2)
+	{
+		berror($1, beacon_command_detail("nslookup"));
+		return;
+	}
+	$barch  = barch($1);
+	$lookup = $2;
+	$server = iff(-istrue $3, $3, "");
+	$type = iff(-istrue $4, iff(uc($4) in %recordmapping, %recordmapping[uc($4)], %recordmapping["A"]) , %recordmapping["A"]);
+	btask($1, $server);
+	if($server eq "127.0.0.1"){
+		berror($1, "Localhost dns query's have a potential to crash, refusing");
+		return;
+	}
+	if($barch eq "x86"){
+	btask($1, "x86 beacons do not support custom dns nameservers, overriding to default")
+	$server = ""
+	}
+	$args = bof_pack($1, "zzs", $lookup, $server, $type);
+	beacon_inline_execute($1, readbof($1, "nslookup"), "go", $args);
 }
 
 beacon_command_register(
-    "nslookup",
-    "internally perform a dns query",
-    "Synopsis: nslookup <lookup value> <lookup server> <TYPE> \n\nPerform a DNS Query:\n<lookup value> is the ip or hostname you want to query\n<lookup server> is the server you want to query (use 0 or exclude for system default)\n<TYPE> record type to query");
+	"nslookup", 
+	"internally perform a dns query", 
+	"Synopsis: nslookup <lookup value> <lookup server> <TYPE> \n\nPerform a DNS Query:\n<lookup value> is the ip or hostname you want to query\n<lookup server> is the server you want to query (use 0 or exclude for system default)\n<TYPE> record type to query");
 
 alias netview {
-    local('$args $domain');
+	local('$args $domain');
 
-    $domain = iff(-istrue $2, $2, "");
-    $args = bof_pack($1, "Z", $domain);
-    beacon_inline_execute($1, readbof($1, "netview"), "go", $args);
+	$domain = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Z", $domain);
+	beacon_inline_execute($1, readbof($1, "netview"), "go", $args);
 }
 
 beacon_command_register(
-    "netview",
-    "lists local workstations and servers",
-    "Synopsis: netview <optional netbios domain name>"
+	"netview",
+	"lists local workstations and servers",
+	"Synopsis: netview <optional netbios domain name>"
 );
 
 alias listdns {
 
-    beacon_inline_execute($1, readbof($1, "listdns"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "listdns"), "go", $null);
 }
 
 beacon_command_register(
-    "listdns",
-    "lists dns cache entries",
-    "Synopsis: listdns (does not take arguments)  Note this will query each found hostname for its ip address"
+	"listdns",
+	"lists dns cache entries",
+	"Synopsis: listdns (does not take arguments)  Note this will query each found hostname for its ip address"
 );
 
 alias listmods {
-    local('$args $pid');
+	local('$args $pid');
 
-    $pid = iff(-istrue $2, $2, 0);
-    $args = bof_pack($1, "i", $pid);
-    beacon_inline_execute($1, readbof($1, "listmods"), "go", $args);
+	$pid = iff(-istrue $2, $2, 0);
+	$args = bof_pack($1, "i", $pid);
+	beacon_inline_execute($1, readbof($1, "listmods"), "go", $args);
 }
 
 beacon_command_register(
-    "listmods",
-    "lists process modules",
-    "Synopsis: listmods <opt: pid> "
+	"listmods",
+	"lists process modules",
+	"Synopsis: listmods <opt: pid> "
 );
 
 alias netuser {
-    local('$args $domain');
-    if(size(@_) < 2){
-        berror($1, beacon_command_detail("netuser"));
-        return;
-    }
-    $domain = iff(-istrue $3, $3, "");
-    $args = bof_pack($1, "ZZ", $2, $domain);
-    beacon_inline_execute($1, readbof($1, "netuser"), "go", $args);
+	local('$args $domain');
+	if(size(@_) < 2){
+		berror($1, beacon_command_detail("netuser"));
+		return;
+	}
+	$domain = iff(-istrue $3, $3, "");
+	$args = bof_pack($1, "ZZ", $2, $domain);
+	beacon_inline_execute($1, readbof($1, "netuser"), "go", $args);
 }
 
 beacon_command_register(
-    "netuser",
-    "list user info",
-    "Synopsis: netuser <username> <optional: dns or netbios domain name, if not given run against local computer>"
+	"netuser",
+	"list user info",
+	"Synopsis: netuser <username> <optional: dns or netbios domain name, if not given run against local computer>"
 );
 
 alias windowlist {
-    beacon_inline_execute($1, readbof($1, "windowlist"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "windowlist"), "go", bof_pack($1, "i", iff($2 eq "all", 1, 0)));
 }
 
 beacon_command_register(
-    "windowlist",
-    "list visible windows",
-    "Synopsis: List windows visible on the users desktop"
+	"windowlist",
+	"list visible windows",
+	"Synopsis: List windows visible on the users desktop"
 );
 
 alias netstat {
-    beacon_inline_execute($1, readbof($1, "netstat"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "netstat"), "go", $null);
 }
 
 beacon_command_register(
-    "netstat",
-    "get local ipv4 udp/tcp listening and connected ports"
-    "Synopsis: List listening and connected ipv4 udp and tcp connections"
+	"netstat",
+	"get local ipv4 udp/tcp listening and connected ports"
+	"Synopsis: List listening and connected ipv4 udp and tcp connections"
 );
 
 alias routeprint {
-    beacon_inline_execute($1, readbof($1, "routeprint"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "routeprint"), "go", $null);
 }
 
 beacon_command_register(
-    "routeprint",
-    "prints ipv4 routes on the machine",
-    "Synopsis: Lists targets ipv4 routes"
+	"routeprint",
+	"prints ipv4 routes on the machine",
+	"Synopsis: Lists targets ipv4 routes"
 );
 
 alias whoami {
-    beacon_inline_execute($1, readbof($1, "whoami"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "whoami"), "go", $null);
 }
 
 beacon_command_register (
-    "whoami",
-    "internal version of whoami /all"
-    "run this to get the info from whoami /all without starting cmd.exe"
+	"whoami",
+	"internal version of whoami /all"
+	"run this to get the info from whoami /all without starting cmd.exe"
 );
 
 alias userenum {
-    local('$args $type')
-    if(size (@_) == 2)
-    {
-        if(@_[1] in %enumtype)
-        {
-            $type = %enumtype[@_[1]]
-        }
-        else{
-            berror($1, beacon_command_detail("userenum"));
-            berror($1, "Invalid filter specified");
-            return;
-        }
-    }
-    else{
-        $type = %enumtype["all"];
-    }
-    $args = bof_pack($1, "ii", 0, $type);
-    beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args);
+	local('$args $type')
+	if(size (@_) == 2)
+	{
+		if(@_[1] in %enumtype)
+		{
+			$type = %enumtype[@_[1]]
+		}
+		else{
+			berror($1, beacon_command_detail("userenum"));
+			berror($1, "Invalid filter specified");
+			return;
+		}
+	}
+	else{
+		$type = %enumtype["all"];
+	}
+	$args = bof_pack($1, "ii", 0, $type);
+	beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args);
 }
 
 alias domainenum {
-    local('$args $type')
-    if(size (@_) == 2)
-    {
-        if(@_[1] in %enumtype)
-        {
-            $type = %enumtype[@_[1]]
-        }
-        else{
-            berror($1, beacon_command_detail("domainenum"));
-            berror($1, "Invalid filter specified");
-            return;
-        }
-    }
-    else{
-        $type = %enumtype["all"];
-    }
-        $args = bof_pack($1, "ii", 1, $type);
-    beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args); # netuserenum here is not a mistake
+	local('$args $type')
+	if(size (@_) == 2)
+	{
+		if(@_[1] in %enumtype)
+		{
+			$type = %enumtype[@_[1]]
+		}
+		else{
+			berror($1, beacon_command_detail("domainenum"));
+			berror($1, "Invalid filter specified");
+			return;
+		}
+	}
+	else{
+		$type = %enumtype["all"];
+	}
+		$args = bof_pack($1, "ii", 1, $type);
+	beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args); # netuserenum here is not a mistake
 }
 
 beacon_command_register(
-    "domainenum",
-    "list usersaccounts in the current domain",
-    "This command lists out domain user accounts
-    You may specify one of (all, active, locked, disabled) to filter accounts returned
-    defaults to all if not specified;"
+	"domainenum",
+	"list usersaccounts in the current domain",
+	"This command lists out domain user accounts
+	You may specify one of (all, active, locked, disabled) to filter accounts returned
+	defaults to all if not specified;"
 );
 
 beacon_command_register(
-    "userenum",
-    "List computer user accounts",
-    "This command lists user accounts on the current computer
-    You may specify one of (all, active, locked, disabled) to filter accounts returned
-    defaults to all if not specified;"
+	"userenum",
+	"List computer user accounts",
+	"This command lists user accounts on the current computer
+	You may specify one of (all, active, locked, disabled) to filter accounts returned
+	defaults to all if not specified;"
 )
 
 alias driversigs {
-    beacon_inline_execute($1, readbof($1, "driversigs"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "driversigs"), "go", $null);
 }
 
 beacon_command_register(
-    "driversigs",
-    "checks drivers for known edr vendor names",
-    "Run the command and we will accept enumerate services and check the binary signatures for known edr vendor names"
+	"driversigs",
+	"checks drivers for known edr vendor names",
+	"Run the command and we will accept enumerate services and check the binary signatures for known edr vendor names"
 );
 
 alias netshares{
-    local('$args $name')
-    $name = iff(-istrue $2, $2, "");
-    $args = bof_pack($1, "Zi", $name, 0);
-    beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 0);
+	beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
 }
 
 beacon_command_register(
-    "netshares",
-    "list shares on local or remote computer",
-    "netshares <\\computername>"
+	"netshares",
+	"list shares on local or remote computer",
+	"netshares <\\computername>"
 );
 
 alias netsharesAdmin{
-    local('$args $name')
-    $name = iff(-istrue $2, $2, "");
-    $args = bof_pack($1, "Zi", $name, 1);
-    beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 1);
+	beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
 }
 
 beacon_command_register(
-    "netsharesAdmin",
-    "list shares on local or remote computer and gets more info then standard netshares(requires admin)",
-    "netsharesAdmin <\\computername>"
+	"netsharesAdmin",
+	"list shares on local or remote computer and gets more info then standard netshares(requires admin)",
+	"netsharesAdmin <\\computername>"
 );
 
 sub bnetgroup{
-    local('$args $domain $group $type')
-    $type = $2;
-    if($type < 0 || $type > 1)
-    {
-        berror($1, "Invalid type passed to bnetgroup");
-        return;
-    }
-    if($type == 1) #list group members
-    {
-        $group = $3;
-        $domain = iff(-istrue $4, $4, "");
-    }
-    else # list groups
-    {
-        $group = "";
-        $domain = iff(-istrue $3, $3, "");
-    }
-    $args = bof_pack($1, "sZZ", $type, $domain, $group);
-    beacon_inline_execute($1, readbof($1, "netgroup"), "go", $args);
+	local('$args $domain $group $type')
+	$type = $2;
+	if($type < 0 || $type > 1)
+	{
+		berror($1, "Invalid type passed to bnetgroup");
+		return;
+	}
+	if($type == 1) #list group members
+	{
+		$group = $3;
+		$domain = iff(-istrue $4, $4, "");
+	}
+	else # list groups
+	{
+		$group = "";
+		$domain = iff(-istrue $3, $3, "");
+	}
+	$args = bof_pack($1, "sZZ", $type, $domain, $group);
+	beacon_inline_execute($1, readbof($1, "netgroup"), "go", $args);
 }
 
 alias netGroupList {
-    bnetgroup($1, 0, $2);
+	bnetgroup($1, 0, $2);
 }
 
 alias netGroupListMembers {
-    bnetgroup($1, 1, $2, $3);
+	bnetgroup($1, 1, $2, $3);
 }
 
 beacon_command_register(
-    "netGroupList",
-    "List Groups in this domain (or specified domain if given)",
-    "netGroupList: <opt: domainname>"
+	"netGroupList",
+	"List Groups in this domain (or specified domain if given)",
+	"netGroupList: <opt: domainname>"
 );
 
 beacon_command_register(
-    "netGroupListMembers",
-    "List the members of the specified group in this domain (or specified domain if given)",
-    "netGroupListMembers: <Group Name> <opt: domainname>"
+	"netGroupListMembers",
+	"List the members of the specified group in this domain (or specified domain if given)",
+	"netGroupListMembers: <Group Name> <opt: domainname>"
 );
 
 sub bnetlocalgroup{
-    local('$args $server $group $type')
-    $type = $2;
-    if($type < 0 || $type > 1)
-    {
-        berror($1, "Invalid type passed to bnetlocalgroup");
-        return;
-    }
-    if($type == 1) #list group members
-    {
-        $group = $3;
-        $server = iff(-istrue $4, $4, "");
-    }
-    else # list groups
-    {
-        $group = "";
-        $server = iff(-istrue $3, $3, "");
-    }
-    $args = bof_pack($1, "sZZ", $type, $server, $group);
-    beacon_inline_execute($1, readbof($1, "netlocalgroup"), "go", $args);
+	local('$args $server $group $type')
+	$type = $2;
+	if($type < 0 || $type > 1)
+	{
+		berror($1, "Invalid type passed to bnetlocalgroup");
+		return;
+	}
+	if($type == 1) #list group members
+	{
+		$group = $3;
+		$server = iff(-istrue $4, $4, "");
+	}
+	else # list groups
+	{
+		$group = "";
+		$server = iff(-istrue $3, $3, "");
+	}
+	$args = bof_pack($1, "sZZ", $type, $server, $group);
+	beacon_inline_execute($1, readbof($1, "netlocalgroup"), "go", $args);
 }
 
 alias netLocalGroupList {
-    bnetlocalgroup($1, 0, $2);
+	bnetlocalgroup($1, 0, $2);
 }
 
 alias netLocalGroupListMembers {
-    bnetlocalgroup($1, 1, $2, $3);
+	bnetlocalgroup($1, 1, $2, $3);
 }
 
 beacon_command_register(
-    "netLocalGroupList",
-    "List Groups in this server (or specified server if given)",
-    "netGroupList: <opt: servername>"
+	"netLocalGroupList",
+	"List Groups in this server (or specified server if given)",
+	"netGroupList: <opt: servername>"
 );
 
 beacon_command_register(
-    "netLocalGroupListMembers",
-    "List the members of the specified group in this server (or specified server if given)",
-    "netGroupListMembers: <Group Name> <opt: servername>"
+	"netLocalGroupListMembers",
+	"List the members of the specified group in this server (or specified server if given)",
+	"netGroupListMembers: <Group Name> <opt: servername>"
 );
 
 sub bschtasksenum{
-    local('$args');
-    $args = bof_pack($1, "Z", iff(-istrue $2, $2, ""));
-    beacon_inline_execute($1, readbof($1, "schtasksenum"), "go", $args);
+	local('$args');
+	$args = bof_pack($1, "Z", iff(-istrue $2, $2, ""));
+	beacon_inline_execute($1, readbof($1, "schtasksenum"), "go", $args);
 }
 
 alias schtasksenum{
-    bschtasksenum($1, $2);
+	bschtasksenum($1, $2);
 }
 
 beacon_command_register(
-    "schtasksenum",
-    "enumerates all scheduled tasks on the local or target machine",
-    "schtasksenum <opt:target>"
+	"schtasksenum",
+	"enumerates all scheduled tasks on the local or target machine",
+	"schtasksenum <opt:target>"
 );
 
 
 sub bschtasksquery{
-    local('$args');
-    $args = bof_pack($1, "ZZ", $2, $3);
-    beacon_inline_execute($1, readbof($1, "schtasksquery"), "go", $args);
+	local('$args');
+	$args = bof_pack($1, "ZZ", $2, $3);
+	beacon_inline_execute($1, readbof($1, "schtasksquery"), "go", $args);
 }
 
 
 alias schtasksquery{
-    local('$server $taskname')
-    $server = "";
-    if ( size(@_) < 2)
-    {
-        berror($1, "Invalid Usage");
-        berror($1, beacon_command_detail("schtasksquery"));
-        return;
-    } else if(size(@_) == 2)
-    {
-        $taskname = $2;
-    } else if(size(@_) == 3)
-    {
-        $server = $2;
-        $taskname = $3;
-    } else
-    {
-        berror($1, "Invalid Usage");
-        berror($1, beacon_command_detail("schtasksquery"));
-        return;
-    }
-    bschtasksquery($1, $server, $taskname);
+	local('$server $taskname')
+	$server = "";
+	if ( size(@_) < 2)
+	{
+		berror($1, "Invalid Usage");
+		berror($1, beacon_command_detail("schtasksquery"));
+		return;
+	} else if(size(@_) == 2)
+	{
+		$taskname = $2;
+	} else if(size(@_) == 3)
+	{
+		$server = $2;
+		$taskname = $3;
+	} else 
+	{
+		berror($1, "Invalid Usage");
+		berror($1, beacon_command_detail("schtasksquery"));
+		return;
+	}
+	bschtasksquery($1, $server, $taskname);
 }
 
 beacon_command_register(
-    "schtasksquery",
-    "lists the details of the requested task",
-    "schtasksquery <opt:server> <taskname>
-    Note the task name must be given by full path including taskname, ex.
-    schtasksquery \\Microsoft\\Windows\\MUI\\LpRemove"
+	"schtasksquery",
+	"lists the details of the requested task",
+	"schtasksquery <opt:server> <taskname>
+	Note the task name must be given by full path including taskname, ex. 
+	schtasksquery \\Microsoft\\Windows\\MUI\\LpRemove"
 );
 
 sub bcacls{
-    beacon_inline_execute($1, readbof($1, "cacls"), "go",  bof_pack($1, "Z", $2));
+	beacon_inline_execute($1, readbof($1, "cacls"), "go",  bof_pack($1, "Z", $2));
 }
 
 alias cacls{
-    if( size(@_) < 2)
-    {
-        berror($1, "requires file path");
-        berror($1, beacon_command_detail("cacls"));
-        return;
-    }
-    bcacls($1, $2);
+	if( size(@_) < 2)
+	{
+		berror($1, "requires file path");
+		berror($1, beacon_command_detail("cacls"));
+		return;
+	}
+	bcacls($1, $2);
 }
 
 beacon_command_register(
-    "cacls",
-    "lists file permissions",
-    "cacls <file path>
-    Wildcards are supported
-    ex
-        cacls C:\\windows\\system32\\*
-        cacls C:\\windows\\system32\\cmd.exe
-    Key:
-        F: Full access
-        R: Read & Execute access
-        C: Read, Write, Execute, Delete
-        W: Write access"
+	"cacls",
+	"lists file permissions",
+	"cacls <file path>
+	Wildcards are supported
+	ex
+		cacls C:\\windows\\system32\\*
+		cacls C:\\windows\\system32\\cmd.exe
+	Key:
+		F: Full access
+		R: Read & Execute access
+		C: Read, Write, Execute, Delete
+		W: Write access"
 );
 
 alias sc_query {
-    local('$hostname $servicename $args');
-    $hostname = $null;
-    $servicename = $null;
+	local('$hostname $servicename $args');
+	$hostname = $null;
+	$servicename = $null;
 
-    if(size(@_) == 2)
-    {
-        $servicename = $2;
-        $hostname = $null;
-    }
-    else if (size(@_) == 3)
-    {
-        $servicename = $2;
-        $hostname = $3;
-    }
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
 
-    $args = bof_pack($1, "zz", $hostname, $servicename);
-    beacon_inline_execute($1, readbof($1, "sc_query"), "go", $args);
+	$args = bof_pack($1, "zz", $hostname, $servicename);
+	beacon_inline_execute($1, readbof($1, "sc_query"), "go", $args);
 
 }
 
 beacon_command_register(
-    "sc_query",
-    "queries a services status",
-    "Synopsis: sc_query <opt: service name> <opt: hostname>
+	"sc_query", 
+	"queries a services status", 
+	"Synopsis: sc_query <opt: service name> <opt: hostname>
 give no parameters to enumerate all services
 Give just a service name to query just that service
 Give \"\" as the service name and a remote host to enumerate all services on a remote host
@@ -537,175 +537,251 @@ Give both to query a specific service on a remote host"
 );
 
 alias sc_qc {
-    local('$hostname $servicename $args');
+	local('$hostname $servicename $args');
 
 
-    if(size(@_) == 2)
-    {
-        $servicename = $2;
-        $hostname = $null;
-    }
-    else if (size(@_) == 3)
-    {
-        $servicename = $2;
-        $hostname = $3;
-    }
-    else
-    {
-        berror($1, beacon_command_detail("sc_qc"));
-        return;
-    }
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qc"));
+		return;
+	}
 
 
-    $args = bof_pack($1, "zz", $hostname, $servicename);
-    beacon_inline_execute($1, readbof($1, "sc_qc"), "go", $args);
+	$args = bof_pack($1, "zz", $hostname, $servicename);
+	beacon_inline_execute($1, readbof($1, "sc_qc"), "go", $args);
 }
 
 beacon_command_register(
-    "sc_qc",
-    "queries a services configuration",
-    "Synopsis: sc_qc  <service name> <opt: hostname>
-     hostname is optional, and the local system is targeted if it is not found"
+	"sc_qc", 
+	"queries a services configuration", 
+	"Synopsis: sc_qc  <service name> <opt: hostname>
+	 hostname is optional, and the local system is targeted if it is not found"
 );
 
 
 alias sc_qdescription {
-    local('$hostname $servicename $args');
+	local('$hostname $servicename $args');
 
-    if(size(@_) == 2)
-    {
-        $servicename = $2;
-        $hostname = $null;
-    }
-    else if (size(@_) == 3)
-    {
-        $servicename = $2;
-        $hostname = $3;
-    }
-    else
-    {
-        berror($1, beacon_command_detail("sc_qdescription"));
-        return;
-    }
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qdescription"));
+		return;
+	}
 
-        $args = bof_pack($1, "zz", $hostname, $servicename);
-        beacon_inline_execute($1, readbof($1, "sc_qdescription"), "go", $args);
+		$args = bof_pack($1, "zz", $hostname, $servicename);
+		beacon_inline_execute($1, readbof($1, "sc_qdescription"), "go", $args);
 
 }
 
 beacon_command_register(
-    "sc_qdescription",
-    "queries a services description",
-    "Synopsis: sc_qdescription <service name> <opt: hostname>
-    hostname is optional, and the local system is targeted if it is not found");
+	"sc_qdescription", 
+	"queries a services description", 
+	"Synopsis: sc_qdescription <service name> <opt: hostname>
+	hostname is optional, and the local system is targeted if it is not found");
+
+#2 = hostname
+#3 = servicename
+sub bsc_qfailure{
+	beacon_inline_execute($1, readbof($1, "sc_qfailure"), "go", bof_pack($1, "zz", $2, $3))
+}
+
+alias sc_qfailure{
+	local('$hostname $servicename $args');
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qfailure"));
+		return;
+	}
+
+	bsc_qfailure($1, $hostname, $servicename);
+}
+
+beacon_command_register(
+	"sc_qfailure",
+	"list service failure actions",
+	"usage: sc_qfailure [servicename] [opt: hostname]"
+);
+
+sub bsc_qtriggerinfo{
+	beacon_inline_execute($1, readbof($1, "sc_qtriggerinfo"), "go", bof_pack($1, "zz", $2, $3))
+}
+
+alias sc_qtriggerinfo{
+	local('$hostname $servicename $args');
+	if(size(@_) == 2)
+	{
+		$servicename = $2;
+		$hostname = $null;
+	}
+	else if (size(@_) == 3)
+	{
+		$servicename = $2;
+		$hostname = $3;
+	}
+	else
+	{
+		berror($1, beacon_command_detail("sc_qtriggerinfo"));
+		return;
+	}
+
+	bsc_qtriggerinfo($1, $hostname, $servicename);
+}
+
+beacon_command_register(
+	"sc_qtriggerinfo",
+	"lists service triggers",
+	"usage: sc_qtriggers [servicename] [opt: hostname]"
+);
+
+
+alias sc_enum{
+	#$2 = NULL if not given which is what makes this ok
+	beacon_inline_execute($1, readbof($1, "sc_enum"), "go", bof_pack($1, "z", $2));
+}
+
+beacon_command_register(
+	"sc_enum",
+	"Enumerate all service configs in depth",
+	"usage: sc_enum [opt: hostname]"
+);
 
 alias reg_query
 {
-    #I need hostname Hive, path, key type value(s)
-    #test if val in pos 1 is in Hive, if not, then assume it is a hostname
-    # values at end, if multisz pack them using a variable bof string
-    local('$hostname $hive $path $key $i')
-    $packstr = "zizz";
-    if(size(@_) < 3){
-        berror($1, beacon_command_detail("reg_query"));
-        return;
-    }
-    else{
-        if($2 in %reghives)
-        {
-            #targeting local system
-            $hostname = $null;
-            $i = 1;
-        }
-        else{
-            $hostname = "\\\\" . $2;
-            $i = 2;
-        }
-        if (@_[$i] in %reghives)
-        {
-            $hive = %reghives[@_[$i]];
-            $i++;
-        }
-        else
-        {
-            berror($1, beacon_command_detail("reg_query"));
-            berror($1, "Provided registry hive value is invalid");
-            return;
-        }
-        $path = @_[$i];
-        println($path);
-        $i++;
-        if($i < size(@_))
-        {
-            $key = @_[$i];
-            println("set subkey value to $key");
-        }
-        else
-        {
-            $key = "";
-        }
-        $args = bof_pack($1, "zizzi", $hostname, $hive, $path, $key, 0);
-        beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
-    }
+	#I need hostname Hive, path, key type value(s)
+	#test if val in pos 1 is in Hive, if not, then assume it is a hostname
+	# values at end, if multisz pack them using a variable bof string
+	local('$hostname $hive $path $key $i')
+	$packstr = "zizz";
+	if(size(@_) < 3){
+		berror($1, beacon_command_detail("reg_query"));
+		return;
+	}
+	else{
+		if($2 in %reghives)
+		{
+			#targeting local system
+			$hostname = $null;
+			$i = 1;
+		}
+		else{
+			$hostname = "\\\\" . $2;
+			$i = 2;
+		}
+		if (@_[$i] in %reghives)
+		{
+			$hive = %reghives[@_[$i]];
+			$i++;
+		}
+		else
+		{
+			berror($1, beacon_command_detail("reg_query"));
+			berror($1, "Provided registry hive value is invalid");
+			return;
+		}
+		$path = @_[$i];
+		println($path);
+		$i++;
+		if($i < size(@_))
+		{
+			$key = @_[$i];
+			println("set subkey value to $key");
+		}
+		else
+		{
+			$key = "";
+		}
+		$args = bof_pack($1, "zizzi", $hostname, $hive, $path, $key, 0);
+		beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
+	}
 
 }
 beacon_command_register(
-    "reg_query",
-    "querys registry Key OR value",
+	"reg_query",
+	"querys registry Key OR value",
 "<opt:hostname> <hive> <path> <opt: value to query>
 hive should be one of:
-    HKLM
-    HKCU
-    HKU
-    HKCR
+	HKLM
+	HKCU
+	HKU
+	HKCR
 If a value to query is not specified, that one key is enumerated");
 
 alias reg_query_recursive{
-    local('$hostname $hive $path $i')
-    $packstr = "zizz";
-    if(size(@_) < 3){
-        berror($1, beacon_command_detail("reg_query_recursive"));
-        return;
-    }
-    else{
-        if($2 in %reghives)
-        {
-            #targeting local system
-            $hostname = $null;
-            $i = 1;
-        }
-        else{
-            $hostname = "\\\\" . $2;
-            $i = 2;
-        }
-        if (@_[$i] in %reghives)
-        {
-            $hive = %reghives[@_[$i]];
-            $i++;
-        }
-        else
-        {
-            berror($1, beacon_command_detail("reg_query_recursive"));
-            berror($1, "Provided registry hive value is invalid");
-            return;
-        }
-        $path = @_[$i];
-        println($path);
-        $i++;
-        $args = bof_pack($1, "zizzi", $hostname, $hive, $path, "", 1);
-        beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
-    }
+	local('$hostname $hive $path $i')
+	$packstr = "zizz";
+	if(size(@_) < 3){
+		berror($1, beacon_command_detail("reg_query_recursive"));
+		return;
+	}
+	else{
+		if($2 in %reghives)
+		{
+			#targeting local system
+			$hostname = $null;
+			$i = 1;
+		}
+		else{
+			$hostname = "\\\\" . $2;
+			$i = 2;
+		}
+		if (@_[$i] in %reghives)
+		{
+			$hive = %reghives[@_[$i]];
+			$i++;
+		}
+		else
+		{
+			berror($1, beacon_command_detail("reg_query_recursive"));
+			berror($1, "Provided registry hive value is invalid");
+			return;
+		}
+		$path = @_[$i];
+		println($path);
+		$i++;
+		$args = bof_pack($1, "zizzi", $hostname, $hive, $path, "", 1);
+		beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
+	}
 }
 
 beacon_command_register(
-    "reg_query_recursive",
-    "recursivly querys registry key",
-"<opt:hostname> <hive> <path>
+	"reg_query_recursive",
+	"recursivly querys registry key",
+"<opt:hostname> <hive> <path> 
 hive should be one of:
-    HKLM
-    HKCU
-    HKU
-    HKCR
+	HKLM
+	HKCU
+	HKU
+	HKCR
 If a value to query is not specified, that one key is enumerated");
 
 
@@ -720,12 +796,8 @@ alias tasklist{
         berror($1, "Invalid number of arguments");
         return;
     }
-    if (size(@_) > 1)
-    {
-        $system = $2;
-    }
-    blog($1, "Retrieving list of currently running processes");
-    blog($1, "system: \'$system\'");
+    $system = iff(-istrue $2, $2, ".");
+    blog($1, "Connecting to \\\\$system and retrieving list of currently running processes");
     $args = bof_pack($1, "Z", $system);
     beacon_inline_execute($1, readbof($1, "tasklist"), "go", $args);
 }
@@ -773,7 +845,7 @@ beacon_command_register(
 Command: wmi_query
 Summary: This command runs a general WMI query on either a local or remote
          machine and displays the results in a comma separated table.
-Usage:   wmi_query [query] (system)
+Usage:   wmi_query [query] (system) (namespace)
          query        - The query to run. The query should be in WQL.
          system       - Optional. Specifies the remote system to connect to. Do
                         not include or use '.' to indicate the command should
