@@ -40,7 +40,7 @@ HRESULT task_list(
 	}
 
 	// Connect to WMI on host
-	hr = Wmi_Connect(&m_WMI, pwszServer );
+	hr = Wmi_Connect(&m_WMI, pwszServer, NULL );
 	if (FAILED(hr))
 	{
 		BeaconPrintf(CALLBACK_ERROR, "Wmi_Connect failed: 0x%08lx", hr);

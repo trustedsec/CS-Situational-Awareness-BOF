@@ -21,6 +21,12 @@
 #define EMPTY_RESULT			L"(EMPTY)"
 #define NULL_RESULT				L"(NULL)"
 
+#define SAFE_DESTROY( arraypointer )	\
+	if ( (arraypointer) != NULL )	\
+	{	\
+		OLEAUT32$SafeArrayDestroy(arraypointer);	\
+		(arraypointer) = NULL;	\
+	}
 #define SAFE_RELEASE( interfacepointer )	\
 	if ( (interfacepointer) != NULL )	\
 	{	\
@@ -83,17 +89,56 @@ fail:
 
 HRESULT Wmi_Connect(
 	WMI* pWmi, 
-	LPWSTR pwszServer
+	LPWSTR pwszServerArg,
+	LPWSTR pwszNameSpaceArg
 )
 {
 	HRESULT hr = S_OK;
+	LPWSTR  pwszServer = NULL;
+	LPWSTR  pwszNameSpace = NULL;	
 	size_t	ullNetworkResourceSize = 0;
 	LPWSTR	lpwszNetworkResource = NULL;
+
 
 	CLSID	CLSID_WbemLocator = { 0x4590F811, 0x1D3A, 0x11D0, {0x89, 0x1F, 0, 0xAA, 0, 0x4B, 0x2E, 0x24} };
 	IID		IID_IWbemLocator = { 0xDC12A687, 0x737F, 0x11CF, {0x88, 0x4D, 0, 0xAA, 0, 0x4B, 0x2E, 0x24} };
 	
-	ullNetworkResourceSize = (2 + MSVCRT$wcslen(pwszServer) + 1 + MSVCRT$wcslen(WMI_NAMESPACE_CIMV2) + 1) * sizeof(wchar_t);
+	// Get the server
+	pwszServer = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH*sizeof(wchar_t));
+	if (NULL == pwszServer)
+	{
+		hr = WBEM_E_OUT_OF_MEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
+		goto fail;
+	}
+	if ( (NULL != pwszServerArg) && (MSVCRT$wcslen(pwszServerArg) > 0) )
+	{
+		MSVCRT$wcscpy(pwszServer, pwszServerArg);
+	}
+	else
+	{
+		MSVCRT$wcscpy(pwszServer, RESOURCE_LOCAL_HOST);		
+	}
+	
+	// Get the namespace	
+	pwszNameSpace = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH*sizeof(wchar_t));
+	if (NULL == pwszServer)
+	{
+		hr = WBEM_E_OUT_OF_MEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
+		goto fail;
+	}
+	if ( (NULL != pwszNameSpaceArg) && (MSVCRT$wcslen(pwszNameSpaceArg) > 0) )
+	{
+		MSVCRT$wcscpy(pwszNameSpace, pwszNameSpaceArg);
+	}
+	else
+	{
+		MSVCRT$wcscpy(pwszNameSpace, WMI_NAMESPACE_CIMV2);		
+	}
+	
+	// Create the full resource path from the server and namespace
+	ullNetworkResourceSize = (2 + MSVCRT$wcslen(pwszServer) + 1 + MSVCRT$wcslen(pwszNameSpace) + 1) * sizeof(wchar_t);
 	lpwszNetworkResource = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, ullNetworkResourceSize);
 	if (NULL == lpwszNetworkResource)
 	{
@@ -101,26 +146,14 @@ HRESULT Wmi_Connect(
 		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
 		goto fail;
 	}
-
-	if (MSVCRT$wcslen(pwszServer) > 0)
+	if (-1 == MSVCRT$swprintf(lpwszNetworkResource, RESOURCE_FMT_STRING, pwszServer, pwszNameSpace))
 	{
-		if (-1 == MSVCRT$swprintf(lpwszNetworkResource, RESOURCE_FMT_STRING, pwszServer, WMI_NAMESPACE_CIMV2))
-		{
-			hr = WBEM_E_INVALID_NAMESPACE;
-			BeaconPrintf(CALLBACK_ERROR, "MSVCRT$swprintf failed: 0x%08lx", hr);
-			goto fail;
-		}
-	}
-	else
-	{
-		if (-1 == MSVCRT$swprintf(lpwszNetworkResource, RESOURCE_FMT_STRING, RESOURCE_LOCAL_HOST, WMI_NAMESPACE_CIMV2))
-		{
-			hr = WBEM_E_INVALID_NAMESPACE;
-			BeaconPrintf(CALLBACK_ERROR, "MSVCRT$swprintf failed: 0x%08lx", hr);
-			goto fail;
-		}
+		hr = WBEM_E_INVALID_NAMESPACE;
+		BeaconPrintf(CALLBACK_ERROR, "MSVCRT$swprintf failed: 0x%08lx", hr);
+		goto fail;
 	}
 	
+	// Set the properties in the WMI object
 	pWmi->bstrServer = OLEAUT32$SysAllocString(pwszServer);
 	pWmi->bstrNetworkResource = OLEAUT32$SysAllocString(lpwszNetworkResource);
 
@@ -178,11 +211,23 @@ HRESULT Wmi_Connect(
 	hr = S_OK;
 
 fail:
+    // Free local allocations
+	if (pwszServer)
+	{
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszServer);
+		pwszServer = NULL;
+	}
+	if (pwszNameSpace)
+	{
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszNameSpace);
+		pwszNameSpace = NULL;
+	}
 	if (lpwszNetworkResource)
 	{
 		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, lpwszNetworkResource);
 		lpwszNetworkResource = NULL;
 	}
+	
 	return hr;
 }
 
@@ -210,11 +255,10 @@ HRESULT Wmi_Query(
 		WBEM_FLAG_BIDIRECTIONAL,
 		NULL,
 		&(pWmi->pEnumerator));
-
-	if (hr != S_OK)
+	if (FAILED(hr))
 	{
+    	BeaconPrintf(CALLBACK_ERROR, "ExecQuery failed: 0x%08lx", hr);
 		SAFE_RELEASE(pWmi->pEnumerator);
-		BeaconPrintf(CALLBACK_ERROR, "ExecQuery failed: 0x%08lx", hr);
 		goto fail;
 	}
 
@@ -231,7 +275,8 @@ HRESULT Wmi_Query(
 	);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoSetProxyBlanket failed: 0x%08lx", hr);
+    	BeaconPrintf(CALLBACK_ERROR, "OLE32$CoSetProxyBlanket failed: 0x%08lx", hr);
+    	SAFE_RELEASE(pWmi->pEnumerator);
 		goto fail;
 	}
 
@@ -251,15 +296,15 @@ HRESULT Wmi_ParseResults(
 )
 {
 	HRESULT hr = 0;
-	BSTR bstrColumns = NULL;
-	BSTR** bstrResults = NULL;
-	BSTR* bstrCurrentRow = NULL;
-	DWORD dwColumnCount = 1;
-	DWORD dwRowCount = 0;
-	LPWSTR pCurrentKey = NULL;
-	DWORD dwIndex = 0;
+	BSTR    bstrColumns = NULL;
+	BSTR**  bstrResults = NULL;
+	BSTR*   bstrCurrentRow = NULL;
+	DWORD   dwColumnCount = 1;
+	DWORD   dwRowCount = 0;
+	LPWSTR  pCurrentKey = NULL;
+	DWORD   dwIndex = 0;
 	IWbemClassObject *pWbemClassObjectResult = NULL;
-	ULONG ulResultCount = 0;
+	ULONG   ulResultCount = 0;
 	VARIANT varProperty;
 
 	// Fill in the header row
@@ -386,6 +431,147 @@ HRESULT Wmi_ParseResults(
 	*pdwColumnCount = dwColumnCount;
 fail:
 	SAFE_FREE(bstrColumns);
+
+	return hr;
+}
+
+// Get a list of all the properties returned from the query
+// Then call the normal ParseResults using all the returned 
+// properties as the keys/columns
+HRESULT Wmi_ParseAllResults(
+	WMI* pWmi,
+	BSTR*** ppwszResults,
+	LPDWORD pdwRowCount,
+	LPDWORD pdwColumnCount
+)
+{
+	HRESULT     hr = 0;
+	IWbemClassObject *pWbemClassObjectResult = NULL;
+	ULONG       ulResultCount = 0;
+	LONG        lFlags = WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY;
+	SAFEARRAY*  psaProperties = NULL;
+	LONG        lLBound = 0;
+	LONG        lUBound = 0;
+	size_t      ullKeysLength = 1;
+	LPWSTR      pwszKeys = NULL;
+	LONG        lKeyCount = 0;
+	VARIANT     varProperty;
+
+	pwszKeys = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, ullKeysLength*sizeof(wchar_t));
+	if (NULL == pwszKeys)
+	{
+		hr = WBEM_E_OUT_OF_MEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
+		goto fail;
+	}
+	
+    // Get the first result in our enumeration of results
+	hr = pWmi->pEnumerator->lpVtbl->Next(pWmi->pEnumerator, WBEM_INFINITE, 1, &pWbemClassObjectResult, &ulResultCount);
+	if (FAILED(hr))
+	{
+	    BeaconPrintf(CALLBACK_ERROR, "pEnumerator->Next failed: 0x%08lx", hr);
+		goto fail;
+	}
+	else if (ulResultCount == 0 || pWbemClassObjectResult == NULL)
+	{
+	    BeaconPrintf(CALLBACK_ERROR, "No results");
+	    goto fail;
+	}
+		
+			
+	// Get a list of all the properties in the object
+	hr = pWbemClassObjectResult->lpVtbl->GetNames(pWbemClassObjectResult, NULL, lFlags, NULL, &psaProperties );
+	if ( FAILED(hr) )
+	{
+	    BeaconPrintf(CALLBACK_ERROR, "pWbemClassObjectResult->GetNames failed: 0x%08lx", hr);
+		goto fail;
+	}
+	hr = OLEAUT32$SafeArrayGetLBound(psaProperties, 1, &lLBound);
+    if ( FAILED(hr) )
+    {
+	    BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetLBound failed: 0x%08lx", hr);
+		goto fail;
+	}
+	hr = OLEAUT32$SafeArrayGetUBound(psaProperties, 1, &lUBound);
+    if ( FAILED(hr) )
+    {
+	    BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetUBound failed: 0x%08lx", hr);
+		goto fail;
+	}
+	
+	// Iterate through all the properties and create a CSV key list
+	for (LONG lIndex = lLBound; lIndex <= lUBound; ++lIndex )
+    {
+        LPWSTR pwszCurrentName = NULL;
+        hr = OLEAUT32$SafeArrayGetElement(psaProperties, &lIndex, &pwszCurrentName);
+        if ( FAILED(hr) )
+        {
+	        BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetElement(%d) failed: 0x%08lx", lIndex, hr);
+		    goto fail;
+	    }
+	    
+	    OLEAUT32$VariantInit(&varProperty);
+
+		// Get the corresponding property for the current property name
+		hr = pWbemClassObjectResult->lpVtbl->Get(pWbemClassObjectResult, pwszCurrentName, 0, &varProperty, 0, 0);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "pWbemClassObjectResult->lpVtbl->Get failed: 0x%08lx", hr);
+			//goto fail;
+			continue;
+		}
+
+        // Check the type of property because we aren't interested in references
+		if (VT_BYREF & varProperty.vt)
+		{
+			BeaconPrintf(CALLBACK_OUTPUT, "%S is a reference, so skip", pwszCurrentName);
+		}
+		else
+		{
+            ullKeysLength = ullKeysLength + MSVCRT$wcslen( pwszCurrentName ) + 1;
+            pwszKeys = (LPWSTR)KERNEL32$HeapReAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, pwszKeys, sizeof(wchar_t)*ullKeysLength);
+            if (NULL == pwszKeys)
+	        {
+		        hr = WBEM_E_OUT_OF_MEMORY;
+		        BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapReAlloc failed: 0x%08lx", hr);
+		        goto fail;
+	        }
+	        // If this isn't the first column, prepend a comma
+	        if ( 0 != lKeyCount )
+	        {
+	            pwszKeys = MSVCRT$wcscat(pwszKeys, L",");
+	        }
+            pwszKeys = MSVCRT$wcscat(pwszKeys, pwszCurrentName);
+            
+            lKeyCount++;
+        }
+        
+        OLEAUT32$VariantClear(&varProperty);
+	}
+	
+	// Release the current result
+	pWbemClassObjectResult->lpVtbl->Release(pWbemClassObjectResult);
+	
+	// Reset the enumeration
+	hr = pWmi->pEnumerator->lpVtbl->Reset(pWmi->pEnumerator);
+	if ( FAILED(hr) )
+	{
+	    BeaconPrintf(CALLBACK_ERROR, "Reset failed: 0x%08lx", hr);
+		goto fail;
+	}
+	
+	// Get the results for all the properties using the newly create key list
+	hr = Wmi_ParseResults( pWmi, pwszKeys, ppwszResults, pdwRowCount, pdwColumnCount );
+	
+fail:
+
+	if (pwszKeys)
+	{
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszKeys);
+		pwszKeys = NULL;
+	}
+	
+    SAFE_DESTROY(psaProperties);
 
 	return hr;
 }

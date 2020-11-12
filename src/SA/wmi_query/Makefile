@@ -7,8 +7,8 @@ CC_x86 := i686-w64-mingw32-gcc
 all:
 	$(CC_x64) -o $(BOFNAME).x64.o $(COMINCLUDE) -Os -c entry.c -DBOF
 	$(CC_x86) -o $(BOFNAME).x86.o $(COMINCLUDE) -Os -c entry.c -DBOF
-	mkdir -p ../../../Remote/$(BOFNAME) 
-	mv $(BOFNAME)*.o ../../../Remote/$(BOFNAME)
+	mkdir -p ../../../SA/$(BOFNAME) 
+	mv $(BOFNAME)*.o ../../../SA/$(BOFNAME)
 
 test:
 	$(CC_x64) -o $(BOFNAME).x64.exe $(COMINCLUDE) entry.c
