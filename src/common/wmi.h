@@ -25,7 +25,8 @@ HRESULT Wmi_Initialize(
 
 HRESULT Wmi_Connect(
 	WMI* pWmi,
-	LPWSTR pwszServer
+	LPWSTR pwszServer,
+	LPWSTR pwszNameSpace	
 );
 
 HRESULT Wmi_Query(
