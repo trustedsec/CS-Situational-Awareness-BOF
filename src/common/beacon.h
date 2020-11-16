@@ -10,6 +10,7 @@
 /* data API */
 #pragma once
 
+#ifdef BOF
 typedef struct {
 	char * original; /* the original buffer [so we can free it] */
 	char * buffer;   /* current pointer into our buffer */
@@ -61,3 +62,4 @@ DECLSPEC_IMPORT void   BeaconCleanupProcess(PROCESS_INFORMATION * pInfo);
 
 /* Utility Functions */
 DECLSPEC_IMPORT BOOL   toWideChar(char * src, wchar_t * dst, int max);
+#endif

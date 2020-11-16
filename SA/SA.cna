@@ -825,7 +825,7 @@ alias wmi_query{
 
     if ((size(@_) < 2) || (size(@_) > 4))
     {
-        berror($1, beacon_command_detail("tasklist"));
+        berror($1, beacon_command_detail("wmi_query"));
         berror($1, "Invalid number of arguments");
         return;
     }

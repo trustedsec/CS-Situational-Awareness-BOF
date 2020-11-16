@@ -74,7 +74,8 @@ WINBASEAPI void __cdecl MSVCRT$memset(void *dest, int c, size_t count);
 WINBASEAPI int __cdecl MSVCRT$sprintf(char *__stream, const char *__format, ...);
 WINBASEAPI int __cdecl MSVCRT$vsnprintf(char * __restrict__ d,size_t n,const char * __restrict__ format,va_list arg);
 WINBASEAPI size_t __cdecl MSVCRT$strnlen(const char *_Str,size_t _MaxCount);
-WINBASEAPI int __cdecl MSVCRT$swprintf(wchar_t *__stream, const wchar_t *__format, ...);
+WINBASEAPI int __cdecl MSVCRT$_snwprintf(wchar_t * __restrict__ _Dest,size_t _Count,const wchar_t * __restrict__ _Format,...);
+WINBASEAPI errno_t __cdecl MSVCRT$wcscpy_s(wchar_t *_Dst, rsize_t _DstSize, const wchar_t *_Src);
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
 WINBASEAPI int __cdecl MSVCRT$sprintf (char *__stream, const char *__format, ...);
 
@@ -334,7 +335,7 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define MSVCRT$sprintf sprintf
 #define MSVCRT$vsnprintf vsnprintf
 #define MSVCRT$strnlen strnlen
-#define MSVCRT$swprintf swprintf
+#define MSVCRT$_snwprintf _snwprintf
 #define MSVCRT$wcslen wcslen
 #define MSVCRT$sprintf  sprintf 
 #define MSVCRT$wcstok wcstok
@@ -345,6 +346,7 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define MSVCRT$_wcsicmp _wcsicmp
 #define MSVCRT$wcschr wcschr
 #define MSVCRT$wcsncat wcsncat
+#define MSVCRT$wcscpy_s wcscpy_s
 #define MSVCRT$wcsrchr wcsrchr
 #define MSVCRT$wcsrchr wcsrchr
 #define MSVCRT$strcmp strcmp
@@ -456,6 +458,12 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define OLEAUT32$SysAddRefString SysAddRefString
 #define OLEAUT32$VariantChangeType VariantChangeType
 #define OLEAUT32$VarFormatDateTime VarFormatDateTime
+#define OLEAUT32$SafeArrayDestroy SafeArrayDestroy
+#define OLEAUT32$SafeArrayLock SafeArrayLock
+#define OLEAUT32$SafeArrayGetLBound SafeArrayGetLBound
+#define OLEAUT32$SafeArrayGetUBound SafeArrayGetUBound
+#define OLEAUT32$SafeArrayGetElement SafeArrayGetElement
+#define OLEAUT32$SafeArrayGetElemsize SafeArrayGetElemsize
 #define DBGHELP$MiniDumpWriteDump MiniDumpWriteDump
 #define WLDAP32$ldap_init ldap_init
 #define WLDAP32$ldap_bind_s ldap_bind_s
@@ -481,5 +489,5 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define VERSION$GetFileVersionInfoA GetFileVersionInfoA
 #define VERSION$VerQueryValueA VerQueryValueA
 #define internal_printf printf
-#define BeaconPrintf(t, s, ...) printf(s, __VA_ARGS__)
+#define BeaconPrintf(t, s, ...) printf(s, ##__VA_ARGS__)
 #endif
