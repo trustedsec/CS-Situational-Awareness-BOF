@@ -73,9 +73,7 @@ void internal_printf(const char* format, ...){
 void printoutput(BOOL done)
 {
 
-    int size = 0;
     char * msg = NULL;
-    //msg = BeaconFormatToString(&output, &size);
     BeaconOutput(CALLBACK_OUTPUT, output, currentoutsize);
     currentoutsize = 0;
     memset(output, 0, bufsize);
