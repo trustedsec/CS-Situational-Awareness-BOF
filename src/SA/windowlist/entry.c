@@ -24,13 +24,10 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam){
 		}
 		
     }
-
-	
-
     return 1;
 }
 
-
+#ifdef BOF
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -45,5 +42,16 @@ VOID go(
 	}
 	USER32$EnumDesktopWindows(NULL,(WNDENUMPROC)EnumWindowsProc,(LPARAM)NULL);
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main(int argc, char ** argv)
+{
+	ALL = atoi(argv[1]);
+	USER32$EnumDesktopWindows(NULL,(WNDENUMPROC)EnumWindowsProc,(LPARAM)NULL);
+	printoutput(TRUE);
+	return 0;
+}
+
+#endif

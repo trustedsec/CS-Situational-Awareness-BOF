@@ -5,30 +5,22 @@
 #define bufsize 8192
 #endif
 
-//#pragma GCC diagnostic ignored "-Wint-conversion"
-//formatp output = {1}; // this is just done so its we don't go into .bss which isn't handled properly
-char * output = (char*)1;
+
+char * output = (char*)1;  // this is just done so its we don't go into .bss which isn't handled properly
 WORD currentoutsize = 1;
 HANDLE trash = (HANDLE)1; // Needed for x64 to not give relocation error
-//#pragma GCC diagnostic pop
-
-int bofstart();
 #ifdef BOF
+int bofstart();
 void internal_printf(const char* format, ...);
+void printoutput(BOOL done);
 #endif
 char * Utf16ToUtf8(const wchar_t* input);
-void printoutput(BOOL done);
-void bofstop();
 #ifdef BOF
 int bofstart()
 {   
-    //output.original=NULL;
-    //handle any global initilization here
-    //BeaconFormatAlloc(&output, bufsize+256);
     output = (char*)MSVCRT$calloc(bufsize, 1);
     currentoutsize = 0;
     return 1;
-
 }
 
 void internal_printf(const char* format, ...){
@@ -89,6 +81,11 @@ void printoutput(BOOL done)
     memset(output, 0, bufsize);
     if(done) {MSVCRT$free(output); output=NULL;}
 }
+#else
+#define internal_printf printf
+#define printoutput 
+#define bofstart 
+
 #endif
 
 char* Utf16ToUtf8(const wchar_t* input)
@@ -131,11 +128,4 @@ fail:
         newString = NULL;
     };
     goto retloc;
-}
-
-//release any global functions here
-void bofstop()
-{
-
-    return;
 }
