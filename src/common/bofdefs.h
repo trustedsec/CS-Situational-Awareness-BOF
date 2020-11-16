@@ -480,7 +480,6 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define VERSION$GetFileVersionInfoSizeA GetFileVersionInfoSizeA
 #define VERSION$GetFileVersionInfoA GetFileVersionInfoA
 #define VERSION$VerQueryValueA VerQueryValueA
-
-#endif
 #define internal_printf printf
+#define BeaconPrintf(t, s, ...) printf(s, __VA_ARGS__)
 #endif

@@ -48,6 +48,7 @@ HRESULT Wmi_Initialize(WMI* pWmi)
 
 	pWmi->pWbemServices = NULL;
 	pWmi->pWbemLocator  = NULL;
+	pWmi->bstrServer = NULL;
 	pWmi->pEnumerator = NULL;
 	pWmi->bstrLanguage  = NULL;
 	pWmi->bstrNameSpace = NULL;
@@ -347,7 +348,7 @@ HRESULT Wmi_ParseResults(
 	while (WBEM_S_NO_ERROR == hr)
 	{
 		// Get the next result in our enumeration of results
-		hr = pWmi->pEnumerator->lpVtbl->Next(pWmi->pEnumerator, WBEM_INFINITE, 1, &pWbemClassObjectResult, &ulResultCount);
+		hr = pWmi->pEnumerator->lpVtbl->Next(pWmi->pEnumerator, WBEM_INFINITE, 1, &pWbemClassObjectResult, &ulResultCount); //Scanbuild false positive
 		if (hr == S_OK && ulResultCount > 0) 
 		{
 			if (pWbemClassObjectResult == NULL) 
@@ -583,7 +584,6 @@ HRESULT Wmi_Finalize(
 	HRESULT hr = S_OK;
 
 	SAFE_RELEASE(pWmi->pWbemServices);
-	SAFE_RELEASE(pWmi->pWbemLocator);
 	SAFE_RELEASE(pWmi->pWbemLocator);
 
 	SAFE_FREE(pWmi->bstrLanguage);
