@@ -5,24 +5,16 @@
 #include "base.c"
 #include "wmi.c"
 
-
-#define WMI_QUERY_PROCESSES			L"SELECT * FROM Win32_Process"
-#define WMI_KEYS_PROCESSES			L"Name,ProcessId,ParentProcessId,SessionId,CommandLine"
-#define RESULTS_OUTPUT_FORMAT		"%-32S %10S %16S %10S %-80S\n"
-#define RESULTS_NAME_COL			0
-#define RESULTS_PROCESSID_COL		1
-#define RESULTS_PARENTPROCESSID_COL	2
-#define RESULTS_SESSIONID_COL		3
-#define RESULTS_COMMANDLINE_COL		4
-
-HRESULT task_list(
-	LPWSTR pwszServer
+HRESULT wmi_query(
+	LPWSTR pwszServer,
+	LPWSTR pwszNameSpace,	
+	LPWSTR pwszQuery
 )
 {
 	HRESULT	hr = S_OK;
 	WMI		m_WMI;
-	size_t	ullQuerySize = 0;
-	LPWSTR	lpwszQuery = NULL;
+	size_t	ullColumnsSize = 0;
+	LPWSTR	lpwszColumns = NULL;	
 	BSTR**	ppbstrResults = NULL;
 	DWORD	dwRowCount = 0;
 	DWORD	dwColumnCount = 0;
@@ -40,7 +32,7 @@ HRESULT task_list(
 	}
 
 	// Connect to WMI on host
-	hr = Wmi_Connect(&m_WMI, pwszServer, NULL );
+	hr = Wmi_Connect(&m_WMI, pwszServer, pwszNameSpace);
 	if (FAILED(hr))
 	{
 		BeaconPrintf(CALLBACK_ERROR, "Wmi_Connect failed: 0x%08lx", hr);
@@ -48,7 +40,7 @@ HRESULT task_list(
 	}
 
 	// Run the WMI query
-	hr = Wmi_Query(&m_WMI, WMI_QUERY_PROCESSES);
+	hr = Wmi_Query(&m_WMI, pwszQuery);
 	if (FAILED(hr))
 	{
 		BeaconPrintf(CALLBACK_ERROR, "Wmi_Query failed: 0x%08lx", hr);
@@ -56,24 +48,28 @@ HRESULT task_list(
 	}
 
 	// Parse the results
-	hr = Wmi_ParseResults(&m_WMI, WMI_KEYS_PROCESSES, &ppbstrResults, &dwRowCount, &dwColumnCount);
+	hr = Wmi_ParseAllResults(&m_WMI, &ppbstrResults, &dwRowCount, &dwColumnCount);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Wmi_ParseResults failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "Wmi_ParseAllResults failed: 0x%08lx", hr);
 		goto fail;
 	}
 
-	// Display the resuls
+	// Display the resuls in CSV format
 	for (dwCurrentRowIndex = 0; dwCurrentRowIndex < dwRowCount; dwCurrentRowIndex++)
 	{
-		internal_printf(
-			RESULTS_OUTPUT_FORMAT, 
-			ppbstrResults[dwCurrentRowIndex][RESULTS_NAME_COL], 
-			ppbstrResults[dwCurrentRowIndex][RESULTS_PROCESSID_COL], 
-			ppbstrResults[dwCurrentRowIndex][RESULTS_PARENTPROCESSID_COL],
-			ppbstrResults[dwCurrentRowIndex][RESULTS_SESSIONID_COL],
-			ppbstrResults[dwCurrentRowIndex][RESULTS_COMMANDLINE_COL]
-		);
+		for (dwCurrentColumnIndex = 0; dwCurrentColumnIndex < dwColumnCount; dwCurrentColumnIndex++)
+		{
+            if ( 0 == dwCurrentColumnIndex )		
+            {
+    			internal_printf( "%S", ppbstrResults[dwCurrentRowIndex][dwCurrentColumnIndex] );			
+            }
+            else
+            {
+                internal_printf( ", %S", ppbstrResults[dwCurrentRowIndex][dwCurrentColumnIndex] );    			
+            }
+		}
+		internal_printf( "\n" );
 	}
 
 fail:
@@ -86,6 +82,7 @@ fail:
 		}
 		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, ppbstrResults[dwCurrentRowIndex]);
 	}
+	
 	if (ppbstrResults)
 	{
 		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, ppbstrResults);
@@ -108,21 +105,25 @@ VOID go(
 {
 	HRESULT hr = S_OK;
 	datap parser;
-	wchar_t * server;
-
-	BeaconDataParse(&parser, Buffer, Length);
-	server = (wchar_t *)BeaconDataExtract(&parser, NULL);
+	wchar_t * pwszServer = NULL;
+	wchar_t * pwszNameSpace = NULL;	
+	wchar_t * pwszQuery = NULL;
 
 	if (!bofstart())
 	{
 		return;
 	}
 
-	hr = task_list(server);
+	BeaconDataParse(&parser, Buffer, Length);
+	pwszServer = (wchar_t *)BeaconDataExtract(&parser, NULL);
+	pwszNameSpace = (wchar_t *)BeaconDataExtract(&parser, NULL);	
+	pwszQuery = (wchar_t *)BeaconDataExtract(&parser, NULL);
+	
+	hr = wmi_query(pwszServer, pwszNameSpace, pwszQuery);
 
 	if (S_OK != hr)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "task_list failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "wmi_query failed: 0x%08lx", hr);
 	}
 
 	printoutput(TRUE);

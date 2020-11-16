@@ -44,6 +44,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |tasklist|tasklist [opt: server]| Get a list of running processes including PID, PPID and ComandLine (uses wmi)|
 |whoami|whoami| simulates whoami /all|
 |windowlist|windowlist [opt:all]| lists visible windows in the current users session|
+|wmi_query|wmi_query query [opt: server] [opt: namespace]| Run a wmi query and display results in CSV format|
 
 Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote systems and has the ability to recursively enumerate a whole key.
 
