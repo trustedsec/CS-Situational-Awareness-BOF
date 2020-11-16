@@ -185,6 +185,7 @@ WINADVAPI WINBOOL WINAPI ADVAPI32$ConvertSecurityDescriptorToStringSecurityDescr
 
 //NTDLL
 WINBASEAPI NTSTATUS NTAPI NTDLL$NtCreateFile(PHANDLE FileHandle,ACCESS_MASK DesiredAccess,POBJECT_ATTRIBUTES ObjectAttributes,PIO_STATUS_BLOCK IoStatusBlock,PLARGE_INTEGER AllocationSize,ULONG FileAttributes,ULONG ShareAccess,ULONG CreateDisposition,ULONG CreateOptions,PVOID EaBuffer,ULONG EaLength);
+WINBASEAPI NTSTATUS NTAPI NTDLL$NtClose(HANDLE Handle);
 
 //IMAGEHLP
 WINBASEAPI WINBOOL IMAGEAPI IMAGEHLP$ImageEnumerateCertificates(HANDLE FileHandle,WORD TypeFilter,PDWORD CertificateCount,PDWORD Indices,DWORD IndexCount);
@@ -428,6 +429,7 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define ADVAPI32$SetSecurityDescriptorDacl  SetSecurityDescriptorDacl 
 #define ADVAPI32$ConvertSecurityDescriptorToStringSecurityDescriptorW ConvertSecurityDescriptorToStringSecurityDescriptorW
 #define NTDLL$NtCreateFile NtCreateFile
+#define NTDLL$NtClose NtClose
 #define IMAGEHLP$ImageEnumerateCertificates ImageEnumerateCertificates
 #define IMAGEHLP$ImageGetCertificateHeader ImageGetCertificateHeader
 #define IMAGEHLP$ImageGetCertificateData ImageGetCertificateData
