@@ -1,6 +1,7 @@
 #include <windows.h>
 #include "bofdefs.h"
 #include "base.c"
+#include "lm.h"
 #include "lmaccess.h"
 
 //Code taken from example code at https://docs.microsoft.com/en-us/windows/win32/api/lmaccess/nf-lmaccess-netquerydisplayinformation
@@ -20,8 +21,8 @@ void ListDomainGroups(const wchar_t * domain)
 			{
 				internal_printf("Name:      %S\n"
 				"Comment:   %S\n"
-				"Group ID:  %u\n"
-				"Attributes: %u\n"
+				"Group ID:  %lu\n"
+				"Attributes: %lu\n"
 				"--------------------------------\n",
 				p->grpi3_name,
 				p->grpi3_comment,
@@ -34,7 +35,7 @@ void ListDomainGroups(const wchar_t * domain)
 		}
 		else
 		{
-			BeaconPrintf(CALLBACK_ERROR, "Error: %u\n", res);
+			BeaconPrintf(CALLBACK_ERROR, "Error: %lu\n", res);
 		}
 	} while (res==ERROR_MORE_DATA); // end do
 }
@@ -65,10 +66,12 @@ void ListGlobalGroupMembers(const wchar_t * domain, const wchar_t * groupname)
 		}
 		else
 		{
-			BeaconPrintf(CALLBACK_ERROR, "Error: %u\n", res);
+			BeaconPrintf(CALLBACK_ERROR, "Error: %lu\n", res);
 		}
 	} while(res == ERROR_MORE_DATA);
 }
+
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -113,5 +116,31 @@ VOID go(
 		ListGlobalGroupMembers(domain, group);
 	}
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main()
+{
+
+	wchar_t default_domain[256] = {0};
+	DWORD dwDefaultSize = 256;
+
+	if(KERNEL32$GetComputerNameExW(ComputerNameDnsDomain, (LPWSTR)&default_domain, &dwDefaultSize) == 0)
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Warning, could not get default domain name, continuing against local system");
+	}
+	else
+	{
+		BeaconPrintf(CALLBACK_OUTPUT, "Using Resolved domain of %S", default_domain);
+	}
+	ListDomainGroups(default_domain);
+	ListDomainGroups(L"testrange.local");
+	ListDomainGroups(L"asdf");
+	ListGlobalGroupMembers(default_domain, L"Domain Admins");
+	ListGlobalGroupMembers(L"testrange.local", L"Domain Admins");
+	ListGlobalGroupMembers(default_domain, L"asdf");
+	ListGlobalGroupMembers(L"asdf", L"Administrators");
+}
+
+#endif
