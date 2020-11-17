@@ -42,7 +42,12 @@ int PrintRoutes()
             Error = ERROR_NOT_ENOUGH_MEMORY;
             goto Error;
         }
+    }else
+    {
+        Error = KERNEL32$GetLastError();
+        goto Error;
     }
+    
 
     if (((Error = IPHLPAPI$GetAdaptersInfo(pAdapterInfo, &adaptOutBufLen)) == NO_ERROR) &&
         ((Error = IPHLPAPI$GetIpForwardTable(IpForwardTable, &Size, TRUE)) == NO_ERROR))
@@ -106,6 +111,7 @@ Error:
     }
 }
 
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -118,5 +124,12 @@ VOID go(
 	}
 	PrintRoutes();
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+int main()
+{
+    PrintRoutes();
+}
+
+#endif
