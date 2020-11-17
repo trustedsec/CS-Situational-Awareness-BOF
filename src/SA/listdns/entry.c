@@ -56,5 +56,7 @@ VOID go(
 	}
 	ListDnsCache();
 	printoutput(TRUE);
-	bofstop();
 };
+
+
+
