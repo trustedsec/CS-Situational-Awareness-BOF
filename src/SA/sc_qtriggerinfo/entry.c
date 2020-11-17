@@ -3,6 +3,7 @@
 #include "base.c"
 #include "anticrash.c"
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
 char ** ETriggerType = 1;
 char ** Estartstop = 1;
@@ -119,7 +120,7 @@ DWORD query_config(const char* Hostname, LPCSTR cpServiceName)
             break;
 		}
 
-		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, GENERIC_READ)) == NULL)
 		{
 			dwResult = KERNEL32$GetLastError();
 			break;
@@ -144,6 +145,7 @@ DWORD query_config(const char* Hostname, LPCSTR cpServiceName)
 	return dwResult;
 }
 
+#ifdef BOF
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -168,5 +170,19 @@ VOID go(
 	}
 	printoutput(TRUE);
 	cleanup_enums();
-	bofstop();
 };
+#else
+
+int main()
+{
+	init_enums();
+	gServiceName = "TestsvcName";
+	query_config("", "webclient");
+	query_config("172.31.0.1", "WerSvc");
+	query_config("asdf", "nope");
+	query_config("", "nope");
+	query_config("172.31.0.1", "nope");
+	cleanup_enums();
+}
+
+#endif
