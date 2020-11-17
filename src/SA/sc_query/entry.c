@@ -3,6 +3,7 @@
 #include "base.c"
 #include "anticrash.c"
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
 char ** EServiceStatus = 1;
 const char * gServiceName = 1;
@@ -85,7 +86,7 @@ DWORD enumerate_services(const char* Hostname)
 	DWORD dwServicesReturned = 0;
 	DWORD dwResumeHandle = 0;
 	DWORD dwServiceIndex = 0;
-	BOOL bResult;
+	BOOL bResult = FALSE;
 
 	do
 	{
@@ -101,7 +102,6 @@ DWORD enumerate_services(const char* Hostname)
 		if (!bResult && dwBytesNeeded)
 		{
 			pSsInfo = (ENUM_SERVICE_STATUS_PROCESSA*)intAlloc(dwBytesNeeded);
-
 			if (!pSsInfo)
 			{
                 break;
@@ -109,13 +109,19 @@ DWORD enumerate_services(const char* Hostname)
 
 			bResult = ADVAPI32$EnumServicesStatusExA(scManager, SC_ENUM_PROCESS_INFO, SERVICE_WIN32, SERVICE_STATE_ALL, (LPBYTE)pSsInfo, dwBytesNeeded,
 				&dwBytesNeeded, &dwServicesReturned, &dwResumeHandle, NULL);
+			if (!bResult)
+			{
+				dwResult = KERNEL32$GetLastError();
+				break;
+			}
+		}
+		else
+		{
+			//initial query for size failed
+			dwResult = KERNEL32$GetLastError();
+			break;
 		}
 
-		if (!bResult)
-		{
-			dwResult = KERNEL32$GetLastError();
-            break;
-		}
 
 		for (dwServiceIndex = 0; dwServiceIndex < dwServicesReturned; ++dwServiceIndex)
 		{
@@ -174,7 +180,7 @@ DWORD query_service(const char* Hostname, LPCSTR cpServiceName)
             break;
 		}
 
-		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, GENERIC_READ)) == NULL)
 		{
 			dwResult = KERNEL32$GetLastError();
 			break;
@@ -196,6 +202,8 @@ DWORD query_service(const char* Hostname, LPCSTR cpServiceName)
 
 	return dwResult;
 }
+
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -230,5 +238,22 @@ VOID go(
 	}
 	printoutput(TRUE);
 	cleanup_enums();
-	bofstop();
 };
+
+#else
+
+int main()
+{
+	init_enums();
+	gServiceName = "testsvcName";
+	enumerate_services("");
+	query_service("", "webclient");
+	query_service("", "nope");
+	enumerate_services("172.31.0.1");
+	query_service("172.31.0.1", "fax");
+	enumerate_services("asdf");
+	query_service("172.31.0.1", "nope");
+	query_service("asdf", "nope");
+	cleanup_enums();
+}
+#endif
