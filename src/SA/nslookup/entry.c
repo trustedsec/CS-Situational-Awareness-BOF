@@ -80,7 +80,7 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
 			internal_printf("unable to convert error message\n");
 		else
 		{
-			internal_printf(errormsg);
+			internal_printf("%s", errormsg);
 			KERNEL32$LocalFree(errormsg);
 		}
         goto END;
@@ -92,7 +92,7 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
             if(pdns->wType == DNS_TYPE_A)
             {
                 DWORD test = pdns->Data.A.IpAddress;
-                internal_printf("A %s %d.%d.%d.%d\n", pdns->pName, test & 0x000000ff, (test & 0x0000ff00) >> 8, (test & 0x00ff0000) >> 16, (test & 0xff000000) >> 24);
+                internal_printf("A %s %lu.%lu.%lu.%lu\n", pdns->pName, test & 0x000000ff, (test & 0x0000ff00) >> 8, (test & 0x00ff0000) >> 16, (test & 0xff000000) >> 24);
             }else if(pdns->wType == DNS_TYPE_NS){
                     internal_printf("NS %s %s\n", pdns->pName, pdns->Data.NS.pNameHost);
             }else if(pdns->wType == DNS_TYPE_MD){
@@ -106,11 +106,11 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
 
                     internal_printf("SOA %s  nameserv: %s\r\n", pdns->pName, pdns->Data.SOA.pNamePrimaryServer);
                     internal_printf("     admin: %s\r\n", pdns->Data.SOA.pNameAdministrator);
-                    internal_printf("    serial: %u\r\n", pdns->Data.SOA.dwSerialNo);
-                    internal_printf("   refresh: %u\r\n", pdns->Data.SOA.dwRefresh);
-                    internal_printf("       ttl: %u\r\n", pdns->Data.SOA.dwDefaultTtl);
-                    internal_printf("    expire: %u\r\n", pdns->Data.SOA.dwExpire);
-                    internal_printf("     retry: %u", pdns->Data.SOA.dwRetry);
+                    internal_printf("    serial: %lu\r\n", pdns->Data.SOA.dwSerialNo);
+                    internal_printf("   refresh: %lu\r\n", pdns->Data.SOA.dwRefresh);
+                    internal_printf("       ttl: %lu\r\n", pdns->Data.SOA.dwDefaultTtl);
+                    internal_printf("    expire: %lu\r\n", pdns->Data.SOA.dwExpire);
+                    internal_printf("     retry: %lu", pdns->Data.SOA.dwRetry);
             }else if(pdns->wType == DNS_TYPE_MB){
                     internal_printf("MB %s %s\n", pdns->pName, pdns->Data.MB.pNameHost);
             }else if(pdns->wType == DNS_TYPE_MG){
@@ -165,7 +165,7 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
                     internal_printf("RT %s %s pref: %d\n", pdns->pName, pdns->Data.RT.pNameExchange, pdns->Data.RT.wPreference);
             }else if(pdns->wType == DNS_TYPE_AAAA){
 
-                    internal_printf("AAAA %s %s pref: %d [", pdns->pName);
+                    internal_printf("AAAA %s [", pdns->pName);
                     for (i = 0; i < 16; i++) {
                             internal_printf("%d", pdns->Data.AAAA.Ip6Address.IP6Byte[i]);
                             if (i != 15)
@@ -183,7 +183,7 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
                     internal_printf("DNSKEY %s: flags %d, Protocol %d, Algorithm %d\n", pdns->pName, pdns->Data.KEY.wFlags, pdns->Data.KEY.chProtocol, pdns->Data.KEY.chAlgorithm);
             }else{
 
-                    internal_printf("nope", pdns->pName, pdns->wType);
+                    internal_printf("type unhandled\n");
             }    
 
         pdns = pdns->pNext;
@@ -217,7 +217,6 @@ VOID go(
 	server = *server == 0 ? NULL : server;
 	query_domain(target, type, server);
 	printoutput(TRUE);
-	bofstop();
 }
 #else
 int main(int argc, char ** argv)
