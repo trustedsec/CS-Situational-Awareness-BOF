@@ -185,6 +185,36 @@ beacon_command_register(
 	"Synopsis: listmods <opt: pid> "
 );
 
+
+alias netuse {
+    local('$args $device $share $delete');
+    $device = iff(-istrue $2, $2, "");
+    $share = iff(-istrue $3, $3, "");
+    $delete = iff(-istrue $4, $4, "");
+    $args = bof_pack($1, "ZZZ", $device, $share, $delete);
+    beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
+}
+
+beacon_command_register(
+    "netuse",
+    "Lists, connects to, or disconnects from a shared resource",
+    "
+Command: netuse
+Summary: This command connects a computer to a shared resource or disconnects a
+         computer from a shared resource. When used without options, it lists
+         the computer's connections.
+Usage:   netuse (devicename) (sharename) (delete)
+         devicename     Optional. The device name on the local system to list, 
+                        connect, or disconnect.
+         sharename      Optional. The network name of the shared resource to 
+                        connect the local device name to.
+         disconnect     Optional. Cancel the newtork connection.
+Note:    You must have a valid login token for the sharename specified. This 
+         token can be obtained using make_token.
+"
+);
+
+
 alias netuser {
 	local('$args $domain');
 	if(size(@_) < 2){
