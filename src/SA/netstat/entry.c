@@ -38,7 +38,7 @@ char* GetIpHostName(BOOL Local, UINT IpAddr, CHAR Name[], int NameLen)
 
     /* display dotted decimal */
     nIpAddr = WS2_32$htonl(IpAddr);
-    MSVCRT$sprintf(Name, "%d.%d.%d.%d",
+    MSVCRT$sprintf(Name, "%u.%u.%u.%u",
             (nIpAddr >> 24) & 0xFF,
             (nIpAddr >> 16) & 0xFF,
             (nIpAddr >> 8) & 0xFF,
@@ -48,9 +48,7 @@ char* GetIpHostName(BOOL Local, UINT IpAddr, CHAR Name[], int NameLen)
 
 char* GetPortName(UINT Port, PCSTR Proto, CHAR Name[], INT NameLen)
 {
-    struct servent *pServent;
-
-    MSVCRT$sprintf(Name, "%d", WS2_32$htons((WORD)Port));
+    MSVCRT$sprintf(Name, "%u", WS2_32$htons((WORD)Port));
     return Name;
 }
 
@@ -118,7 +116,7 @@ void Netstat(){
         intFree(tcpTable);
         return;
     }
-	internal_printf("Processing: %d Entries\n", tcpTable->dwNumEntries);
+	internal_printf("Processing: %ld Entries\n", tcpTable->dwNumEntries);
  
     for (i = 0; i < tcpTable->dwNumEntries; i++)
     {
@@ -135,7 +133,7 @@ void Netstat(){
 
             if (tcpTable->table[i].dwState ==  MIB_TCP_STATE_LISTEN)
             {
-                MSVCRT$sprintf(Remote, "LISTEN", HostIp);
+                MSVCRT$sprintf(Remote, "LISTEN");
             }
             else
             {
@@ -153,6 +151,7 @@ void Netstat(){
     return;
 }
 
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -165,5 +164,13 @@ VOID go(
 	}
 	Netstat();
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main()
+{
+    Netstat();
+}
+
+#endif
