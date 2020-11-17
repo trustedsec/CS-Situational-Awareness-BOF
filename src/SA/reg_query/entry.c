@@ -4,6 +4,8 @@
 #include "base.c"
 #include "anticrash.c"
 #include "stack.c"
+
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
 char ** ERegTypes = 1;
 char * gHiveName = 1;
@@ -93,9 +95,9 @@ void Reg_InternalPrintKey(char * data, const char * valuename, DWORD type, DWORD
         internal_printf("\n");
     }
     else if ((type == REG_DWORD || type == REG_DWORD_BIG_ENDIAN) && datalen == 4)
-        internal_printf("%d\n", *(DWORD *)data);
+        internal_printf("%lu\n", *(DWORD *)data);
     else if (type == REG_QWORD && datalen == 8)
-        internal_printf("%lld\n", *(QWORD *)data);
+        internal_printf("%llu\n", *(QWORD *)data);
     else if (type == REG_SZ || type == REG_EXPAND_SZ)
         internal_printf("%s\n", data);
     else if (type == REG_MULTI_SZ)
@@ -158,14 +160,15 @@ DWORD Reg_GetValue(const char * hostname, HKEY hivekey, DWORD Arch, const char* 
     ValueData = intAlloc(size);
     if (ValueData == NULL){
         BeaconPrintf(CALLBACK_ERROR, "Failed to allocate memory\n");
-        return E_OUTOFMEMORY;
+        dwRet =  E_OUTOFMEMORY;
+        goto END;
     }
     dwRet = ADVAPI32$RegQueryValueExA( 
         key,
         value,
         NULL,
         &type,
-        ValueData,
+        (LPBYTE)ValueData,
         &size
     );
 	if(!dwRet)
@@ -233,7 +236,7 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
     keyStack = stackInit();
 
     keyStack->push(keyStack, init_regkey(keystring, strlen(keystring), NULL, 0, rootkey));
-    while(curitem = keyStack->pop(keyStack))
+    while((curitem = keyStack->pop(keyStack)) != NULL)
     {
         
         internal_printf("%s%s\n", gHiveName, curitem->keypath);
@@ -271,7 +274,7 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
                     &cchValue, 
                     NULL, 
                     &regType,
-                    currentdata,
+                    (LPBYTE)currentdata,
                     &cchData);
                 if (retCode == ERROR_SUCCESS ) 
                 { 
@@ -300,7 +303,7 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
                         dwresult = ADVAPI32$RegOpenKeyExA(curitem->hreg, currentkeyname, 0, KEY_READ, &curKey);
                         if(dwresult)
                         {
-                            BeaconPrintf(CALLBACK_ERROR, "Could not open key %s\\%s\\%s: Error %x", gHiveName, curitem->keypath, currentkeyname, dwresult);
+                            BeaconPrintf(CALLBACK_ERROR, "Could not open key %s\\%s\\%s: Error %lx", gHiveName, curitem->keypath, currentkeyname, dwresult);
                         }
                         else{
                             keyStack->push(keyStack, init_regkey(curitem->keypath, curitem->dwkeypathsz, currentkeyname, cbName, curKey));
@@ -349,6 +352,8 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
     }
 	return dwresult;
 }
+
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -403,5 +408,29 @@ VOID go(
 	}
 	printoutput(TRUE);
     free_enums();
-	bofstop();
 };
+
+#else
+
+int main()
+{
+    init_enums();
+    gHiveName = "Testname";
+    Reg_EnumKey(NULL,HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\webclient", 1);
+    Reg_EnumKey(NULL,HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\webclient", FALSE);
+    Reg_EnumKey(NULL,HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\asdf\\webclient", TRUE);
+    Reg_GetValue(NULL,HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\webclient","ImagePath");
+    Reg_GetValue(NULL,HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\webclient","nope");
+    Reg_GetValue(NULL,HKEY_LOCAL_MACHINE,0,"nope","ImagePath");
+    Reg_EnumKey("172.31.0.1",HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\vds", TRUE);
+    Reg_EnumKey("172.31.0.1",HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\vds", FALSE);
+    Reg_EnumKey("172.31.0.1",HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\asdf\\vds", TRUE);
+    Reg_GetValue("172.31.0.1",HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\vds","ImagePath");
+    Reg_GetValue("172.31.0.1",HKEY_LOCAL_MACHINE,0,"system\\currentcontrolset\\services\\vds","nope");
+    Reg_GetValue("172.31.0.1",HKEY_LOCAL_MACHINE,0,"nope","ImagePath");
+    Reg_GetValue("nope",HKEY_LOCAL_MACHINE,0,"nope","ImagePath");
+    free_enums();
+    return 0;
+}
+
+#endif

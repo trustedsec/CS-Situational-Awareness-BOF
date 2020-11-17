@@ -71,5 +71,5 @@ Pstack stackInit()
     q->push = _push;
     q->pop = _pop;
     q->free = _free;
-
+    return q;
 }
