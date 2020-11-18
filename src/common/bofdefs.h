@@ -68,6 +68,7 @@ DECLSPEC_IMPORT ULONG WINAPI IPHLPAPI$GetTcpTable (PMIB_TCPTABLE TcpTable, PULON
 
 //MSVCRT
 WINBASEAPI void *__cdecl MSVCRT$calloc(size_t _NumOfElements, size_t _SizeOfElements);
+WINBASEAPI void *__cdecl MSVCRT$memcpy(void * __restrict__ _Dst,const void * __restrict__ _Src,size_t _MaxCount);
 WINBASEAPI void *__cdecl MSVCRT$realloc(void *_Memory, size_t _NewSize);
 WINBASEAPI void __cdecl MSVCRT$free(void *_Memory);
 WINBASEAPI void __cdecl MSVCRT$memset(void *dest, int c, size_t count);

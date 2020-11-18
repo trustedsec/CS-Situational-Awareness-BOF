@@ -13,12 +13,13 @@ enum searchtype{
     Folder,
     Fail
 };
-
+#pragma pack (push, 1) // This is required because x64 can crash when running as a bof otherwise.
 typedef struct _AR
 {
     DWORD Access;
     const char * uID;
 }AR, *pAR;
+#pragma pack (pop)
 pAR AccessRights = (pAR)1;
 
 #define LOVEIT(a, b, c) a.Access = b; a.uID = c
@@ -136,9 +137,10 @@ PrintFileDacl(IN LPWSTR FilePath,
                         LPWSTR Domain = NULL;
                         LPWSTR SidString = NULL;
                         DWORD IndentAccess = 0;
+                        
                         DWORD AccessMask = Ace->Mask;
                         PSID Sid = (PSID)&Ace->SidStart;
-                        /* attempt to translate the SID into a readable string */
+//                         /* attempt to translate the SID into a readable string */
                         if (!ADVAPI32$LookupAccountSidW(NULL,
                                               Sid,
                                               Name,
