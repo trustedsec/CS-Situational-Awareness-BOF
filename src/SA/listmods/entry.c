@@ -71,6 +71,7 @@ int PrintModules(DWORD processID)
     // Get size needed before requesting hMods
     if(!PSAPI$EnumProcessModulesEx(hProcess, 0, 0, &cbNeeded, LIST_MODULES_ALL)){
         internal_printf("Failed to enumerate modules (not cross arch compatible)\n");
+        KERNEL32$CloseHandle(hProcess);
         return 1;
     }
 
