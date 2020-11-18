@@ -37,7 +37,7 @@ void * _pop(Pqueue q)
     {
         return NULL;
     }
-    retval = q->head->elem;
+    retval = q->head->elem; //scanbuild false positive
     if(q->head == q->tail) //last elem
     {
         intFree(q->head);
@@ -67,5 +67,5 @@ Pqueue queueInit()
     q->push = _push;
     q->pop = _pop;
     q->free = _free;
-
+    return q;
 }

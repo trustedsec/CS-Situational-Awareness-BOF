@@ -48,6 +48,7 @@ HRESULT Wmi_Initialize(WMI* pWmi)
 
 	pWmi->pWbemServices = NULL;
 	pWmi->pWbemLocator  = NULL;
+	pWmi->bstrServer = NULL;
 	pWmi->pEnumerator = NULL;
 	pWmi->bstrLanguage  = NULL;
 	pWmi->bstrNameSpace = NULL;
@@ -113,16 +114,16 @@ HRESULT Wmi_Connect(
 	}
 	if ( (NULL != pwszServerArg) && (MSVCRT$wcslen(pwszServerArg) > 0) )
 	{
-		MSVCRT$wcscpy(pwszServer, pwszServerArg);
+		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, pwszServerArg);
 	}
 	else
 	{
-		MSVCRT$wcscpy(pwszServer, RESOURCE_LOCAL_HOST);		
+		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, RESOURCE_LOCAL_HOST);		
 	}
 	
 	// Get the namespace	
 	pwszNameSpace = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH*sizeof(wchar_t));
-	if (NULL == pwszServer)
+	if (NULL == pwszNameSpace)
 	{
 		hr = WBEM_E_OUT_OF_MEMORY;
 		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
@@ -130,11 +131,11 @@ HRESULT Wmi_Connect(
 	}
 	if ( (NULL != pwszNameSpaceArg) && (MSVCRT$wcslen(pwszNameSpaceArg) > 0) )
 	{
-		MSVCRT$wcscpy(pwszNameSpace, pwszNameSpaceArg);
+		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, pwszNameSpaceArg);
 	}
 	else
 	{
-		MSVCRT$wcscpy(pwszNameSpace, WMI_NAMESPACE_CIMV2);		
+		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, WMI_NAMESPACE_CIMV2);		
 	}
 	
 	// Create the full resource path from the server and namespace
@@ -146,7 +147,7 @@ HRESULT Wmi_Connect(
 		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
 		goto fail;
 	}
-	if (-1 == MSVCRT$swprintf(lpwszNetworkResource, RESOURCE_FMT_STRING, pwszServer, pwszNameSpace))
+	if (-1 == MSVCRT$_snwprintf(lpwszNetworkResource, ullNetworkResourceSize, RESOURCE_FMT_STRING, pwszServer, pwszNameSpace))
 	{
 		hr = WBEM_E_INVALID_NAMESPACE;
 		BeaconPrintf(CALLBACK_ERROR, "MSVCRT$swprintf failed: 0x%08lx", hr);
@@ -347,7 +348,7 @@ HRESULT Wmi_ParseResults(
 	while (WBEM_S_NO_ERROR == hr)
 	{
 		// Get the next result in our enumeration of results
-		hr = pWmi->pEnumerator->lpVtbl->Next(pWmi->pEnumerator, WBEM_INFINITE, 1, &pWbemClassObjectResult, &ulResultCount);
+		hr = pWmi->pEnumerator->lpVtbl->Next(pWmi->pEnumerator, WBEM_INFINITE, 1, &pWbemClassObjectResult, &ulResultCount); //Scanbuild false positive
 		if (hr == S_OK && ulResultCount > 0) 
 		{
 			if (pWbemClassObjectResult == NULL) 
@@ -506,7 +507,7 @@ HRESULT Wmi_ParseAllResults(
         hr = OLEAUT32$SafeArrayGetElement(psaProperties, &lIndex, &pwszCurrentName);
         if ( FAILED(hr) )
         {
-	        BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetElement(%d) failed: 0x%08lx", lIndex, hr);
+	        BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetElement(%ld) failed: 0x%08lx", lIndex, hr);
 		    goto fail;
 	    }
 	    
@@ -584,7 +585,6 @@ HRESULT Wmi_Finalize(
 
 	SAFE_RELEASE(pWmi->pWbemServices);
 	SAFE_RELEASE(pWmi->pWbemLocator);
-	SAFE_RELEASE(pWmi->pWbemLocator);
 
 	SAFE_FREE(pWmi->bstrLanguage);
 	SAFE_FREE(pWmi->bstrServer);
@@ -595,6 +595,5 @@ HRESULT Wmi_Finalize(
 	// un-initialize the COM library
 	OLE32$CoUninitialize();
 
-fail:
 	return hr;
 }

@@ -3,6 +3,7 @@
 #include "base.c"
 #include "anticrash.c"
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
 const char * gServiceName = 1;
 #pragma GCC diagnostic pop
@@ -44,7 +45,7 @@ DWORD get_service_failure(SC_HANDLE scService)
 
 		internal_printf(
 "SERVICE_NAME: %s\n\
-\t%-30s : %u\n\
+\t%-30s : %lu\n\
 \t%-30s : %s\n\
 \t%-30s : %s\n",
 gServiceName,
@@ -54,8 +55,7 @@ gServiceName,
 );
 		for(DWORD x = 0; x < lpServiceConfig->cActions; x++)
 		{
-			internal_printf("%d\n\n", lpServiceConfig->lpsaActions[x].Type);
-			internal_printf("\t%-30s : %s -- Delay = %u milliseconds\n", "FAILURE_ACTIONS", resolveAction(lpServiceConfig->lpsaActions[x].Type), lpServiceConfig->lpsaActions[x].Delay);
+			internal_printf("\t%-30s : %s -- Delay = %lu milliseconds\n", "FAILURE_ACTIONS", resolveAction(lpServiceConfig->lpsaActions[x].Type), lpServiceConfig->lpsaActions[x].Delay);
 		}
 		dwResult = ERROR_SUCCESS;
 	} while (0);
@@ -83,7 +83,7 @@ DWORD query_config(const char* Hostname, LPCSTR cpServiceName)
             break;
 		}
 
-		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, GENERIC_READ)) == NULL)
 		{
 			dwResult = KERNEL32$GetLastError();
 			break;
@@ -108,6 +108,8 @@ DWORD query_config(const char* Hostname, LPCSTR cpServiceName)
 	return dwResult;
 }
 
+#ifdef BOF
+
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -127,8 +129,22 @@ VOID go(
 	DWORD result = query_config(hostname, servicename);
 	if(result != S_OK)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %u", result);
+		BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %lu", result);
 	}
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main()
+{
+	gServiceName = "TestsvcName";
+	query_config("", "webclient");
+	query_config("172.31.0.1", "WerSvc");
+	query_config("asdf", "nope");
+	query_config("", "nope");
+	query_config("172.31.0.1", "nope");
+	return 0;
+}
+
+#endif

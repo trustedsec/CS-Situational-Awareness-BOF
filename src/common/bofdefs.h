@@ -68,15 +68,18 @@ DECLSPEC_IMPORT ULONG WINAPI IPHLPAPI$GetTcpTable (PMIB_TCPTABLE TcpTable, PULON
 
 //MSVCRT
 WINBASEAPI void *__cdecl MSVCRT$calloc(size_t _NumOfElements, size_t _SizeOfElements);
+WINBASEAPI void *__cdecl MSVCRT$memcpy(void * __restrict__ _Dst,const void * __restrict__ _Src,size_t _MaxCount);
 WINBASEAPI void *__cdecl MSVCRT$realloc(void *_Memory, size_t _NewSize);
 WINBASEAPI void __cdecl MSVCRT$free(void *_Memory);
 WINBASEAPI void __cdecl MSVCRT$memset(void *dest, int c, size_t count);
 WINBASEAPI int __cdecl MSVCRT$sprintf(char *__stream, const char *__format, ...);
 WINBASEAPI int __cdecl MSVCRT$vsnprintf(char * __restrict__ d,size_t n,const char * __restrict__ format,va_list arg);
 WINBASEAPI size_t __cdecl MSVCRT$strnlen(const char *_Str,size_t _MaxCount);
-WINBASEAPI int __cdecl MSVCRT$swprintf(wchar_t *__stream, const wchar_t *__format, ...);
+WINBASEAPI int __cdecl MSVCRT$_snwprintf(wchar_t * __restrict__ _Dest,size_t _Count,const wchar_t * __restrict__ _Format,...);
+WINBASEAPI errno_t __cdecl MSVCRT$wcscpy_s(wchar_t *_Dst, rsize_t _DstSize, const wchar_t *_Src);
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
 WINBASEAPI int __cdecl MSVCRT$sprintf (char *__stream, const char *__format, ...);
+WINBASEAPI int __cdecl MSVCRT$strncmp(const char *_Str1,const char *_Str2,size_t _MaxCount);
 
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcstok(wchar_t * __restrict__ _Str,const wchar_t * __restrict__ _Delim);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsstr(const wchar_t *_Str,const wchar_t *_SubStr);
@@ -184,6 +187,7 @@ WINADVAPI WINBOOL WINAPI ADVAPI32$ConvertSecurityDescriptorToStringSecurityDescr
 
 //NTDLL
 WINBASEAPI NTSTATUS NTAPI NTDLL$NtCreateFile(PHANDLE FileHandle,ACCESS_MASK DesiredAccess,POBJECT_ATTRIBUTES ObjectAttributes,PIO_STATUS_BLOCK IoStatusBlock,PLARGE_INTEGER AllocationSize,ULONG FileAttributes,ULONG ShareAccess,ULONG CreateDisposition,ULONG CreateOptions,PVOID EaBuffer,ULONG EaLength);
+WINBASEAPI NTSTATUS NTAPI NTDLL$NtClose(HANDLE Handle);
 
 //IMAGEHLP
 WINBASEAPI WINBOOL IMAGEAPI IMAGEHLP$ImageEnumerateCertificates(HANDLE FileHandle,WORD TypeFilter,PDWORD CertificateCount,PDWORD Indices,DWORD IndexCount);
@@ -239,24 +243,26 @@ DECLSPEC_IMPORT UINT	WINAPI OLEAUT32$SafeArrayGetElemsize(SAFEARRAY *psa);
 DECLSPEC_IMPORT WINBOOL WINAPI DBGHELP$MiniDumpWriteDump(HANDLE hProcess,DWORD ProcessId,HANDLE hFile,MINIDUMP_TYPE DumpType,CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
 //WLDAP32
-DECLSPEC_IMPORT LDAP* WINAPI WLDAP32$ldap_init(PSTR, ULONG);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_bind_s(LDAP *ld,const PSTR  dn,const PCHAR cred,ULONG method);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_search_s(LDAP *ld,PSTR base,ULONG scope,PSTR filter,PZPSTR attrs,ULONG attrsonly,PLDAPMessage *res);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_count_entries(LDAP*,LDAPMessage*);
+WINLDAPAPI LDAP* LDAPAPI WLDAP32$ldap_init(PSTR, ULONG);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_bind_s(LDAP *ld,const PSTR  dn,const PCHAR cred,ULONG method);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_search_s(LDAP *ld,PSTR base,ULONG scope,PSTR filter,PZPSTR attrs,ULONG attrsonly,PLDAPMessage *res);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_count_entries(LDAP*,LDAPMessage*);
+WINLDAPAPI struct berval **LDAPAPI WLDAP32$ldap_get_values_lenA (LDAP *ExternalHandle,LDAPMessage *Message,const PCHAR attr);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_value_free_len(struct berval **vals);
 
-DECLSPEC_IMPORT LDAPMessage*  WINAPI WLDAP32$ldap_first_entry(LDAP *ld,LDAPMessage *res);
-DECLSPEC_IMPORT LDAPMessage*  WINAPI WLDAP32$ldap_next_entry(LDAP*,LDAPMessage*);
-DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_first_attribute(LDAP *ld,LDAPMessage *entry,BerElement **ptr);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_count_values(PCHAR);
-DECLSPEC_IMPORT PCHAR * WINAPI WLDAP32$ldap_get_values(LDAP *ld,LDAPMessage *entry,const PSTR attr);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_value_free(PCHAR *);
-DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_next_attribute(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
-DECLSPEC_IMPORT VOID WINAPI WLDAP32$ber_free(BerElement *pBerElement,INT fbuf);
-DECLSPEC_IMPORT VOID WINAPI WLDAP32$ldap_memfree(PCHAR);
+WINLDAPAPI LDAPMessage*  LDAPAPI WLDAP32$ldap_first_entry(LDAP *ld,LDAPMessage *res);
+WINLDAPAPI LDAPMessage*  LDAPAPI WLDAP32$ldap_next_entry(LDAP*,LDAPMessage*);
+WINLDAPAPI PCHAR LDAPAPI WLDAP32$ldap_first_attribute(LDAP *ld,LDAPMessage *entry,BerElement **ptr);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_count_values(PCHAR);
+WINLDAPAPI PCHAR * LDAPAPI WLDAP32$ldap_get_values(LDAP *ld,LDAPMessage *entry,const PSTR attr);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_value_free(PCHAR *);
+WINLDAPAPI PCHAR LDAPAPI WLDAP32$ldap_next_attribute(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
+WINLDAPAPI VOID LDAPAPI WLDAP32$ber_free(BerElement *pBerElement,INT fbuf);
+WINLDAPAPI VOID LDAPAPI WLDAP32$ldap_memfree(PCHAR);
 
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_unbind(LDAP*);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_unbind_s(LDAP*);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_msgfree(LDAPMessage*);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind(LDAP*);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind_s(LDAP*);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_msgfree(LDAPMessage*);
 
 //RPCRT4
 RPCRTAPI RPC_STATUS RPC_ENTRY RPCRT4$UuidToStringA(UUID *Uuid,RPC_CSTR *StringUuid);
@@ -273,40 +279,224 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 
 #else
 //Not Kept up to date, update if required
-#pragma comment(lib "Dnsapi")
 #define KERNEL32$VirtualAlloc VirtualAlloc
 #define KERNEL32$VirtualFree VirtualFree
-__forceinline LPVOID intAlloc(SIZE_T size, DWORD type) { return KERNEL32$VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, type);}
 #define KERNEL32$WideCharToMultiByte WideCharToMultiByte
 #define Kernel32$WideCharToMultiByte WideCharToMultiByte
 __forceinline LPVOID intAlloc(SIZE_T size) { return KERNEL32$VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);}
 __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, MEM_RELEASE);}
 
-//Iphlpapi.lib
-//ULONG WINAPI IPHLPAPI$GetAdaptersInfo (PIP_ADAPTER_INFO AdapterInfo, PULONG SizePointer);
+#define KERNEL32$LocalAlloc  LocalAlloc 
+#define KERNEL32$LocalFree  LocalFree 
+#define KERNEL32$HeapAlloc  HeapAlloc 
+#define KERNEL32$HeapReAlloc  HeapReAlloc 
+#define KERNEL32$GetProcessHeap GetProcessHeap
+#define KERNEL32$HeapFree  HeapFree 
+#define Kernel32$FormatMessageA  FormatMessageA 
+#define Kernel32$WideCharToMultiByte  WideCharToMultiByte 
+#define KERNEL32$FileTimeToLocalFileTime  FileTimeToLocalFileTime 
+#define KERNEL32$FileTimeToSystemTime  FileTimeToSystemTime 
+#define KERNEL32$GetDateFormatW  GetDateFormatW 
+#define KERNEL32$GetSystemTimeAsFileTime  GetSystemTimeAsFileTime 
+#define KERNEL32$GetCurrentProcess  GetCurrentProcess 
+#define KERNEL32$GetCurrentProcessId GetCurrentProcessId
+#define KERNEL32$GetLastError  GetLastError 
+#define KERNEL32$CloseHandle  CloseHandle 
+#define KERNEL32$CreateThread  CreateThread 
+#define KERNEL32$GetTickCount  GetTickCount 
+#define KERNEL32$CreateFiber  CreateFiber 
+#define KERNEL32$ConvertThreadToFiber  ConvertThreadToFiber 
+#define KERNEL32$ConvertFiberToThread  ConvertFiberToThread 
+#define KERNEL32$DeleteFiber  DeleteFiber 
+#define KERNEL32$SwitchToFiber  SwitchToFiber 
+#define KERNEL32$WaitForSingleObject  WaitForSingleObject 
+#define KERNEL32$Sleep  Sleep 
+#define KERNEL32$DeleteFileW  DeleteFileW 
+#define KERNEL32$CreateFileW  CreateFileW 
+#define KERNEL32$OpenProcess  OpenProcess 
+#define KERNEL32$GetComputerNameExW  GetComputerNameExW 
+#define KERNEL32$lstrlenW  lstrlenW 
+#define KERNEL32$lstrcatW  lstrcatW 
+#define KERNEL32$lstrcpynW  lstrcpynW 
+#define KERNEL32$GetFullPathNameW  GetFullPathNameW 
+#define KERNEL32$GetFileAttributesW  GetFileAttributesW 
+#define KERNEL32$GetCurrentDirectoryW  GetCurrentDirectoryW 
+#define KERNEL32$FindFirstFileW  FindFirstFileW 
+#define KERNEL32$FindNextFileW  FindNextFileW 
+#define KERNEL32$FindClose  FindClose 
+#define KERNEL32$SetLastError  SetLastError 
+#define KERNEL32$GlobalAlloc GlobalAlloc
+#define KERNEL32$GlobalFree GlobalFree
+#define IPHLPAPI$GetAdaptersInfo  GetAdaptersInfo 
 #define IPHLPAPI$GetAdaptersInfo GetAdaptersInfo
+#define IPHLPAPI$GetIpForwardTable  GetIpForwardTable 
 #define IPHLPAPI$GetNetworkParams GetNetworkParams
-
-
-//MSVCRT
-#define MSVCRT$vsnprintf vsnprintf
+#define IPHLPAPI$GetUdpTable  GetUdpTable 
+#define IPHLPAPI$GetTcpTable  GetTcpTable 
 #define MSVCRT$calloc calloc
 #define MSVCRT$realloc realloc
 #define MSVCRT$free free
+#define MSVCRT$memset memset
+#define MSVCRT$sprintf sprintf
+#define MSVCRT$vsnprintf vsnprintf
 #define MSVCRT$strnlen strnlen
-#define MSVCRT$strlen strlen
-#define MSVCRT$memcpy memcpy
-
+#define MSVCRT$_snwprintf _snwprintf
+#define MSVCRT$wcslen wcslen
+#define MSVCRT$sprintf  sprintf 
+#define MSVCRT$strncmp strncmp
+#define MSVCRT$wcstok wcstok
+#define MSVCRT$wcsstr wcsstr
+#define MSVCRT$wcscat wcscat
+#define MSVCRT$wcsncat wcsncat
+#define MSVCRT$wcscpy wcscpy
+#define MSVCRT$_wcsicmp _wcsicmp
+#define MSVCRT$wcschr wcschr
+#define MSVCRT$wcsncat wcsncat
+#define MSVCRT$wcscpy_s wcscpy_s
+#define MSVCRT$wcsrchr wcsrchr
+#define MSVCRT$wcsrchr wcsrchr
+#define MSVCRT$strcmp strcmp
+#define MSVCRT$strstr strstr
+#define MSVCRT$strtok strtok
 #define DNSAPI$DnsQuery_A DnsQuery_A
 #define DNSAPI$DnsFree DnsFree
-#define KERNEL32$LocalAlloc LocalAlloc
-#define KERNEL32$LocalFree LocalFree
 #define WSOCK32$inet_addr inet_addr
-//DECLSPEC_IMPORT char * __stdcall  WS2_32$inet_ntop(INT Family, LPCVOID pAddr, LPSTR pStringBuf, size_t StringBufSize);
-//DECLSPEC_IMPORT INT __stdcall WS2_32$inet_pton(INT Family, LPCSTR pStringBuf, PVOID pAddr);
-#define Kernel32$FormatMessageA FormatMessageA
-#define BeaconPrintf(x, y, ...) printf(y, ##__VA_ARGS__)
+#define WS2_32$htonl htonl
+#define WS2_32$htons htons
+#define WS2_32$inet_ntoa inet_ntoa
+#define NETAPI32$DsGetDcNameA DsGetDcNameA
+#define NETAPI32$NetUserGetInfo NetUserGetInfo
+#define NETAPI32$NetUserModalsGet NetUserModalsGet
 #define NETAPI32$NetServerEnum NetServerEnum
+#define NETAPI32$NetUserGetGroups NetUserGetGroups
+#define NETAPI32$NetUserGetLocalGroups NetUserGetLocalGroups
 #define NETAPI32$NetApiBufferFree NetApiBufferFree
+#define NETAPI32$NetGetAnyDCName NetGetAnyDCName
+#define NETAPI32$NetUserEnum NetUserEnum
+#define NETAPI32$NetGroupGetUsers NetGroupGetUsers
+#define NETAPI32$NetQueryDisplayInformation NetQueryDisplayInformation
+#define NETAPI32$NetLocalGroupEnum NetLocalGroupEnum
+#define NETAPI32$NetLocalGroupGetMembers NetLocalGroupGetMembers
+#define NETAPI32$NetUserSetInfo NetUserSetInfo
+#define NETAPI32$NetShareEnum NetShareEnum
+#define NETAPI32$NetApiBufferFree NetApiBufferFree
+#define USER32$EnumDesktopWindows EnumDesktopWindows
+#define USER32$IsWindowVisible  IsWindowVisible 
+#define USER32$GetWindowTextA GetWindowTextA
+#define USER32$GetClassNameA GetClassNameA
+#define USER32$CharPrevW CharPrevW
+#define SECUR32$GetUserNameExA  GetUserNameExA 
+#define ADVAPI32$OpenProcessToken  OpenProcessToken 
+#define ADVAPI32$GetTokenInformation  GetTokenInformation 
+#define ADVAPI32$ConvertSidToStringSidA ConvertSidToStringSidA
+#define ADVAPI32$LookupAccountSidA  LookupAccountSidA 
+#define ADVAPI32$LookupPrivilegeNameA  LookupPrivilegeNameA 
+#define ADVAPI32$LookupPrivilegeDisplayNameA  LookupPrivilegeDisplayNameA 
+#define ADVAPI32$OpenSCManagerA OpenSCManagerA
+#define ADVAPI32$OpenServiceA OpenServiceA
+#define ADVAPI32$QueryServiceStatus QueryServiceStatus
+#define ADVAPI32$QueryServiceConfigA QueryServiceConfigA
+#define ADVAPI32$CloseServiceHandle CloseServiceHandle
+#define ADVAPI32$EnumServicesStatusExA EnumServicesStatusExA
+#define ADVAPI32$QueryServiceStatusEx QueryServiceStatusEx
+#define ADVAPI32$QueryServiceConfig2A QueryServiceConfig2A
+#define ADVAPI32$ChangeServiceConfig2A ChangeServiceConfig2A
+#define ADVAPI32$ChangeServiceConfigA ChangeServiceConfigA
+#define ADVAPI32$CreateServiceA CreateServiceA
+#define ADVAPI32$DeleteService DeleteService
+#define ADVAPI32$RegOpenKeyExW RegOpenKeyExW
+#define ADVAPI32$EnumServicesStatusExW EnumServicesStatusExW
+#define ADVAPI32$RegCreateKeyA RegCreateKeyA
+#define ADVAPI32$RegSetValueExA RegSetValueExA
+#define ADVAPI32$RegOpenKeyExA RegOpenKeyExA
+#define ADVAPI32$RegConnectRegistryA RegConnectRegistryA
+#define ADVAPI32$RegCloseKey RegCloseKey
+#define ADVAPI32$RegOpenKeyA RegOpenKeyA
+#define ADVAPI32$RegCreateKeyExA RegCreateKeyExA
+#define ADVAPI32$RegDeleteKeyExA RegDeleteKeyExA
+#define ADVAPI32$RegDeleteKeyValueA RegDeleteKeyValueA
+#define ADVAPI32$RegQueryValueExA RegQueryValueExA
+#define ADVAPI32$RegQueryInfoKeyA RegQueryInfoKeyA
+#define ADVAPI32$RegEnumValueA RegEnumValueA
+#define ADVAPI32$RegEnumKeyExA RegEnumKeyExA
+#define ADVAPI32$RegDeleteValueA RegDeleteValueA
+#define ADVAPI32$RegQueryValueExW RegQueryValueExW
+#define ADVAPI32$RegSaveKeyExA RegSaveKeyExA
+#define ADVAPI32$GetFileSecurityW  GetFileSecurityW 
+#define ADVAPI32$GetSecurityDescriptorDacl  GetSecurityDescriptorDacl 
+#define ADVAPI32$GetAce  GetAce 
+#define ADVAPI32$LookupAccountSidW  LookupAccountSidW 
+#define ADVAPI32$ConvertSidToStringSidW ConvertSidToStringSidW
+#define ADVAPI32$MapGenericMask  MapGenericMask 
+#define ADVAPI32$OpenProcessToken  OpenProcessToken 
+#define ADVAPI32$GetTokenInformation  GetTokenInformation 
+#define ADVAPI32$InitializeSecurityDescriptor  InitializeSecurityDescriptor 
+#define ADVAPI32$SetSecurityDescriptorDacl  SetSecurityDescriptorDacl 
+#define ADVAPI32$ConvertSecurityDescriptorToStringSecurityDescriptorW ConvertSecurityDescriptorToStringSecurityDescriptorW
+#define NTDLL$NtCreateFile NtCreateFile
+#define NTDLL$NtClose NtClose
+#define IMAGEHLP$ImageEnumerateCertificates ImageEnumerateCertificates
+#define IMAGEHLP$ImageGetCertificateHeader ImageGetCertificateHeader
+#define IMAGEHLP$ImageGetCertificateData ImageGetCertificateData
+#define ADVAPI32$StartServiceA StartServiceA
+#define ADVAPI32$ControlService ControlService
+#define ADVAPI32$EnumDependentServicesA EnumDependentServicesA
+#define CRYPT32$CryptVerifyMessageSignature  CryptVerifyMessageSignature 
+#define CRYPT32$CertGetNameStringW  CertGetNameStringW 
+#define CRYPT32$CertFreeCertificateContext  CertFreeCertificateContext 
+#define WS2_32$InetNtopW InetNtopW
+#define WS2_32$inet_pton inet_pton
+#define DNSAPI$DnsFree DnsFree
+#define DNSAPI$DnsGetCacheDataTable DnsGetCacheDataTable
+#define OLE32$CoInitializeEx  CoInitializeEx 
+#define OLE32$CoUninitialize  CoUninitialize 
+#define OLE32$CoInitializeSecurity  CoInitializeSecurity 
+#define OLE32$CoCreateInstance  CoCreateInstance 
+#define OLE32$CLSIDFromString  CLSIDFromString 
+#define OLE32$IIDFromString  IIDFromString 
+#define OLE32$CoSetProxyBlanket CoSetProxyBlanket
+#define OLE32$CoTaskMemAlloc CoTaskMemAlloc
+#define OLE32$CoTaskMemFree CoTaskMemFree
+#define OLEAUT32$SysAllocString SysAllocString
+#define OLEAUT32$SysReAllocString SysReAllocString
+#define OLEAUT32$SysFreeString SysFreeString
+#define OLEAUT32$VariantInit VariantInit
+#define OLEAUT32$VariantClear VariantClear
+#define OLEAUT32$SysAddRefString SysAddRefString
+#define OLEAUT32$VariantChangeType VariantChangeType
+#define OLEAUT32$VarFormatDateTime VarFormatDateTime
+#define OLEAUT32$SafeArrayDestroy SafeArrayDestroy
+#define OLEAUT32$SafeArrayLock SafeArrayLock
+#define OLEAUT32$SafeArrayGetLBound SafeArrayGetLBound
+#define OLEAUT32$SafeArrayGetUBound SafeArrayGetUBound
+#define OLEAUT32$SafeArrayGetElement SafeArrayGetElement
+#define OLEAUT32$SafeArrayGetElemsize SafeArrayGetElemsize
+#define DBGHELP$MiniDumpWriteDump MiniDumpWriteDump
+#define WLDAP32$ldap_init ldap_init
+#define WLDAP32$ldap_bind_s ldap_bind_s
+#define WLDAP32$ldap_search_s ldap_search_s
+#define WLDAP32$ldap_count_entries ldap_count_entries
+#define WLDAP32$ldap_first_entry ldap_first_entry
+#define WLDAP32$ldap_next_entry ldap_next_entry
+#define WLDAP32$ldap_first_attribute ldap_first_attribute
+#define WLDAP32$ldap_get_values_lenA ldap_get_values_lenA
+#define WLDAP32$ldap_value_free_len ldap_value_free_len
+#define WLDAP32$ldap_count_values ldap_count_values
+#define WLDAP32$ldap_get_values ldap_get_values
+#define WLDAP32$ldap_value_free ldap_value_free
+#define WLDAP32$ldap_next_attribute ldap_next_attribute
+#define WLDAP32$ber_free ber_free
+#define WLDAP32$ldap_memfree ldap_memfree
+#define WLDAP32$ldap_unbind ldap_unbind
+#define WLDAP32$ldap_unbind_s ldap_unbind_s
+#define WLDAP32$ldap_msgfree ldap_msgfree
+#define RPCRT4$UuidToStringA UuidToStringA
+#define RPCRT4$RpcStringFreeA RpcStringFreeA
+#define PSAPI$EnumProcessModulesEx EnumProcessModulesEx
+#define PSAPI$GetModuleFileNameExA GetModuleFileNameExA
+#define VERSION$GetFileVersionInfoSizeA GetFileVersionInfoSizeA
+#define VERSION$GetFileVersionInfoA GetFileVersionInfoA
+#define VERSION$VerQueryValueA VerQueryValueA
 #define internal_printf printf
+#define BeaconPrintf(t, s, ...) printf(s, ##__VA_ARGS__)
 #endif

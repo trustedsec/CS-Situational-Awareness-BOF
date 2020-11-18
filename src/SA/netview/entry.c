@@ -1,19 +1,9 @@
-
-
-/*
- * PROJECT:     ReactOS netstat utility
- * LICENSE:     GPL - See COPYING in the top level directory
- * FILE:        base/applications/network/netstat/netstat.c
- * PURPOSE:     display IP stack statistics
- * COPYRIGHT:   Copyright 2005 Ged Murphy <gedmurphy@gmail.com>
- */
-
 #include <windows.h>
 #include <lmserver.h>
 #include <lmerr.h>
+#include "lm.h"
 #include "beacon.h"
 #include "bofdefs.h"
-#define bufsize 8192
 #include "base.c"
 
 void netview_enum(wchar_t* domain)
@@ -92,19 +82,14 @@ VOID go(
 	printoutput(TRUE);
     if(rdomain != NULL)
         intFree(rdomain);
-	bofstop();
 }
 #else
-int main(int argc, char ** argv)
+int main()
 {
-        if(!bofstart())
-                return 1;
-        char * target = argv[1];
-        char * server = argv[2];
-        unsigned short type = (unsigned short)atoi(argv[3]);
-        query_domain(target, type,server);
-        printoutput();
-        bofstop();
-        return 0;
+
+    netview_enum(NULL);
+    netview_enum(L"testrange");
+    netview_enum(L"asdf");
+    return 0;
 }
 #endif

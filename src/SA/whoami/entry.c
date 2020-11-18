@@ -58,6 +58,7 @@ VOID* WhoamiGetTokenInfo(TOKEN_INFORMATION_CLASS TokenType)
             if (pTokenInfo == NULL)
             {
                 //printf("ERROR: not enough memory to allocate the token structure.\r\n");
+                KERNEL32$CloseHandle(hToken);
                 return NULL;
             }
         }
@@ -68,6 +69,7 @@ VOID* WhoamiGetTokenInfo(TOKEN_INFORMATION_CLASS TokenType)
                                  &dwLength))
         {
             //printf("ERROR 0x%x: could not get token information.\r\n", GetLastError());
+            KERNEL32$CloseHandle(hToken);
             intFree(pTokenInfo);
             return NULL;
         }
@@ -86,20 +88,20 @@ int WhoamiUser(void)
     char* pUserStr = NULL;
     char* pSidStr = NULL;
     WhoamiTable *UserTable = NULL;
+    int retval = 0;
 
     if (pUserInfo == NULL)
     {
-        return 1;
+        retval = 1;
+        goto end;
     }
 
     pUserStr = WhoamiGetUser(NameSamCompatible);
     if (pUserStr == NULL)
     {
-        intFree(pUserInfo);
-        return 1;
+        retval = 1;
+        goto end;
     }
-
-
 
     internal_printf("\nUserName\t\tSID\n");
     internal_printf("====================== ====================================\n");
@@ -110,11 +112,12 @@ int WhoamiUser(void)
 
 
     /* cleanup our allocations */
-    KERNEL32$LocalFree(pSidStr);
-    intFree(pUserInfo);
-    intFree(pUserStr);
+    end:
+    if(pSidStr){KERNEL32$LocalFree(pSidStr);}
+    if(pUserInfo){intFree(pUserInfo);}
+    if(pUserStr){intFree(pUserStr);};
 
-    return 0;
+    return retval;
 }
 
 int WhoamiGroups(void)
@@ -129,20 +132,6 @@ int WhoamiGroups(void)
     DWORD cchDomainName = _countof(szGroupName);
 
     SID_NAME_USE Use = 0;
-    BYTE SidNameUseStr[12] =
-    {
-        /* SidTypeUser           */ -1,
-        /* SidTypeGroup          */ -1,
-        /* SidTypeDomain         */ -1,
-        /* SidTypeUser           */ -1,
-        /* SidTypeAlias          */ 12,
-        /* SidTypeWellKnownGroup */ 11,
-        /* SidTypeDeletedAccount */ -1,
-        /* SidTypeInvalid        */ -1,
-        /* SidTypeUnknown        */ -1,
-        /* SidTypeComputer       */ -1,
-        /* SidTypeLabel          */ 13
-    };
 
     PTOKEN_GROUPS pGroupInfo = (PTOKEN_GROUPS)WhoamiGetTokenInfo(TokenGroups);
     WhoamiTable *GroupTable = NULL;
@@ -155,24 +144,28 @@ int WhoamiGroups(void)
     /* the header is the first (0) row, so we start in the second one (1) */
 
 
-    internal_printf("\n%-50s%-25s%-25s%-25s\n", "GROUP INFORMATION", "Type", "SID", "Attributes");
-    internal_printf("================================================= ===================== ================ ==================================================\n");
+    internal_printf("\n%-50s%-25s%-45s%-25s\n", "GROUP INFORMATION", "Type", "SID", "Attributes");
+    internal_printf("================================================= ===================== ============================================= ==================================================\n");
 
     for (dwIndex = 0; dwIndex < pGroupInfo->GroupCount; dwIndex++)
     {
-        ADVAPI32$LookupAccountSidA(NULL,
+        if(ADVAPI32$LookupAccountSidA(NULL,
                           pGroupInfo->Groups[dwIndex].Sid,
                           (LPSTR)&szGroupName,
                           &cchGroupName,
                           (LPSTR)&szDomainName,
                           &cchDomainName,
-                          &Use);
+                          &Use) == 0)
+        {
+            //If we fail lets try to get the next entry
+            continue;
+        }
 
         /* the original tool seems to limit the list to these kind of SID items */
         if ((Use == SidTypeWellKnownGroup || Use == SidTypeAlias ||
-            Use == SidTypeLabel) && !(pGroupInfo->Groups[dwIndex].Attributes & SE_GROUP_LOGON_ID))
+            Use == SidTypeLabel || Use == SidTypeGroup) && !(pGroupInfo->Groups[dwIndex].Attributes & SE_GROUP_LOGON_ID))
         {
-                char tmpBuffer[666];
+                char tmpBuffer[1024] = {0};
 
             /* looks like windows treats 0x60 as 0x7 for some reason, let's just nod and call it a day:
                0x60 is SE_GROUP_INTEGRITY | SE_GROUP_INTEGRITY_ENABLED
@@ -195,13 +188,19 @@ int WhoamiGroups(void)
             else if (Use == SidTypeLabel){
                 internal_printf("%-25s", "Label ");
             }
+            else if (Use == SidTypeGroup) {
+                internal_printf("%-25s", "Group ");
+            }
             /* 3- turn that SID into text-form */
-            ADVAPI32$ConvertSidToStringSidA(pGroupInfo->Groups[dwIndex].Sid, &pSidStr);
+            if(ADVAPI32$ConvertSidToStringSidA(pGroupInfo->Groups[dwIndex].Sid, &pSidStr)){
 
             //WhoamiSetTable(GroupTable, pSidStr, PrintingRow, 2);
-            internal_printf("%-25s", pSidStr);
+                internal_printf("%-45s ", pSidStr);
 
-            KERNEL32$LocalFree(pSidStr);
+                KERNEL32$LocalFree(pSidStr);
+                pSidStr = NULL;
+
+            }
 
             /* 4- reuse that buffer for appending the attributes in text-form at the very end */
             ZeroMemory(tmpBuffer, sizeof(tmpBuffer));
@@ -214,9 +213,8 @@ int WhoamiGroups(void)
                 internal_printf("Enabled group, ");
             if (pGroupInfo->Groups[dwIndex].Attributes & SE_GROUP_OWNER)
                 internal_printf("Group owner, ");
-
+            internal_printf("\n");
         }
-        internal_printf("\n");
         /* reset the buffers so that we can reuse them */
         ZeroMemory(szGroupName, sizeof(szGroupName));
         ZeroMemory(szDomainName, sizeof(szDomainName));
@@ -253,17 +251,21 @@ int WhoamiPriv(void)
         DWORD PrivNameSize = 0, DispNameSize = 0;
         BOOL ret = FALSE;
 
-        ret = ADVAPI32$LookupPrivilegeNameA(NULL,
+        ADVAPI32$LookupPrivilegeNameA(NULL,
                                    &pPrivInfo->Privileges[dwIndex].Luid,
                                    NULL,
-                                   &PrivNameSize);
+                                   &PrivNameSize); // getting size
 
         PrivName = intAlloc(++PrivNameSize);
 
-        ADVAPI32$LookupPrivilegeNameA(NULL,
+        if(ADVAPI32$LookupPrivilegeNameA(NULL,
                              &pPrivInfo->Privileges[dwIndex].Luid,
                              PrivName,
-                             &PrivNameSize);
+                             &PrivNameSize) == 0)
+                             {
+                                 if(PrivName){intFree(PrivName); PrivName = NULL;}
+                                 continue; // try to get next
+                             }
 
         //WhoamiSetTableDyn(PrivTable, PrivName, dwIndex + 1, 0);
         internal_printf("%-30s", PrivName);
@@ -298,12 +300,12 @@ int WhoamiPriv(void)
 
 
     /* cleanup our allocations */
-    intFree(pPrivInfo);
+    if(pPrivInfo){intFree(pPrivInfo);}
 
     return 0;
 }
 
-
+#ifdef BOF
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -317,5 +319,14 @@ VOID go(
 	(void)WhoamiGroups();
 	(void)WhoamiPriv();
 	printoutput(TRUE);
-	bofstop();
 };
+#else
+int main()
+{
+    (void)WhoamiUser();
+	(void)WhoamiGroups();
+	(void)WhoamiPriv();
+    return 1;
+}
+
+#endif

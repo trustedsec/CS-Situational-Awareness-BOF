@@ -40,6 +40,11 @@ int validate_driver(wchar_t * file_path)
 {
 	wchar_t mypath[512] = {0};
 	wchar_t *  drivers[8]; // make sure you update this if you cange the list below
+	PCCERT_CONTEXT certificate_context = NULL;
+	LPWIN_CERTIFICATE certificate = NULL;
+	LPWIN_CERTIFICATE certificate_header = NULL;
+	HANDLE file_handle = 0;
+	int ret = 0;
 	
 	drivers[0] = L"Carbon Black, Inc.";
 	drivers[1] = L"CrowdStrike, Inc.";
@@ -65,7 +70,7 @@ int validate_driver(wchar_t * file_path)
 
 	
 	// Create handle to driver file.
-	HANDLE file_handle = 0;
+
 	UNICODE_STRING file_path_us = { 0 };
 	makestr(&file_path_us, mypath);
 	OBJECT_ATTRIBUTES object_attributes = { 0 };
@@ -81,7 +86,8 @@ int validate_driver(wchar_t * file_path)
 	if (!file_handle)
 	{
 		internal_printf("%S -> cannot obtain handle (insufficient privs?)\n", mypath);
-		return 1;
+		ret = 1;
+		goto end;
 	}
 
 	// Count certificates in file.
@@ -89,13 +95,13 @@ int validate_driver(wchar_t * file_path)
 	if(!IMAGEHLP$ImageEnumerateCertificates(file_handle, CERT_SECTION_TYPE_ANY, &certificate_count, NULL, 0))
 	{
 		BeaconPrintf(CALLBACK_ERROR, "Failed to enumerate certs");
-		return 0;
+		goto end;
 	}
 
 	for (unsigned long i = 0; i < certificate_count; i++)
 	{
 		// Determine the length for the ImageGetCertificateData call.
-		LPWIN_CERTIFICATE certificate_header = (LPWIN_CERTIFICATE)intAlloc(sizeof(WIN_CERTIFICATE));
+		certificate_header = (LPWIN_CERTIFICATE)intAlloc(sizeof(WIN_CERTIFICATE));
 		if(!IMAGEHLP$ImageGetCertificateHeader(file_handle, i, certificate_header))
 		{ 		
 			BeaconPrintf(CALLBACK_ERROR, "Failed to get header of cert");
@@ -104,7 +110,7 @@ int validate_driver(wchar_t * file_path)
 
 		// Get the buffer for the certificate.
 		unsigned long certificate_length = certificate_header->dwLength;
-		LPWIN_CERTIFICATE certificate = (LPWIN_CERTIFICATE)intAlloc(certificate_length);
+		certificate = (LPWIN_CERTIFICATE)intAlloc(certificate_length);
 		if(!IMAGEHLP$ImageGetCertificateData(file_handle, i, certificate, &certificate_length))
 		{ 		
 			BeaconPrintf(CALLBACK_ERROR, "Failed to get cert data");
@@ -114,7 +120,7 @@ int validate_driver(wchar_t * file_path)
 		CRYPT_VERIFY_MESSAGE_PARA verify_params = { 0 };
 		verify_params.cbSize = sizeof(CRYPT_VERIFY_MESSAGE_PARA);
 		verify_params.dwMsgAndCertEncodingType = X509_ASN_ENCODING | PKCS_7_ASN_ENCODING;
-		PCCERT_CONTEXT certificate_context = NULL;
+
 		if(!CRYPT32$CryptVerifyMessageSignature(&verify_params, i, certificate->bCertificate, certificate->dwLength, NULL, NULL, &certificate_context))
 		{ 		
 			BeaconPrintf(CALLBACK_ERROR, "Failed to verify message");
@@ -133,12 +139,28 @@ int validate_driver(wchar_t * file_path)
 		}
 		clear:
 		if (certificate_context)
+		{
 			CRYPT32$CertFreeCertificateContext(certificate_context);
+			certificate_context = NULL;
+		}
 		if(certificate_header)
+		{
 			intFree(certificate_header);
+			certificate_header = NULL;
+		}
 		if(certificate)
+		{
 			intFree(certificate);
+			certificate = NULL;
+		}
 	}
+	end:
+	if(file_handle)
+	{
+		NTDLL$NtClose(file_handle);
+		file_handle = 0;
+	}
+	return ret;
 }
 
 
@@ -161,7 +183,7 @@ int enumerate_loaded_drivers()
 	PBYTE services = (PBYTE)intAlloc(bytes_needed);
 	if (!ADVAPI32$EnumServicesStatusExW(scm_handle, SC_ENUM_PROCESS_INFO, SERVICE_DRIVER , SERVICE_ACTIVE, services, bytes_needed, &bytes_needed, &services_returned, NULL, NULL))
 	{
-		internal_printf("[ERROR] Cannot enumerate services -> 0x%08X.\n", KERNEL32$GetLastError());
+		internal_printf("[ERROR] Cannot enumerate services -> %ld.\n", KERNEL32$GetLastError());
 		return 1;
 	}
 	LPENUM_SERVICE_STATUS_PROCESSW service = (LPENUM_SERVICE_STATUS_PROCESSW)services;
@@ -203,7 +225,7 @@ int enumerate_loaded_drivers()
 	return 0;
 }
 		
-
+#ifdef BOF
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -215,5 +237,13 @@ VOID go(
 	}
 	enumerate_loaded_drivers();
 	printoutput(TRUE);
-	bofstop();
 };
+#else
+
+int main()
+{
+	enumerate_loaded_drivers();
+	return 1;
+}
+
+#endif

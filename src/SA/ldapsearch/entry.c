@@ -3,6 +3,8 @@
 #include <winldap.h>
 #include <winber.h>
 #include <rpc.h>
+#include <lm.h>
+#include <sddl.h>
 #include <rpcdce.h>
 #include <stdint.h>
 #include "bofdefs.h"
@@ -11,6 +13,12 @@
 #include <secext.h> 
 
 #define MAX_ATTRIBUTES 100
+
+typedef long (*_fuuidtostring)(UUID *Uuid,RPC_CSTR *StringUuid);
+typedef long (*_RpcStringFreeA)(RPC_CSTR *String);
+_fuuidtostring fuuidtostring = (void *)1;
+_RpcStringFreeA frpcstringfree = (void *)1;
+HMODULE rpcrt = (void *)1; 
 
 LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 	LDAP* pLdapConnection = NULL;
@@ -36,7 +44,7 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 
     if(lRtn != LDAP_SUCCESS)
     {
-    	BeaconPrintf(CALLBACK_ERROR, "Bind Failed: %u", lRtn);
+    	BeaconPrintf(CALLBACK_ERROR, "Bind Failed: %lu", lRtn);
         WLDAP32$ldap_unbind(pLdapConnection);
         pLdapConnection = NULL; 
     }
@@ -101,7 +109,7 @@ LDAPMessage* ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, ch
     }
     else if (errorCode != LDAP_SUCCESS)
     {
-        BeaconPrintf(CALLBACK_ERROR, "LDAP Search Failed: %u", errorCode);
+        BeaconPrintf(CALLBACK_ERROR, "LDAP Search Failed: %lu", errorCode);
 
         if(pSearchResult != NULL)
         {
@@ -117,15 +125,25 @@ void customAttributes(PCHAR pAttribute, PCHAR pValue)
 {
     if(MSVCRT$strcmp(pAttribute, "objectGUID") == 0) 
     {
+        if(fuuidtostring == (void *)1) // I'm doing this because we ran out of function slots for dynamic function resolution
+        {
+           rpcrt = LoadLibraryA("rpcrt4");
+           fuuidtostring = (_fuuidtostring)GetProcAddress(rpcrt, "UuidToStringA");
+           frpcstringfree = (_RpcStringFreeA)GetProcAddress(rpcrt, "RpcStringFreeA");
+        }
         RPC_CSTR G = NULL;
-        RPCRT4$UuidToStringA((UUID *) pValue, &G);
+        PBERVAL tmp = (PBERVAL)pValue;
+        //RPCRT4$UuidToStringA((UUID *) tmp->bv_val, &G);
+        fuuidtostring((UUID *) tmp->bv_val, &G);
         internal_printf("%s", G);
-        RPCRT4$RpcStringFreeA(&G);       
+        //RPCRT4$RpcStringFreeA(&G);       
+        frpcstringfree(&G);
     }
     else if(MSVCRT$strcmp(pAttribute, "objectSid") == 0)
     {
         LPSTR sid = NULL;
-        ADVAPI32$ConvertSidToStringSidA((PSID)pValue, &sid);
+        PBERVAL tmp = (PBERVAL)pValue;
+        ADVAPI32$ConvertSidToStringSidA((PSID)tmp->bv_val, &sid);
         internal_printf("%s", sid);
         KERNEL32$LocalFree(sid);
     }
@@ -165,9 +183,10 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
     PCHAR pAttribute = NULL;
     PCHAR* ppValue = NULL;
     ULONG results_limit = 0;
+    BOOL isbinary = FALSE;
 
 	distinguishedName = MSVCRT$strstr(szDN, "DC");
-	if(distinguishedName != NULL) {
+	if(distinguishedName != NULL && res) {
     	internal_printf("[*] Distinguished name: %s\n", distinguishedName);	
 	}
 	else{
@@ -230,11 +249,11 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 
     if ((results_count == 0) || (results_count > numberOfEntries)){
 		results_limit = numberOfEntries;
-  	    internal_printf("\n[*] Result count: %d\n", numberOfEntries);
+  	    internal_printf("\n[*] Result count: %lu\n", numberOfEntries);
     }
     else { 
     	results_limit = results_count;
-    	internal_printf("\n[*] Result count: %d (showing max. %d)\n", numberOfEntries, results_count);
+    	internal_printf("\n[*] Result count: %lu (showing max. %lu)\n", numberOfEntries, results_count);
     }
 
 
@@ -263,17 +282,29 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
         // and output values.
         while(pAttribute != NULL)
         {
+            isbinary = FALSE;
             // Get the string values.
-            ppValue = WLDAP32$ldap_get_values(
-                          pLdapConnection,  // Session Handle
-                          pEntry,           // Current entry
-                          pAttribute);      // Current attribute
+            if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0)
+            {
+                ppValue = (char **)WLDAP32$ldap_get_values_lenA(pLdapConnection, pEntry, pAttribute); //not really a char **
+                isbinary = TRUE;
+            }
+            else{
+                ppValue = WLDAP32$ldap_get_values(
+                            pLdapConnection,  // Session Handle
+                            pEntry,           // Current entry
+                            pAttribute);      // Current attribute
+            }
+
 
             // Use and Free memory.
             if(ppValue != NULL)  
             {
                 printAttribute(pAttribute, ppValue);
-                WLDAP32$ldap_value_free(ppValue);
+                if(isbinary)
+                {WLDAP32$ldap_value_free_len((PBERVAL *)ppValue);}
+                else
+                {WLDAP32$ldap_value_free(ppValue);}
                 ppValue = NULL;
             }
             WLDAP32$ldap_memfree(pAttribute);
@@ -321,7 +352,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 
 }
 
-
+#ifdef BOF
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -348,5 +379,25 @@ VOID go(
 	ldapSearch(ldap_filter, ldap_attributes, results_count);
 
 	printoutput(TRUE);
-	bofstop();
+    if(fuuidtostring != (void *)1)
+    {
+        FreeLibrary(rpcrt);
+    }
 };
+
+#else
+
+int main()
+{
+    char a[] = "(objectclass=*)";
+    char b[] = "(objectclass=*)";
+    char c[] = "(objectclass=*)";
+    char d[] = "(asdf=*)";
+    ldapSearch(a, NULL, 1000);
+    ldapSearch(d, NULL, 1000);
+    ldapSearch(c, "objectSID,name", 1000);
+    ldapSearch(b, "asdf", 1000);
+    return 1;
+}
+
+#endif

@@ -101,6 +101,7 @@ fail:
 	return hr;
 }
 
+#ifdef BOF
 VOID go(
 	IN PCHAR Buffer,
 	IN ULONG Length
@@ -126,9 +127,24 @@ VOID go(
 	}
 
 	printoutput(TRUE);
-
-	bofstop();
 };
+#else
+int main(int argc, char ** argv)
+{
+	char * server = argv[1];
+	wchar_t wserver[260] = {0};
+	MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, server, -1, wserver, 260);
+	HRESULT hr = task_list(wserver);
+	if(S_OK != hr)
+	{
+		BeaconPrintf(CALLBACK_ERROR, "task_list failed: 0x%08lx", hr);
+	}
+
+	return 0;
+}
+
+#endif
+
 
 	
 
