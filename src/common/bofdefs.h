@@ -79,6 +79,7 @@ WINBASEAPI int __cdecl MSVCRT$_snwprintf(wchar_t * __restrict__ _Dest,size_t _Co
 WINBASEAPI errno_t __cdecl MSVCRT$wcscpy_s(wchar_t *_Dst, rsize_t _DstSize, const wchar_t *_Src);
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
 WINBASEAPI int __cdecl MSVCRT$sprintf (char *__stream, const char *__format, ...);
+WINBASEAPI int __cdecl MSVCRT$strncmp(const char *_Str1,const char *_Str2,size_t _MaxCount);
 
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcstok(wchar_t * __restrict__ _Str,const wchar_t * __restrict__ _Delim);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsstr(const wchar_t *_Str,const wchar_t *_SubStr);
@@ -242,24 +243,26 @@ DECLSPEC_IMPORT UINT	WINAPI OLEAUT32$SafeArrayGetElemsize(SAFEARRAY *psa);
 DECLSPEC_IMPORT WINBOOL WINAPI DBGHELP$MiniDumpWriteDump(HANDLE hProcess,DWORD ProcessId,HANDLE hFile,MINIDUMP_TYPE DumpType,CONST PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,CONST PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,CONST PMINIDUMP_CALLBACK_INFORMATION CallbackParam);
 
 //WLDAP32
-DECLSPEC_IMPORT LDAP* WINAPI WLDAP32$ldap_init(PSTR, ULONG);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_bind_s(LDAP *ld,const PSTR  dn,const PCHAR cred,ULONG method);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_search_s(LDAP *ld,PSTR base,ULONG scope,PSTR filter,PZPSTR attrs,ULONG attrsonly,PLDAPMessage *res);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_count_entries(LDAP*,LDAPMessage*);
+WINLDAPAPI LDAP* LDAPAPI WLDAP32$ldap_init(PSTR, ULONG);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_bind_s(LDAP *ld,const PSTR  dn,const PCHAR cred,ULONG method);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_search_s(LDAP *ld,PSTR base,ULONG scope,PSTR filter,PZPSTR attrs,ULONG attrsonly,PLDAPMessage *res);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_count_entries(LDAP*,LDAPMessage*);
+WINLDAPAPI struct berval **LDAPAPI WLDAP32$ldap_get_values_lenA (LDAP *ExternalHandle,LDAPMessage *Message,const PCHAR attr);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_value_free_len(struct berval **vals);
 
-DECLSPEC_IMPORT LDAPMessage*  WINAPI WLDAP32$ldap_first_entry(LDAP *ld,LDAPMessage *res);
-DECLSPEC_IMPORT LDAPMessage*  WINAPI WLDAP32$ldap_next_entry(LDAP*,LDAPMessage*);
-DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_first_attribute(LDAP *ld,LDAPMessage *entry,BerElement **ptr);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_count_values(PCHAR);
-DECLSPEC_IMPORT PCHAR * WINAPI WLDAP32$ldap_get_values(LDAP *ld,LDAPMessage *entry,const PSTR attr);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_value_free(PCHAR *);
-DECLSPEC_IMPORT PCHAR WINAPI WLDAP32$ldap_next_attribute(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
-DECLSPEC_IMPORT VOID WINAPI WLDAP32$ber_free(BerElement *pBerElement,INT fbuf);
-DECLSPEC_IMPORT VOID WINAPI WLDAP32$ldap_memfree(PCHAR);
+WINLDAPAPI LDAPMessage*  LDAPAPI WLDAP32$ldap_first_entry(LDAP *ld,LDAPMessage *res);
+WINLDAPAPI LDAPMessage*  LDAPAPI WLDAP32$ldap_next_entry(LDAP*,LDAPMessage*);
+WINLDAPAPI PCHAR LDAPAPI WLDAP32$ldap_first_attribute(LDAP *ld,LDAPMessage *entry,BerElement **ptr);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_count_values(PCHAR);
+WINLDAPAPI PCHAR * LDAPAPI WLDAP32$ldap_get_values(LDAP *ld,LDAPMessage *entry,const PSTR attr);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_value_free(PCHAR *);
+WINLDAPAPI PCHAR LDAPAPI WLDAP32$ldap_next_attribute(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
+WINLDAPAPI VOID LDAPAPI WLDAP32$ber_free(BerElement *pBerElement,INT fbuf);
+WINLDAPAPI VOID LDAPAPI WLDAP32$ldap_memfree(PCHAR);
 
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_unbind(LDAP*);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_unbind_s(LDAP*);
-DECLSPEC_IMPORT ULONG WINAPI WLDAP32$ldap_msgfree(LDAPMessage*);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind(LDAP*);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind_s(LDAP*);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_msgfree(LDAPMessage*);
 
 //RPCRT4
 RPCRTAPI RPC_STATUS RPC_ENTRY RPCRT4$UuidToStringA(UUID *Uuid,RPC_CSTR *StringUuid);
@@ -340,6 +343,7 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define MSVCRT$_snwprintf _snwprintf
 #define MSVCRT$wcslen wcslen
 #define MSVCRT$sprintf  sprintf 
+#define MSVCRT$strncmp strncmp
 #define MSVCRT$wcstok wcstok
 #define MSVCRT$wcsstr wcsstr
 #define MSVCRT$wcscat wcscat
@@ -475,6 +479,8 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define WLDAP32$ldap_first_entry ldap_first_entry
 #define WLDAP32$ldap_next_entry ldap_next_entry
 #define WLDAP32$ldap_first_attribute ldap_first_attribute
+#define WLDAP32$ldap_get_values_lenA ldap_get_values_lenA
+#define WLDAP32$ldap_value_free_len ldap_value_free_len
 #define WLDAP32$ldap_count_values ldap_count_values
 #define WLDAP32$ldap_get_values ldap_get_values
 #define WLDAP32$ldap_value_free ldap_value_free
