@@ -4,6 +4,7 @@
 #include <iphlpapi.h>
 #include <lmaccess.h>
 #include <lmerr.h>
+#include "lm.h"
 #include "bofdefs.h"
 #include "base.c"
 
@@ -130,6 +131,8 @@ char* netuser_enum(int usedomain, int userfilter){
     return NULL;
 }
 
+#ifdef BOF
+
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -145,5 +148,15 @@ VOID go(
     int userfilter = BeaconDataInt(&parser);
 	netuser_enum(usedomain, userfilter);
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main()
+{
+    netuser_enum(1, 1);
+    netuser_enum(0, 1);
+    return 0;
+}
+
+#endif

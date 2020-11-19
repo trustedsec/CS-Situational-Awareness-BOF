@@ -2,6 +2,7 @@
 #include "bofdefs.h"
 #include "defines.h"
 #include "base.c"
+#include <sddl.h>
 #include <windef.h>
 
 
@@ -12,12 +13,13 @@ enum searchtype{
     Folder,
     Fail
 };
-
+#pragma pack (push, 1) // This is required because x64 can crash when running as a bof otherwise.
 typedef struct _AR
 {
     DWORD Access;
     const char * uID;
 }AR, *pAR;
+#pragma pack (pop)
 pAR AccessRights = (pAR)1;
 
 #define LOVEIT(a, b, c) a.Access = b; a.uID = c
@@ -88,7 +90,7 @@ PrintFileDacl(IN LPWSTR FilePath,
     {
         KERNEL32$lstrcpynW(FullFileName, FilePath, MAX_PATH);
     }
-    
+
 
     /* find out how much memory we need */
     if (!ADVAPI32$GetFileSecurityW(FullFileName,
@@ -134,11 +136,11 @@ PrintFileDacl(IN LPWSTR FilePath,
                         LPWSTR Name = NULL;
                         LPWSTR Domain = NULL;
                         LPWSTR SidString = NULL;
-                        DWORD IndentAccess;
+                        DWORD IndentAccess = 0;
+                        
                         DWORD AccessMask = Ace->Mask;
                         PSID Sid = (PSID)&Ace->SidStart;
-
-                        /* attempt to translate the SID into a readable string */
+//                         /* attempt to translate the SID into a readable string */
                         if (!ADVAPI32$LookupAccountSidW(NULL,
                                               Sid,
                                               Name,
@@ -249,7 +251,6 @@ BuildSidString:
                         }
 
                         IndentAccess += 2;
-
                         /* print the access rights */
                         ADVAPI32$MapGenericMask(&AccessMask,
                                        &FileGenericMapping);
@@ -298,7 +299,7 @@ PrintSpecialAccess:
                                         internal_printf("\n%S ", FullFileName);
                                         for (x2 = 0; x2 < IndentAccess; x2++)
                                         {
-                                            internal_printf("%s", L" ");
+                                            internal_printf("%s", " ");
                                         }
 
                                         internal_printf("%s", AccessRights[x].uID);
@@ -306,12 +307,12 @@ PrintSpecialAccess:
                                     x--;
                                 }
 
-                                internal_printf("%s", L"\n");
+                                internal_printf("%s", "\n");
 //                             }
                             }
                         }
 
-                        internal_printf("%s", L"\n");
+                        internal_printf("%s", "\n");
 
                         /* free up all resources */
                         if (Name != NULL)
@@ -337,8 +338,11 @@ PrintSpecialAccess:
                 }
             }
         }
-
-		intFree(SecurityDescriptor);
+        if(SecurityDescriptor)
+        {
+		    intFree(SecurityDescriptor);
+            SecurityDescriptor = NULL;
+        }
     }
     else
     {
@@ -381,7 +385,7 @@ GetPathOfFile(LPWSTR FilePath, LPCWSTR pszFiles)
         *pch = 0;
         if (!KERNEL32$GetFullPathNameW(FilePath, MAX_PATH, FullPath, NULL))
         {
-            BeaconPrintf(CALLBACK_ERROR, "Failed to resolve path: 0x%x", KERNEL32$GetLastError());
+            BeaconPrintf(CALLBACK_ERROR, "Failed to resolve path: 0x%lx", KERNEL32$GetLastError());
             return Fail;
         }
         KERNEL32$lstrcpynW(FilePath, FullPath, MAX_PATH);
@@ -389,7 +393,7 @@ GetPathOfFile(LPWSTR FilePath, LPCWSTR pszFiles)
         attrs = KERNEL32$GetFileAttributesW(FilePath);
         if (attrs == 0xFFFFFFFF || !(attrs & FILE_ATTRIBUTE_DIRECTORY))
         {
-            BeaconPrintf(CALLBACK_ERROR, "Failed to resolve attributes: %u", ERROR_DIRECTORY);
+            BeaconPrintf(CALLBACK_ERROR, "Failed to resolve attributes: %ld", ERROR_DIRECTORY);
             return Fail;
         }
     }
@@ -458,7 +462,7 @@ PrintDaclsOfFiles(LPCWSTR pszFiles)
             }
             else
             {
-				BeaconPrintf(CALLBACK_ERROR, "Unhandled error in listing: 0x%x", LastError);
+				BeaconPrintf(CALLBACK_ERROR, "Unhandled error in listing: 0x%lx", LastError);
                 break;
             }
         }
@@ -472,12 +476,14 @@ PrintDaclsOfFiles(LPCWSTR pszFiles)
 
     if (LastError != ERROR_NO_MORE_FILES)
     {
-        BeaconPrintf(CALLBACK_ERROR, "Unable to handle all files, received error 0x%x", LastError);
+        BeaconPrintf(CALLBACK_ERROR, "Unable to handle all files, received error 0x%lx", LastError);
         return FALSE;
     }
 
     return TRUE;
 }
+
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -496,5 +502,19 @@ VOID go(
 	PrintDaclsOfFiles(targetpath);
     DoneLovingIt();
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+int main()
+{
+    LovingIt();
+    PrintDaclsOfFiles(L".");
+    PrintDaclsOfFiles(L"*");
+    PrintDaclsOfFiles(L"C:\\windows\\system32\\notepad.exe");
+    PrintDaclsOfFiles(L"C:\\windows\\system32");
+    PrintDaclsOfFiles(L"C:\\asdf");
+    PrintDaclsOfFiles(L"C:\\windows\\system32\\*");
+    PrintDaclsOfFiles(L"C:\\windows\\system32\\asdf");
+    DoneLovingIt();
+}
+#endif

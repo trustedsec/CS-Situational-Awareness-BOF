@@ -1,13 +1,14 @@
 #include <windows.h>
 #include "bofdefs.h"
 #include "base.c"
+#include "lm.h"
 #include "lmaccess.h"
 
 //Code taken from example code at https://docs.microsoft.com/en-us/windows/win32/api/lmaccess/nf-lmaccess-netquerydisplayinformation
 void ListserverGroups(const wchar_t * server)
 {
 	PLOCALGROUP_INFO_1 pBuff = NULL, p = NULL;
-	DWORD res = 0, dwRec = 0, i = 0, dwTotal = 0;
+	DWORD res = 0, dwRec = 0, dwTotal = 0;
 	DWORD_PTR hResume = 0;
 	do // begin do
 	{ 
@@ -29,7 +30,7 @@ void ListserverGroups(const wchar_t * server)
 		}
 		else
 		{
-			BeaconPrintf(CALLBACK_ERROR, "Error: %u\n", res);
+			BeaconPrintf(CALLBACK_ERROR, "Error: %lu\n", res);
 		}
 	} while (res==ERROR_MORE_DATA); // end do
 }
@@ -60,10 +61,12 @@ void ListServerGroupMembers(const wchar_t * server, const wchar_t * groupname)
 		}
 		else
 		{
-			BeaconPrintf(CALLBACK_ERROR, "Error: %u\n", res);
+			BeaconPrintf(CALLBACK_ERROR, "Error: %lu\n", res);
 		}
 	} while(res == ERROR_MORE_DATA);
 }
+
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -94,5 +97,20 @@ VOID go(
 		ListServerGroupMembers(server, group);
 	}
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main()
+{
+	ListserverGroups(NULL);
+	ListserverGroups(L"172.31.0.1");
+	ListserverGroups(L"asdf");
+	ListServerGroupMembers(NULL, L"Administrators");
+	ListServerGroupMembers(L"172.31.0.1", L"Administrators");
+	ListServerGroupMembers(NULL, L"asdf");
+	ListServerGroupMembers(L"172.31.0.1", L"asdf");
+	ListServerGroupMembers(L"asdf", L"Administrators");
+}
+
+#endif

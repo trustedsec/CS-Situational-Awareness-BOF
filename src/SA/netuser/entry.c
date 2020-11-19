@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include "lmaccess.h"
 #include "lmerr.h"
+#include "lm.h"
 #include "bofdefs.h"
 #include "base.c"
 
@@ -69,8 +70,8 @@ void netuserinfo(wchar_t* username, wchar_t* hostname){
     PGROUP_USERS_INFO_0 pGroupInfo = NULL;
     PLOCALGROUP_USERS_INFO_0 pLocalGroupInfo = NULL;
     PUSER_MODALS_INFO_0 pUserModals = NULL;
-    DWORD dwGroupRead, dwGroupTotal;
-    DWORD dwLocalGroupRead, dwLocalGroupTotal;
+    DWORD dwGroupRead = 0, dwGroupTotal = 0;
+    DWORD dwLocalGroupRead = 0, dwLocalGroupTotal = 0;
     int gcount = 0;
     DWORD lastset = 0;
     umStatus = NETAPI32$NetUserModalsGet(hostname,
@@ -81,8 +82,8 @@ void netuserinfo(wchar_t* username, wchar_t* hostname){
         internal_printf("User name:\t\t\t%S\n", pBuf4->usri4_name == NULL ? L"" : pBuf4->usri4_name);
         internal_printf("Full Name:\t\t\t%S\n", pBuf4->usri4_full_name == NULL ? L"" : pBuf4->usri4_full_name);
         internal_printf("User's comment:\t\t%S\n", pBuf4->usri4_usr_comment == NULL ? L"" : pBuf4->usri4_usr_comment);
-        internal_printf("Country code:\t\t\t%d\n", pBuf4->usri4_country_code);
-        internal_printf("Flags (account details hex):\t%x\n", pBuf4->usri4_flags);
+        internal_printf("Country code:\t\t\t%ld\n", pBuf4->usri4_country_code);
+        internal_printf("Flags (account details hex):\t%lx\n", pBuf4->usri4_flags);
         internal_printf("Account expires:\t\t");
         if (pBuf4->usri4_acct_expires == TIMEQ_FOREVER){
             internal_printf("Never");
@@ -197,6 +198,8 @@ void netuserinfo(wchar_t* username, wchar_t* hostname){
     }
 }
 
+#ifdef BOF
+
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -216,5 +219,18 @@ VOID go(
     netuserinfo(username, domain);
 
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main()
+{
+netuserinfo(L"testuser", L"testrange.local");
+netuserinfo(L"user", NULL);
+netuserinfo(L"asdf", NULL);
+netuserinfo(L"nopenope", L"nope");
+netuserinfo(L"nope", L"testrange.local");
+return 0;
+}
+
+#endif

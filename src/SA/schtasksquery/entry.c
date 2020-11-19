@@ -55,7 +55,7 @@ void getTask(const wchar_t * server, const wchar_t * taskname)
 	hr = pService->lpVtbl->Connect(pService, Vserver, VNull, VNull, VNull);
 	if(FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Could not connect to requested target %x\n", hr);
+		BeaconPrintf(CALLBACK_ERROR, "Could not connect to requested target %lx\n", hr);
 		goto end;
 	}
 
@@ -67,7 +67,7 @@ void getTask(const wchar_t * server, const wchar_t * taskname)
 	hr = pService->lpVtbl->GetFolder(pService, rootpath, &pCurFolder);
     if( FAILED(hr) )
     {
-        BeaconPrintf(CALLBACK_ERROR, "Cannot get Root Folder pointer: %x", hr );
+        BeaconPrintf(CALLBACK_ERROR, "Cannot get Root Folder pointer: %lx", hr );
 		goto end;
     }
 
@@ -151,6 +151,8 @@ void getTask(const wchar_t * server, const wchar_t * taskname)
 	OLE32$CoUninitialize();
 }
 
+#ifdef BOF
+
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -168,5 +170,14 @@ VOID go(
 	}
 	getTask(hostname, taskname);
 	printoutput(TRUE);
-	bofstop();
+
 };
+
+#else
+int main(){
+	getTask(L"", L"\\Microsoft\\Windows\\Autochk\\Proxy");
+	return 0;
+}
+
+#endif
+

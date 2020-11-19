@@ -98,6 +98,7 @@ fail:
 	return hr;
 }
 
+#ifdef BOF
 VOID go(
 	IN PCHAR Buffer,
 	IN ULONG Length
@@ -127,9 +128,21 @@ VOID go(
 	}
 
 	printoutput(TRUE);
-
-	bofstop();
 };
+#else
+int main(int argc, char ** argv)
+{
+	HRESULT hr = S_OK;
+
+	hr = wmi_query(L".", L"root\\cimv2", L"select * from win32_process");
+
+	if (S_OK != hr)
+	{
+		BeaconPrintf(CALLBACK_ERROR, "wmi_query failed: 0x%08lx", hr);
+	}
+	return 0;
+}
+#endif
 
 	
 

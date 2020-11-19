@@ -238,7 +238,8 @@ alias windowlist {
 beacon_command_register(
 	"windowlist",
 	"list visible windows",
-	"Synopsis: List windows visible on the users desktop"
+	"Synopsis: List windows visible on the users desktop
+	optionally specify \"all\" as an argument to see every possible window"
 );
 
 alias netstat {
@@ -853,7 +854,7 @@ alias wmi_query{
 
     if ((size(@_) < 2) || (size(@_) > 4))
     {
-        berror($1, beacon_command_detail("tasklist"));
+        berror($1, beacon_command_detail("wmi_query"));
         berror($1, "Invalid number of arguments");
         return;
     }
