@@ -1,5 +1,6 @@
 BOFNAME := netuse
 COMINCLUDE := -I ../../common
+LIBINCLUDE := -lmpr
 CC_x64 := x86_64-w64-mingw32-gcc
 CC_x86 := i686-w64-mingw32-gcc
 
@@ -11,5 +12,14 @@ all:
 	mv $(BOFNAME)*.o ../../../SA/$(BOFNAME)
 
 test:
-	$(CC_x64) -o $(BOFNAME).x64.exe $(COMINCLUDE) entry.c
-	$(CC_x86) -o $(BOFNAME).x86.exe $(COMINCLUDE) entry.c
+	$(CC_x64) entry.c -g $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).x64.exe
+	$(CC_x86) entry.c -g $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).x86.exe
+	
+scanbuild:
+	$(CC_x64) entry.c -g $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).scanbuild.exe 
+
+check:
+	cppcheck --enable=all $(COMINCLUDE) --platform=win64 entry.c
+
+clean:
+	rm $(BOFNAME).*.exe

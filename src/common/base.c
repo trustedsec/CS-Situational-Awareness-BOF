@@ -127,3 +127,10 @@ fail:
     };
     goto retloc;
 }
+
+//release any global functions here
+void bofstop()
+{
+
+	return;
+}

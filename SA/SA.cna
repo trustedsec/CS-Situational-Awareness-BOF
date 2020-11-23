@@ -50,6 +50,32 @@ REG_QWORD => 11);
 	REG_DWORD => 1, 
 	REG_QWORD => 1);
 
+# subrotine to parse options for script.
+# Returns optios as a hash
+sub ops {
+	local('$count');
+	$count = 0;
+    %arguments = ohash();
+    foreach $arg ($1) {
+		if ($count > 0) {
+			if ($arg ismatch '/.*:.*') {
+				$arg = replace($arg, '\A/',"");
+				($key $val) = split(":", $arg, 2);
+				%arguments[$key] = $val;
+			}
+			else if ($arg ismatch '/.*') {
+				$arg = replace($arg, '\A/',"");
+				%arguments[$arg] = "TRUE";
+			}
+			else {
+				%arguments["$count"] = $arg;
+			}
+		}
+		$count = $count + 1;
+    }
+    return (%arguments);
+}
+
 
 sub readbof {
     local('$barch $handle $data $args');
@@ -187,10 +213,59 @@ beacon_command_register(
 
 
 alias netuse {
-    local('$args $device $share');
-    $device = iff(-istrue $2, $2, "");
-    $share = iff(-istrue $3, $3, "");
-    $args = bof_pack($1, "ZZ", $device, $share);
+	local('$params $keys $args $device $share $user $password');
+
+    %params = ops(@_);
+    @keys = keys(%params);
+    
+	$device = "";
+	$share = "";
+	$user = "";
+	$password = "";
+	$delete = "FALSE";
+	$persist = "FALSE";
+	
+    if ("1" in @keys) {
+		$device = %params["1"];
+		
+		if ("2" in @keys) {
+			$share = %params["2"];
+			if ("3" in @keys) {
+				$password = %params["3"];
+			}
+			if ("USER" in @keys) {
+				$user = %params["USER"];
+			}
+		}
+		if ("DELETE" in @keys) {
+			$delete = "TRUE"
+		}
+		if ("PERSIST" in @keys) {
+			$persist = "TRUE"
+		}
+	}
+	
+    
+	
+	if ($share !ismatch '\\\\.*\\.*'){
+		berror($1, beacon_command_detail("netuser"));
+		berror($1, "Invalid computer\\share name");
+		return;
+	} 
+	else{
+		blog($1, "$share is a valid share name");
+		
+		
+	}
+	
+	blog($1, "device:   $device");
+	blog($1, "share:    $share");
+	blog($1, "password: $password");
+	blog($1, "user:     $user");	
+	blog($1, "delete:   $delete");
+	blog($1, "persist:  $persist");
+
+    $args = bof_pack($1, "ZZZZZZ", $device, $share, $password, $user, $delete, $persist);
     beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
 }
 
@@ -202,14 +277,17 @@ Command: netuse
 Summary: This command connects a computer to a shared resource or disconnects a
          computer from a shared resource. When used without options, it lists
          the computer's connections.
-Usage:   netuse (devicename) (sharename|DELETE)
+Usage:   netuse (devicename) (sharename) (password) (/USER:username) (/DELETE) (/PERSIST)
          devicename     Optional. The device name on the local system to list, 
-                        connect, or disconnect.
+                        connect, or disconnect. List all devices if devicename
+                        is omitted.
          sharename      Optional. The network name of the shared resource to 
                         connect the local device name to, or 'DELETE' to 
                         disconnect the device.
-Note:    You must have a valid login token for the sharename specified. This 
-         token can be obtained using make_token.
+         password       Optional. The password to use for the remote connection.
+         username       Optional. The username to use for the remote connection.
+         DELETE         Optional. Delete the connection.
+         PERSIST        Optional. Persist the connection.
 "
 );
 
