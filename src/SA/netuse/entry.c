@@ -308,6 +308,8 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 					MSVCRT$wcscpy(pwszStatus, L"");
 				}
 
+				SAFE_FREE(lpnrRemote);
+
 				// Get the username
 				dwResult = MPR$WNetGetUserW(
 					lpCurrent->lpLocalName,
@@ -359,7 +361,7 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 					
 				} // end else we are looking for a specific device
 
-				SAFE_FREE(lpnrRemote);
+				
 
 			} // end for loop
 		} // end if MPR$WNetEnumResourceW was successful
@@ -377,6 +379,7 @@ fail:
 
 	// Free the memory
 	SAFE_FREE(lpnrLocal);
+	SAFE_FREE(lpnrRemote);
 
 	// End the enumeration
 	if ((NULL != hEnum) && (INVALID_HANDLE_VALUE != hEnum))
@@ -399,14 +402,6 @@ DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, 
 {
 	DWORD	dwResult	= ERROR_SUCCESS;
 	BOOL	bPersist	= FALSE;
-
-	//internal_printf("Net_use\n");
-	//internal_printf("pswzDeviceName: %p\n", pswzDeviceName);
-	//internal_printf("pswzShareName:  %p\n", pswzShareName);
-	//internal_printf("pswzPassword:   %p\n", pswzPassword);
-	//internal_printf("pswzUsername:   %p\n", pswzUsername);
-	//internal_printf("pswzDelete:     %p\n", pswzDelete);
-	//internal_printf("pswzPersist:    %p\n", pswzPersist);
 
 	// Check what type of net use operation (list, add, delete) based on arguments
 	if (
