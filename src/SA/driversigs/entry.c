@@ -85,7 +85,7 @@ int validate_driver(wchar_t * file_path)
 
 	if (!file_handle)
 	{
-		internal_printf("%S -> cannot obtain handle (insufficient privs?)\n", mypath);
+		BeaconPrintf(CALLBACK_ERROR, "%S -> cannot obtain handle (insufficient privs?)\n", mypath);
 		ret = 1;
 		goto end;
 	}
@@ -131,9 +131,9 @@ int validate_driver(wchar_t * file_path)
 		CRYPT32$CertGetNameStringW(certificate_context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, (LPWSTR)&certificate_name, MAX_PATH);
 
 
-		for(int i = 0; i < (sizeof(drivers) / sizeof(wchar_t*)); i++)
+		for(unsigned int j = 0; j < (sizeof(drivers) / sizeof(wchar_t*)); j++)
 		{	
-			if (MSVCRT$_wcsicmp(drivers[i], certificate_name) == 0)
+			if (MSVCRT$_wcsicmp(drivers[j], certificate_name) == 0)
 				internal_printf("%S -> %S\n", file_path, certificate_name);
 
 		}
@@ -164,65 +164,145 @@ int validate_driver(wchar_t * file_path)
 }
 
 
-int enumerate_loaded_drivers()
+DWORD enumerate_loaded_drivers()
 {
+	DWORD dwResult = ERROR_SUCCESS;
+	SC_HANDLE scm_handle = NULL;
+	unsigned long bytes_needed = 0;
+	unsigned long services_returned = 0;
+	PBYTE services = NULL;
+	PWCHAR registry_path = NULL;
+	HKEY key_handle = NULL;
+	unsigned long length = MAX_PATH * 2;
+	PWCHAR driver_path = NULL;
+	
+	// Allocate memory for registry path buffer.
+	registry_path = (PWCHAR)intAlloc(MAX_PATH * 2);
+	if (NULL == registry_path)
+	{
+		dwResult = ERROR_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "Out of memory\n");
+		goto fail;
+	}
+
+	// Allocate memory for registry path buffer.
+	driver_path = (PWCHAR)intAlloc(MAX_PATH * 2);
+	if (NULL == driver_path)
+	{
+		dwResult = ERROR_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "Out of memory\n");
+		goto fail;
+	}
+
 	// Create a handle to the service manager for calls to EnumServicesStatusExW.
-	SC_HANDLE scm_handle = ADVAPI32$OpenSCManagerA(NULL, NULL, SC_MANAGER_ENUMERATE_SERVICE);
+	scm_handle = ADVAPI32$OpenSCManagerA(NULL, NULL, SC_MANAGER_ENUMERATE_SERVICE);
 	if (!scm_handle)
 	{
-		internal_printf("[ERROR] Cannot open handle to service manager.\n");
-		return 1;
+		dwResult = KERNEL32$GetLastError();
+		BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$OpenSCManagerA failed. (%lu)\n", dwResult);
+		goto fail;
 	}
 	
 	// Determine the bytes needed for allocation.
-	unsigned long bytes_needed = 0;
-	unsigned long services_returned = 0;
-	ADVAPI32$EnumServicesStatusExW(scm_handle, SC_ENUM_PROCESS_INFO, SERVICE_DRIVER, SERVICE_ACTIVE, NULL, 0, &bytes_needed, &services_returned, NULL, NULL);
+	if (FALSE == ADVAPI32$EnumServicesStatusExW(scm_handle, SC_ENUM_PROCESS_INFO, SERVICE_DRIVER, SERVICE_ACTIVE, NULL, 0, &bytes_needed, &services_returned, NULL, NULL))
+	{
+		dwResult = KERNEL32$GetLastError();
+		if (ERROR_MORE_DATA != dwResult)
+		{
+			BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$EnumServicesStatusExW failed. (%lu)\n", dwResult);
+			goto fail;
+		}
+	}
+	dwResult = ERROR_SUCCESS;
+
+	// Allocate memory for the services buffer.
+	services = (PBYTE)intAlloc(bytes_needed);
+	if (NULL == services)
+	{
+		dwResult = ERROR_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "Out of memory\n");
+		goto fail;
+	}
 
 	// Retrieve a buffer of active driver services.
-	PBYTE services = (PBYTE)intAlloc(bytes_needed);
-	if (!ADVAPI32$EnumServicesStatusExW(scm_handle, SC_ENUM_PROCESS_INFO, SERVICE_DRIVER , SERVICE_ACTIVE, services, bytes_needed, &bytes_needed, &services_returned, NULL, NULL))
+	if (FALSE == ADVAPI32$EnumServicesStatusExW(scm_handle, SC_ENUM_PROCESS_INFO, SERVICE_DRIVER , SERVICE_ACTIVE, services, bytes_needed, &bytes_needed, &services_returned, NULL, NULL))
 	{
-		internal_printf("[ERROR] Cannot enumerate services -> %ld.\n", KERNEL32$GetLastError());
-		return 1;
+		dwResult = KERNEL32$GetLastError();
+		BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$EnumServicesStatusExW failed. (%lu)\n", dwResult);
+		goto fail;
 	}
+
 	LPENUM_SERVICE_STATUS_PROCESSW service = (LPENUM_SERVICE_STATUS_PROCESSW)services;
 	// Get the ImagePath for each service from registry, and pass that to the validate_driver() function.
 	for (unsigned long i = 0; i < services_returned; i++)
 	{
-		PWCHAR registry_path = (PWCHAR)intAlloc(MAX_PATH * 2);
-		if (registry_path)
+		// Set the registry path
+		length = MAX_PATH * 2;
+		MSVCRT$memset(driver_path, 0, (MAX_PATH * 2));
+		MSVCRT$memset(registry_path, 0, (MAX_PATH * 2));
+		MSVCRT$wcsncat(registry_path,  L"SYSTEM\\CurrentControlSet\\Services\\", MAX_PATH);
+		MSVCRT$wcsncat(registry_path, service->lpServiceName, MAX_PATH);
+		
+		// Open the registry key
+		dwResult = ADVAPI32$RegOpenKeyExW(HKEY_LOCAL_MACHINE, registry_path, 0, KEY_QUERY_VALUE, &key_handle);
+		if (ERROR_SUCCESS != dwResult)
 		{
-			MSVCRT$wcsncat(registry_path,  L"SYSTEM\\CurrentControlSet\\Services\\", MAX_PATH);
-			MSVCRT$wcsncat(registry_path, service->lpServiceName, MAX_PATH);
+			BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$RegOpenKeyExW failed. (%lu)\n", dwResult);
+			goto fail;
+		}
+
+		length = MAX_PATH * 2;
+
+		// Actually query the IMagePath and fill in the buffer
+		dwResult = ADVAPI32$RegQueryValueExW(key_handle, L"ImagePath", NULL, NULL, (LPBYTE)driver_path, &length);
+		if (ERROR_SUCCESS != dwResult)
+		{
+			//BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$RegQueryValueExW failed. (%lu)\n", dwResult);
+			//goto fail;
+			internal_printf("WARNING: Failed to get ImagePath for %S\n", service->lpServiceName);
+			dwResult = ERROR_SUCCESS;
 		}
 		else
 		{
-			BeaconPrintf(CALLBACK_ERROR, "Out of memory");
-			return 1;
-		}
-		
-		HKEY key_handle;
-		ADVAPI32$RegOpenKeyExW(HKEY_LOCAL_MACHINE, registry_path, 0, KEY_QUERY_VALUE, &key_handle);
-		
-		unsigned long length = 0;
-		ADVAPI32$RegQueryValueExW(key_handle, L"ImagePath", NULL, NULL, NULL, &length);
-		intFree(registry_path);
-		if (length)
-		{
-			PWCHAR driver_path = (PWCHAR)intAlloc(length);
-			ADVAPI32$RegQueryValueExW(key_handle, L"ImagePath", NULL, NULL, (LPBYTE)driver_path, &length);
+			// Validate the driver
 			validate_driver(driver_path);
-			intFree(driver_path);
 		}
 		
-		KERNEL32$CloseHandle(key_handle);
+		if (NULL != key_handle)
+		{
+			KERNEL32$CloseHandle(key_handle);
+			key_handle = NULL;
+		}
 		service++;
 	}
 
-	intFree(services);
-	KERNEL32$CloseHandle(scm_handle);
-	return 0;
+fail:
+	if (services)
+	{
+		intFree(services);
+		services = NULL;
+	}
+	if (registry_path)
+	{
+		intFree(registry_path);
+		registry_path = NULL;
+	}
+	if (driver_path)
+	{
+		intFree(driver_path);
+		driver_path = NULL;
+	}
+	if (NULL != key_handle)
+	{
+		KERNEL32$CloseHandle(key_handle);
+		key_handle = NULL;
+	}
+	if (scm_handle)
+	{
+		KERNEL32$CloseHandle(scm_handle);
+		scm_handle = NULL;
+	}
+	return dwResult;
 }
 		
 #ifdef BOF
@@ -235,14 +315,24 @@ VOID go(
 	{
 		return;
 	}
-	enumerate_loaded_drivers();
+	if (0 != enumerate_loaded_drivers())
+	{
+		BeaconPrintf(CALLBACK_ERROR, "enumerate_loaded_drivers failed");
+	}
 	printoutput(TRUE);
 };
 #else
 
 int main()
 {
-	enumerate_loaded_drivers();
+	if (0 != enumerate_loaded_drivers())
+	{
+		BeaconPrintf(CALLBACK_ERROR, "enumerate_loaded_drivers failed");
+	}
+	else
+	{
+		BeaconPrintf(CALLBACK_OUTPUT, "enumerate_loaded_drivers was successful");
+	}
 	return 1;
 }
 
