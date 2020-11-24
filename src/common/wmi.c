@@ -577,12 +577,10 @@ fail:
 	return hr;
 }
 
-HRESULT Wmi_Finalize(
+void Wmi_Finalize(
 	WMI* pWmi
 )
 {
-	HRESULT hr = S_OK;
-
 	SAFE_RELEASE(pWmi->pWbemServices);
 	SAFE_RELEASE(pWmi->pWbemLocator);
 
@@ -595,5 +593,5 @@ HRESULT Wmi_Finalize(
 	// un-initialize the COM library
 	OLE32$CoUninitialize();
 
-	return hr;
+	return;
 }

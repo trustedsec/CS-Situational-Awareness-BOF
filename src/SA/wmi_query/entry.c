@@ -11,17 +11,15 @@ HRESULT wmi_query(
 	LPWSTR pwszQuery
 )
 {
-	HRESULT	hr = S_OK;
+	HRESULT	hr						= S_OK;
 	WMI		m_WMI;
-	size_t	ullColumnsSize = 0;
-	LPWSTR	lpwszColumns = NULL;	
-	BSTR**	ppbstrResults = NULL;
-	DWORD	dwRowCount = 0;
-	DWORD	dwColumnCount = 0;
-	DWORD	dwCurrentRowIndex = 0;
-	DWORD	dwCurrentColumnIndex = 0;
-
-	hr = S_OK;
+	size_t	ullColumnsSize			= 0;
+	LPWSTR	lpwszColumns			= NULL;	
+	BSTR**	ppbstrResults			= NULL;
+	DWORD	dwRowCount				= 0;
+	DWORD	dwColumnCount			= 0;
+	DWORD	dwCurrentRowIndex		= 0;
+	DWORD	dwCurrentColumnIndex	= 0;
 
 	// Initialize COM
 	hr = Wmi_Initialize(&m_WMI);
@@ -72,6 +70,8 @@ HRESULT wmi_query(
 		internal_printf( "\n" );
 	}
 
+	hr = S_OK;
+
 fail:
 
 	for (dwCurrentRowIndex = 0; dwCurrentRowIndex < dwRowCount; dwCurrentRowIndex++)
@@ -89,12 +89,8 @@ fail:
 		ppbstrResults = NULL;
 	}
 
-	hr = Wmi_Finalize(&m_WMI);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "Wmi_Destroy failed: 0x%08lx", hr);
-	}
-
+	Wmi_Finalize(&m_WMI);
+	
 	return hr;
 }
 
