@@ -63,8 +63,12 @@ DWORD validate_driver(wchar_t * file_path)
 	drivers[7] = L"Tanium Inc."; 
 	//drivers[8] = L"Vmware, Inc.";// I did this because bof can't handle it being defined like a normal array of wchar_t's uncomment this if you want to just verify things are working and you don't have an edr in your lab to hit
 	
-	if(file_path == NULL || *file_path == 0)
-		return 1;
+	if (file_path == NULL || *file_path == 0)
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Invalid file_path\n");
+		dwStatus = ERROR_BAD_ARGUMENTS;
+		goto end;
+	}
 
 	if((*file_path) != '\\')
 	{
@@ -313,12 +317,12 @@ fail:
 	}
 	if (NULL != key_handle)
 	{
-		KERNEL32$CloseHandle(key_handle);
+		ADVAPI32$RegCloseKey(key_handle);
 		key_handle = NULL;
 	}
 	if (scm_handle)
 	{
-		KERNEL32$CloseHandle(scm_handle);
+		ADVAPI32$CloseServiceHandle(scm_handle);
 		scm_handle = NULL;
 	}
 	return dwResult;
