@@ -28,11 +28,16 @@ void internal_printf(const char* format, ...){
     int transfersize = 0;
     char * curloc = NULL;
     char* intBuffer = NULL;
-    char* transferBuffer = (char*)intAlloc(bufsize);
     va_list args;
     va_start(args, format);
     buffersize = MSVCRT$vsnprintf(NULL, 0, format, args); // +1 because vsprintf goes to buffersize-1 , and buffersize won't return with the null
     va_end(args);
+    
+    // vsnprintf will return -1 on encoding failure (ex. non latin characters in Wide string)
+    if (buffersize == -1)
+        return;
+    
+    char* transferBuffer = (char*)intAlloc(bufsize);
     intBuffer = (char*)intAlloc(buffersize);
     /*Print string to memory buffer*/
     va_start(args, format);
