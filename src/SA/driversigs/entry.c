@@ -36,15 +36,22 @@ void makestr(PUNICODE_STRING ustr, const wchar_t * string)
 
 }
 
-int validate_driver(wchar_t * file_path)
+DWORD validate_driver(wchar_t * file_path)
 {
+	DWORD dwStatus = ERROR_SUCCESS;
 	wchar_t mypath[512] = {0};
 	wchar_t *  drivers[8]; // make sure you update this if you cange the list below
 	PCCERT_CONTEXT certificate_context = NULL;
 	LPWIN_CERTIFICATE certificate = NULL;
 	LPWIN_CERTIFICATE certificate_header = NULL;
 	HANDLE file_handle = 0;
-	int ret = 0;
+	UNICODE_STRING file_path_us = { 0 };
+	OBJECT_ATTRIBUTES object_attributes = { 0 };
+	IO_STATUS_BLOCK io_status_block = { 0 };
+	unsigned long certificate_count = 0;
+	unsigned long certificate_length = 0;
+	CRYPT_VERIFY_MESSAGE_PARA verify_params = { 0 };
+	wchar_t certificate_name[MAX_PATH] = { 0 };
 	
 	drivers[0] = L"Carbon Black, Inc.";
 	drivers[1] = L"CrowdStrike, Inc.";
@@ -71,30 +78,34 @@ int validate_driver(wchar_t * file_path)
 	
 	// Create handle to driver file.
 
-	UNICODE_STRING file_path_us = { 0 };
+	
 	makestr(&file_path_us, mypath);
-	OBJECT_ATTRIBUTES object_attributes = { 0 };
+	
 	object_attributes.Length = sizeof(OBJECT_ATTRIBUTES);
 	object_attributes.RootDirectory = NULL;
 	object_attributes.ObjectName = &file_path_us;
 	object_attributes.Attributes = OBJ_CASE_INSENSITIVE;
 	object_attributes.SecurityDescriptor = NULL;
 	object_attributes.SecurityQualityOfService = NULL;
-	IO_STATUS_BLOCK io_status_block = { 0 };
-	NTDLL$NtCreateFile(&file_handle, GENERIC_READ, &object_attributes, &io_status_block, NULL, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN, FILE_NON_DIRECTORY_FILE, NULL, 0);
-
+	
+	dwStatus = (DWORD)NTDLL$NtCreateFile(&file_handle, GENERIC_READ, &object_attributes, &io_status_block, NULL, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, FILE_OPEN, FILE_NON_DIRECTORY_FILE, NULL, 0);
+	if (!NT_SUCCESS(dwStatus))
+	{
+		BeaconPrintf(CALLBACK_ERROR, "NTDLL$NtCreateFile(%S) failed (%lu)\n", mypath, dwStatus);
+		goto end;
+	}
 	if (!file_handle)
 	{
 		BeaconPrintf(CALLBACK_ERROR, "%S -> cannot obtain handle (insufficient privs?)\n", mypath);
-		ret = 1;
+		dwStatus = ERROR_INVALID_HANDLE;
 		goto end;
 	}
 
 	// Count certificates in file.
-	unsigned long certificate_count = 0;
 	if(!IMAGEHLP$ImageEnumerateCertificates(file_handle, CERT_SECTION_TYPE_ANY, &certificate_count, NULL, 0))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Failed to enumerate certs");
+		dwStatus = KERNEL32$GetLastError();
+		BeaconPrintf(CALLBACK_ERROR, "IMAGEHLP$ImageEnumerateCertificates failed. (%lu)", dwStatus);
 		goto end;
 	}
 
@@ -104,40 +115,42 @@ int validate_driver(wchar_t * file_path)
 		certificate_header = (LPWIN_CERTIFICATE)intAlloc(sizeof(WIN_CERTIFICATE));
 		if(!IMAGEHLP$ImageGetCertificateHeader(file_handle, i, certificate_header))
 		{ 		
-			BeaconPrintf(CALLBACK_ERROR, "Failed to get header of cert");
+			dwStatus = KERNEL32$GetLastError();
+			internal_printf("WARNING: IMAGEHLP$ImageGetCertificateHeader failed. (%lu)", dwStatus);
 			goto clear;
 		}
 
 		// Get the buffer for the certificate.
-		unsigned long certificate_length = certificate_header->dwLength;
+		certificate_length = certificate_header->dwLength;
 		certificate = (LPWIN_CERTIFICATE)intAlloc(certificate_length);
 		if(!IMAGEHLP$ImageGetCertificateData(file_handle, i, certificate, &certificate_length))
 		{ 		
-			BeaconPrintf(CALLBACK_ERROR, "Failed to get cert data");
+			dwStatus = KERNEL32$GetLastError();
+			internal_printf("WARNING: IMAGEHLP$ImageGetCertificateData failed. (%lu)", dwStatus);
 			goto clear;
 		}
 		// Call CryptVerifyMessageSignature to get a context used for CertGetNameStringW.
-		CRYPT_VERIFY_MESSAGE_PARA verify_params = { 0 };
+		
 		verify_params.cbSize = sizeof(CRYPT_VERIFY_MESSAGE_PARA);
 		verify_params.dwMsgAndCertEncodingType = X509_ASN_ENCODING | PKCS_7_ASN_ENCODING;
-
 		if(!CRYPT32$CryptVerifyMessageSignature(&verify_params, i, certificate->bCertificate, certificate->dwLength, NULL, NULL, &certificate_context))
 		{ 		
-			BeaconPrintf(CALLBACK_ERROR, "Failed to verify message");
+			dwStatus = KERNEL32$GetLastError();
+			internal_printf("WARNING: CRYPT32$CryptVerifyMessageSignature failed. (%lu)", dwStatus);
 			goto clear;
 		}
 		// Get the name string for the certificate.
-		wchar_t certificate_name[MAX_PATH] = { 0 };
+		
 		CRYPT32$CertGetNameStringW(certificate_context, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, NULL, (LPWSTR)&certificate_name, MAX_PATH);
-
-
 		for(unsigned int j = 0; j < (sizeof(drivers) / sizeof(wchar_t*)); j++)
 		{	
 			if (MSVCRT$_wcsicmp(drivers[j], certificate_name) == 0)
-				internal_printf("%S -> %S\n", file_path, certificate_name);
-
+			{
+				internal_printf("FOUND: %S -> %S\n", file_path, certificate_name);
+			}
 		}
-		clear:
+
+	clear:
 		if (certificate_context)
 		{
 			CRYPT32$CertFreeCertificateContext(certificate_context);
@@ -153,14 +166,17 @@ int validate_driver(wchar_t * file_path)
 			intFree(certificate);
 			certificate = NULL;
 		}
-	}
-	end:
+		// reset dwStatus
+		dwStatus = ERROR_SUCCESS;
+	} // end for loop through certificates
+
+end:
 	if(file_handle)
 	{
 		NTDLL$NtClose(file_handle);
 		file_handle = 0;
 	}
-	return ret;
+	return dwStatus;
 }
 
 
@@ -265,7 +281,10 @@ DWORD enumerate_loaded_drivers()
 		else
 		{
 			// Validate the driver
-			validate_driver(driver_path);
+			if (0 != validate_driver(driver_path))
+			{
+				internal_printf("WARNING: validate_driver failed for %S\n", driver_path);
+			}
 		}
 		
 		if (NULL != key_handle)
