@@ -42,8 +42,8 @@ void init_enums()
 	//These are all actually const but I don't want to go update all my code at the moment
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-	EServiceStatus = antiStringResolve(8, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
-	EServiceStartup = antiStringResolve(6, "BOOT_DRIVER", "SYSTEM_START_DRIVER", "AUTO_START", "DEMAND_START", "DISABLED");
+	EServiceStatus = antiStringResolve(7, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
+	EServiceStartup = antiStringResolve(5, "BOOT_DRIVER", "SYSTEM_START_DRIVER", "AUTO_START", "DEMAND_START", "DISABLED");
 	ETriggerType = antiStringResolve(21, "", "DEVICE_ARRIVAL", "IP_UP_DOWN", "DOMAIN_JOIN_LEAVE", "FIREWALL_PORT_EVENT", "GROUP_POLICY_UPDATE", "NETWORK_ENDPOINT", "", "", "", ""\
 										 "", "", "", "", "", "", "", "", "", "", "CUSTOM");
 	Estartstop = antiStringResolve(3, "", "START_SERVICE", "STOP_SERVICE");
