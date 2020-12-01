@@ -2,6 +2,7 @@ BOFNAME := get-netsession
 COMINCLUDE := -I ../../common
 CC_x64 := x86_64-w64-mingw32-gcc
 CC_x86 := i686-w64-mingw32-gcc
+CC=x86_64-w64-mingw32-clang
 
 
 all:
@@ -13,3 +14,12 @@ all:
 test:
 	$(CC_x64) -o $(BOFNAME).x64.exe $(COMINCLUDE) entry.c
 	$(CC_x86) -o $(BOFNAME).x86.exe $(COMINCLUDE) entry.c
+
+scanbuild:
+	$(CC) entry.c -o $(BOFNAME).scanbuild.exe $(COMINCLUDE) $(LIBINCLUDE)
+
+check:
+	cppcheck --enable=all $(COMINCLUDE) --platform=win64 entry.c
+
+clean:
+	rm $(BOFNAME).*.exe

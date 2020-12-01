@@ -309,5 +309,6 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define BeaconPrintf(x, y, ...) printf(y, ##__VA_ARGS__)
 #define NETAPI32$NetServerEnum NetServerEnum
 #define NETAPI32$NetApiBufferFree NetApiBufferFree
+#define NETAPI32$NetSessionEnum NetSessionEnum
 #define internal_printf printf
 #endif
