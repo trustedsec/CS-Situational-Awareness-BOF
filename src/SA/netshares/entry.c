@@ -20,7 +20,7 @@ void listSharesAdmin( wchar_t *servername)
 			current = output;
 			for(pos = 0; pos < entries; pos++)
 			{
-				internal_printf("%-20S%-30S%-8u %S\n",current->shi2_netname,current->shi2_path, current->shi2_current_uses, current->shi2_remark);
+				internal_printf("%-20S%-30S%-8lu %S\n",current->shi2_netname,current->shi2_path, current->shi2_current_uses, current->shi2_remark);
 				current++;
 			}
 		}
@@ -52,7 +52,7 @@ void listSharesUser( wchar_t *servername)
 			current = output;
 			for(pos = 0; pos < entries; pos++)
 			{
-				internal_printf("%S%\n",current->shi0_netname);
+				internal_printf("%S\n",current->shi0_netname);
 				current++;
 			}
 		}
@@ -65,6 +65,8 @@ void listSharesUser( wchar_t *servername)
 	}while(stat == ERROR_MORE_DATA);
 
 }
+
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -95,5 +97,17 @@ VOID go(
 	}
 	
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+
+int main()
+{
+	listSharesAdmin(NULL);
+	listSharesUser(NULL);
+	listSharesAdmin(L"172.31.0.1");
+	listSharesUser(L"172.31.0.1");
+	return 0;
+}
+
+#endif

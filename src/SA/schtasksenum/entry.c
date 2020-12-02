@@ -43,6 +43,10 @@ void enumTasks(const wchar_t * server)
 	IID CTaskScheduler = {0x0f87369f,0xa4e5,0x4cfc,{0xbd,0x3e,0x73,0xe6,0x15,0x45,0x72,0xdd}};
 	IID IIDTaskService = {0x2faba4c7, 0x4da9, 0x4013, {0x96, 0x97, 0x20, 0xcc, 0x3f, 0xd4, 0x0f, 0x85}};
 	ITaskService *pService = NULL;
+	ITaskFolder *pCurFolder = NULL;
+	ITaskFolderCollection *pSubfolders = NULL;
+	ITaskFolder *pFolder = NULL;
+	IRegisteredTaskCollection* pTaskCollection = NULL;
     hr = OLE32$CoCreateInstance( &CTaskScheduler,
                            NULL,
                            CLSCTX_INPROC_SERVER,
@@ -60,28 +64,28 @@ void enumTasks(const wchar_t * server)
 	hr = pService->lpVtbl->Connect(pService, Vserver, VNull, VNull, VNull);
 	if(FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Could not connect to requested target %x\n", hr);
+		BeaconPrintf(CALLBACK_ERROR, "Could not connect to requested target %lx\n", hr);
 		goto end;
 	}
 
 	//Now we need to get the root folder 
 	//ITaskFolder *pCurFolder = NULL;
-	ITaskFolder *pCurFolder = NULL;
-	ITaskFolderCollection *pSubfolders = NULL;
-	ITaskFolder *pFolder = NULL;
+
 
 	rootpath = OLEAUT32$SysAllocString(L"\\");
 	hr = pService->lpVtbl->GetFolder(pService, rootpath, &pCurFolder);
     if( FAILED(hr) )
     {
-        BeaconPrintf(CALLBACK_ERROR, "Cannot get Root Folder pointer: %x", hr );
+        BeaconPrintf(CALLBACK_ERROR, "Cannot get Root Folder pointer: %lx", hr );
 		goto end;
     }
 
 	do{
 		//Queue up subfolders
-		pCurFolder->lpVtbl->GetFolders(pCurFolder, 0, &pSubfolders);
-		pSubfolders->lpVtbl->get_Count(pSubfolders, &taskCount);
+		if(pCurFolder->lpVtbl->GetFolders(pCurFolder, 0, &pSubfolders) != S_OK)
+		{goto nextloop;}
+		if(pSubfolders->lpVtbl->get_Count(pSubfolders, &taskCount) != S_OK)
+		{goto nextloop;}
 		for(long i = 1; i <= taskCount; i++)
 		{
 			Vindex.lVal = i;
@@ -91,14 +95,15 @@ void enumTasks(const wchar_t * server)
 				q->push(q, pFolder);
 			}
 		}
+
 		//Get all Registered tasks
-		IRegisteredTaskCollection* pTaskCollection = NULL;
+
 		hr = pCurFolder->lpVtbl->GetTasks(pCurFolder, TASK_ENUM_HIDDEN, &pTaskCollection);
 		if( FAILED(hr))
 		{
 			BSTR thisname = NULL;
 			pCurFolder->lpVtbl->get_Name(pCurFolder, &thisname);
-			BeaconPrintf(CALLBACK_ERROR, "Failed to get tasks for folder %S: %x", thisname,hr );
+			BeaconPrintf(CALLBACK_ERROR, "Failed to get tasks for folder %S: %lx", thisname,hr );
 			OLEAUT32$SysFreeString(thisname);
 			goto nextloop;
 		}
@@ -112,7 +117,7 @@ void enumTasks(const wchar_t * server)
 			if(SUCCEEDED(hr))
 			{
 				BSTR str = NULL;
-				internal_printf("Task %d\n", ++curCount);
+				internal_printf("Task %ld\n", ++curCount);
 				pRegisteredTask->lpVtbl->get_Name(pRegisteredTask, &str);
 				internal_printf("Name: %S\n", str);
 				OLEAUT32$SysFreeString(str); str = NULL;
@@ -155,6 +160,11 @@ void enumTasks(const wchar_t * server)
 			}
 		}
 		nextloop:
+		if(pSubfolders)
+		{
+			pSubfolders->lpVtbl->Release(pSubfolders); 
+			pSubfolders = NULL;
+		}
 		if(pTaskCollection)
 		{
 			pTaskCollection->lpVtbl->Release(pTaskCollection);
@@ -165,7 +175,7 @@ void enumTasks(const wchar_t * server)
 			pCurFolder->lpVtbl->Release(pCurFolder);
 			pCurFolder = NULL;
 		}
-	}while(pCurFolder = q->pop(q));
+	}while((pCurFolder = q->pop(q)) != NULL);
 
 
 	end:
@@ -185,6 +195,7 @@ void enumTasks(const wchar_t * server)
 	OLE32$CoUninitialize();
 }
 
+#ifdef BOF
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -200,5 +211,11 @@ VOID go(
 	}
 	enumTasks(hostname);
 	printoutput(TRUE);
-	bofstop();
 };
+#else
+int main()
+{
+	enumTasks(L"");
+	return 0;
+}
+#endif

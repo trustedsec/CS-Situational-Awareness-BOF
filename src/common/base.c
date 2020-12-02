@@ -5,30 +5,22 @@
 #define bufsize 8192
 #endif
 
-//#pragma GCC diagnostic ignored "-Wint-conversion"
-//formatp output = {1}; // this is just done so its we don't go into .bss which isn't handled properly
-char * output = (char*)1;
+
+char * output = (char*)1;  // this is just done so its we don't go into .bss which isn't handled properly
 WORD currentoutsize = 1;
 HANDLE trash = (HANDLE)1; // Needed for x64 to not give relocation error
-//#pragma GCC diagnostic pop
-
-int bofstart();
 #ifdef BOF
+int bofstart();
 void internal_printf(const char* format, ...);
+void printoutput(BOOL done);
 #endif
 char * Utf16ToUtf8(const wchar_t* input);
-void printoutput(BOOL done);
-void bofstop();
 #ifdef BOF
 int bofstart()
 {   
-    //output.original=NULL;
-    //handle any global initilization here
-    //BeaconFormatAlloc(&output, bufsize+256);
     output = (char*)MSVCRT$calloc(bufsize, 1);
     currentoutsize = 0;
     return 1;
-
 }
 
 void internal_printf(const char* format, ...){
@@ -36,11 +28,16 @@ void internal_printf(const char* format, ...){
     int transfersize = 0;
     char * curloc = NULL;
     char* intBuffer = NULL;
-    char* transferBuffer = (char*)intAlloc(bufsize);
     va_list args;
     va_start(args, format);
     buffersize = MSVCRT$vsnprintf(NULL, 0, format, args); // +1 because vsprintf goes to buffersize-1 , and buffersize won't return with the null
     va_end(args);
+    
+    // vsnprintf will return -1 on encoding failure (ex. non latin characters in Wide string)
+    if (buffersize == -1)
+        return;
+    
+    char* transferBuffer = (char*)intAlloc(bufsize);
     intBuffer = (char*)intAlloc(buffersize);
     /*Print string to memory buffer*/
     va_start(args, format);
@@ -81,14 +78,17 @@ void internal_printf(const char* format, ...){
 void printoutput(BOOL done)
 {
 
-    int size = 0;
     char * msg = NULL;
-    //msg = BeaconFormatToString(&output, &size);
     BeaconOutput(CALLBACK_OUTPUT, output, currentoutsize);
     currentoutsize = 0;
     memset(output, 0, bufsize);
     if(done) {MSVCRT$free(output); output=NULL;}
 }
+#else
+#define internal_printf printf
+#define printoutput 
+#define bofstart 
+
 #endif
 
 char* Utf16ToUtf8(const wchar_t* input)
@@ -131,11 +131,4 @@ fail:
         newString = NULL;
     };
     goto retloc;
-}
-
-//release any global functions here
-void bofstop()
-{
-
-    return;
 }

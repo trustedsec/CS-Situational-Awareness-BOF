@@ -3,6 +3,7 @@
 #include "base.c"
 #include "anticrash.c"
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
 const char ** EServiceStatus = 1;
 const char ** ETriggerType = 1;
@@ -39,6 +40,7 @@ void init_enums()
 	//these were all moved to const compares because of BOF's relocation error, and me not being able to use my usual trick of just add a few more globals
 	//Seems there is an upper limit of data items before the object files are made in such a way that the current BOF loader can't handle mingw's output in terms of globals
 	//These are all actually const but I don't want to go update all my code at the moment
+	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
 	EServiceStatus = antiStringResolve(8, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
 	EServiceStartup = antiStringResolve(6, "BOOT_DRIVER", "SYSTEM_START_DRIVER", "AUTO_START", "DEMAND_START", "DISABLED");
@@ -137,12 +139,12 @@ DWORD get_service_config(SC_HANDLE scService)
 		}
 
 		internal_printf("\
-\t%-30s : %x %s\n\
-\t%-30s : %x %s\n\
-\t%-30s : %x %s\n\
+\t%-30s : %lx %s\n\
+\t%-30s : %lx %s\n\
+\t%-30s : %lx %s\n\
 \t%-30s : %s\n\
 \t%-30s : %s\n\
-\t%-30s : %d\n\
+\t%-30s : %ld\n\
 \t%-30s : %s\n\
 \t%-30s : %s%s\n\
 \t%-30s : %s\n",
@@ -197,7 +199,7 @@ DWORD get_service_failure(SC_HANDLE scService)
 	}
 
 	internal_printf("\
-\t%-30s : %u\n\
+\t%-30s : %lu\n\
 \t%-30s : %s\n\
 \t%-30s : %s\n",
 "RESET_PERIOD (in seconds)", lpServiceConfig->dwResetPeriod,
@@ -206,7 +208,7 @@ DWORD get_service_failure(SC_HANDLE scService)
 );
 	for(DWORD x = 0; x < lpServiceConfig->cActions; x++)
 	{
-		internal_printf("\t%-30s : %s -- Delay = %u milliseconds\n", "FAILURE_ACTIONS", resolveAction(lpServiceConfig->lpsaActions[x].Type), lpServiceConfig->lpsaActions[x].Delay);
+		internal_printf("\t%-30s : %s -- Delay = %lu milliseconds\n", "FAILURE_ACTIONS", resolveAction(lpServiceConfig->lpsaActions[x].Type), lpServiceConfig->lpsaActions[x].Delay);
 	}
 	dwResult = ERROR_SUCCESS;
 
@@ -290,23 +292,23 @@ void query_service(LPCSTR cpServiceName)
 	do
 	{
 
-		if ((scService = ADVAPI32$OpenServiceA(gscManager, cpServiceName, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+		if ((scService = ADVAPI32$OpenServiceA(gscManager, cpServiceName, GENERIC_READ)) == NULL)
 		{
 			dwResult = KERNEL32$GetLastError();
-			internal_printf("Unable to query any additional service information: %u\n", dwResult);
+			internal_printf("Unable to query any additional service information: %lu\n", dwResult);
 			break;
 		}
-		if(dwResult = get_service_config(scService))
+		if((dwResult = get_service_config(scService)) == 0)
 		{
-			internal_printf("\tUnable to query base configuration: %u\n", dwResult);
+			internal_printf("\tUnable to query base configuration: %lu\n", dwResult);
 		}
-		if(dwResult = get_service_failure(scService))
+		if((dwResult = get_service_failure(scService)) == 0)
 		{
-			internal_printf("\tUnable to query failure configuration: %u\n", dwResult);
+			internal_printf("\tUnable to query failure configuration: %lu\n", dwResult);
 		}
-		if(dwResult = get_service_triggers(scService))
+		if((dwResult = get_service_triggers(scService)) == 0)
 		{
-			internal_printf("\tUnable to query trigger configuration: %u\n", dwResult);
+			internal_printf("\tUnable to query trigger configuration: %lu\n", dwResult);
 		}
 		internal_printf("\n");
 	} while (0);
@@ -325,7 +327,7 @@ DWORD enumerate_services()
 	DWORD dwServicesReturned = 0;
 	DWORD dwResumeHandle = 0;
 	DWORD dwServiceIndex = 0;
-	BOOL bResult;
+	BOOL bResult = FALSE;
 
 	do
 	{
@@ -344,27 +346,32 @@ DWORD enumerate_services()
 
 			bResult = ADVAPI32$EnumServicesStatusExA(gscManager, SC_ENUM_PROCESS_INFO, SERVICE_WIN32, SERVICE_STATE_ALL, (LPBYTE)pSsInfo, dwBytesNeeded,
 				&dwBytesNeeded, &dwServicesReturned, &dwResumeHandle, NULL);
+			if (!bResult)
+			{
+				dwResult = KERNEL32$GetLastError();
+				break;
+			}
 		}
-
-		if (!bResult)
+		else
 		{
 			dwResult = KERNEL32$GetLastError();
-            break;
+			break;
 		}
+
 
 		for (dwServiceIndex = 0; dwServiceIndex < dwServicesReturned; ++dwServiceIndex)
 		{
 			internal_printf("\
 SERVICE_NAME: %s\n\
 DISPLAY_NAME: %s\n\
-\t%-30s : %d %s\n\
-\t%-30s : %d %s\n\
-\t%-30s : %d\n\
-\t%-30s : %d\n\
-\t%-30s : %d\n\
-\t%-30s : %d\n\
-\t%-30s : %d\n\
-\t%-30s : %d\n",
+\t%-30s : %ld %s\n\
+\t%-30s : %ld %s\n\
+\t%-30s : %ld\n\
+\t%-30s : %ld\n\
+\t%-30s : %ld\n\
+\t%-30s : %ld\n\
+\t%-30s : %ld\n\
+\t%-30s : %ld\n",
 			pSsInfo[dwServiceIndex].lpServiceName,
 			pSsInfo[dwServiceIndex].lpDisplayName,
 			"TYPE", pSsInfo[dwServiceIndex].ServiceStatusProcess.dwServiceType, resolveType(pSsInfo[dwServiceIndex].ServiceStatusProcess.dwServiceType),
@@ -390,7 +397,7 @@ DISPLAY_NAME: %s\n\
 	return dwResult;
 }
 
-
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -399,7 +406,6 @@ VOID go(
 {
 	const char * hostname = NULL;
 	const char * servicename = NULL;
-	int slen = 0;
 	DWORD result = 0;
 	datap parser;
 	init_enums();
@@ -429,5 +435,36 @@ VOID go(
 	
 	printoutput(TRUE);
 	cleanup_enums();
-	bofstop();
+
 };
+
+#else
+
+int main()
+{
+	DWORD result = 0;
+	init_enums();
+	if ((gscManager = ADVAPI32$OpenSCManagerA("", SERVICES_ACTIVE_DATABASEA, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+	{
+		return 1;
+	}
+	enumerate_services();
+	cleanup_enums();
+	init_enums();
+	if ((gscManager = ADVAPI32$OpenSCManagerA("172.31.0.1", SERVICES_ACTIVE_DATABASEA, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+	{
+		return 1;
+	}
+	enumerate_services();
+	cleanup_enums();
+	init_enums();
+	if ((gscManager = ADVAPI32$OpenSCManagerA("asdf", SERVICES_ACTIVE_DATABASEA, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+	{
+		return 1;
+	}
+	enumerate_services();
+	cleanup_enums();
+	return 0;
+}
+
+#endif

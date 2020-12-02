@@ -3,6 +3,7 @@
 #include "base.c"
 #include "anticrash.c"
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wint-conversion"
 char ** EServiceStatus = 1;
 char ** EServiceStartup = 1;
@@ -116,12 +117,12 @@ DWORD get_service_config(SC_HANDLE scService)
 
 		internal_printf(
 "SERVICE_NAME: %s\n\
-\t%-20s : %x %s\n\
-\t%-20s : %x %s\n\
-\t%-20s : %x %s\n\
+\t%-20s : %lx %s\n\
+\t%-20s : %lx %s\n\
+\t%-20s : %lx %s\n\
 \t%-20s : %s\n\
 \t%-20s : %s\n\
-\t%-20s : %d\n\
+\t%-20s : %ld\n\
 \t%-20s : %s\n\
 \t%-20s : %s%s\n\
 \t%-20s : %s\n",
@@ -164,7 +165,7 @@ DWORD query_config(const char* Hostname, LPCSTR cpServiceName)
             break;
 		}
 
-		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, GENERIC_READ)) == NULL)
 		{
 			dwResult = KERNEL32$GetLastError();
 			break;
@@ -190,6 +191,8 @@ DWORD query_config(const char* Hostname, LPCSTR cpServiceName)
 	return dwResult;
 }
 
+#ifdef BOF
+
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -214,5 +217,20 @@ VOID go(
 	}
 	printoutput(TRUE);
 	cleanup_enums();
-	bofstop();
 };
+
+#else
+
+int main()
+{
+	init_enums();
+	gServiceName = "TestsvcName";
+	query_config("", "webclient");
+	query_config("172.31.0.1", "WerSvc");
+	query_config("asdf", "nope");
+	query_config("", "nope");
+	query_config("172.31.0.1", "nope");
+	cleanup_enums();
+}
+
+#endif

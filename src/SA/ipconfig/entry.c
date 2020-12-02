@@ -9,7 +9,7 @@ typedef DWORD (*getnetparms)(LPVOID, PULONG);
 
 void getIPInfo(){
     IP_ADAPTER_INFO * info = intAlloc(sizeof(IP_ADAPTER_INFO) * 32); // have to keep stack < 4K
-    PIP_ADAPTER_INFO p = info;
+    PIP_ADAPTER_INFO p = NULL;
     PFIXED_INFO pFixedInfo = NULL;
     PIP_ADDR_STRING pIPAddr;
     ULONG netOutBufLen = 0;
@@ -21,7 +21,7 @@ void getIPInfo(){
     ret = IPHLPAPI$GetAdaptersInfo(info, &ulOutBufLen);
     if (ret != ERROR_SUCCESS) {
 		BeaconPrintf(CALLBACK_ERROR, "could not get network adapter info");
-        return;
+        goto END;
     }
     if(IPHLPAPI$GetNetworkParams(pFixedInfo, &netOutBufLen) == ERROR_BUFFER_OVERFLOW){
         pFixedInfo = (FIXED_INFO *)intAlloc(netOutBufLen);
@@ -29,18 +29,20 @@ void getIPInfo(){
         {
 
 			BeaconPrintf(CALLBACK_ERROR, "could not get network adapter info");
-            return;
+            goto END;
         }
         if (IPHLPAPI$GetNetworkParams(pFixedInfo, &netOutBufLen) != NO_ERROR)
         {
-            if (pFixedInfo){
-                intFree(pFixedInfo);
-            }
 			BeaconPrintf(CALLBACK_ERROR, "could not get network adapter info");
-            return;
+            goto END;
         }
 
     }
+	else
+	{
+		BeaconPrintf(CALLBACK_ERROR, "could not get network adapter info");
+		goto END;
+	}
     for (p = info; p; p = p->Next) {
 			internal_printf( "%s\n", p->AdapterName);
 			switch(p->Type){
@@ -77,9 +79,14 @@ void getIPInfo(){
         intFree(pFixedInfo);
         pFixedInfo = NULL;
     }
-	intFree(info);
+	if(info){
+		intFree(info);
+		info = NULL;
+	}
     return;
 }
+
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -92,5 +99,12 @@ VOID go(
 	}
 	getIPInfo();
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+int main()
+{
+	getIPInfo();
+}
+
+#endif

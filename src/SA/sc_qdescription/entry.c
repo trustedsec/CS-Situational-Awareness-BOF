@@ -18,7 +18,7 @@ DWORD query_service_description(const char* Hostname, LPCSTR cpServiceName)
             break;
 		}
 
-		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
+		if ((scService = ADVAPI32$OpenServiceA(scManager, cpServiceName,  GENERIC_READ)) == NULL)
 		{
 			dwResult = KERNEL32$GetLastError();
 			break;
@@ -54,6 +54,7 @@ DWORD query_service_description(const char* Hostname, LPCSTR cpServiceName)
 	return dwResult;
 }
 
+#ifdef BOF
 
 VOID go( 
 	IN PCHAR Buffer, 
@@ -78,5 +79,18 @@ VOID go(
 		BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %u", result);
 	}
 	printoutput(TRUE);
-	bofstop();
 };
+
+#else
+int main()
+{
+
+	query_service_description("", "webclient");
+	query_service_description("172.31.0.1", "WerSvc");
+	query_service_description("asdf", "nope");
+	query_service_description("", "nope");
+	query_service_description("172.31.0.1", "nope");
+	return 0;
+}
+
+#endif

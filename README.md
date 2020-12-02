@@ -38,7 +38,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |sc_enum| sc_enum [opt:server] | Enumerates all services for qc, query, qfailure, and qtriggers info |
 |sc_qc|sc_qc [service name] [opt:server]| sc qc impelmentation in bof|
 |sc_qfailure|sc_qfailure [service name] [opt:server] | Queries a service for failure conditions |
-|sc_qtriggers|sc_qtriggers [service name] [opt:server] | Queries a service for trigger conditions |
+|sc_qtriggerinfo|sc_qtriggerinfo [service name] [opt:server] | Queries a service for trigger conditions |
 |sc_query|sc_query [opt: service name] [opt: server]| sc query implementation in bof|
 |sc_qdescription|sc_qdescription [service name] [opt: server] | sc qdescription implementation in bof|
 |tasklist|tasklist [opt: server]| Get a list of running processes including PID, PPID and ComandLine (uses wmi)|
@@ -55,7 +55,8 @@ The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df
 
 Thank you to martindube for his contribution of listmods</br>
 Thank you to ajpc500 for their contribution of ldapsearch</br>
-Thank you to Kapn-kaos for their contribution of tasklist
+Thank you to Kapn-kaos for their contribution of tasklist and wmi_query</br>
+Thank you to JohnLaTwC for opening issues related to code correctness that prompted a full code review
 
 ##### compiler used
 The follow compiler was used.  This project has not been tested with other compilers.
