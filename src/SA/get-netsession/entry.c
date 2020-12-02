@@ -2,7 +2,6 @@
 #include "bofdefs.h"
 #include "base.c"
 #include <stdio.h>
-#include <assert.h>
 #include <windows.h> 
 #include <lm.h>
 
@@ -17,9 +16,9 @@ void NetSessions(wchar_t* hostname){
     DWORD dwResumeHandle = 0;
     DWORD i;
     DWORD dwTotalCount = 0;
-    LPCWSTR pszServerName = NULL;
-    LPCWSTR pszClientName = NULL;
-    LPCWSTR pszUserName = NULL;
+    LPWSTR pszServerName = NULL;
+    LPWSTR pszClientName = NULL;
+    LPWSTR pszUserName = NULL;
     NET_API_STATUS nStatus;
 
     if (hostname){
@@ -49,8 +48,6 @@ void NetSessions(wchar_t* hostname){
                 //
                 for (i = 0; (i < dwEntriesRead); i++)
                 {
-                    assert(pTmpBuf != NULL);
-
                     if (pTmpBuf == NULL)
                     {
                         BeaconPrintf(CALLBACK_ERROR, "An access violation has occurred\n");
@@ -61,8 +58,8 @@ void NetSessions(wchar_t* hostname){
                     //
                     internal_printf("\nClient: %ls\n", pTmpBuf->sesi10_cname);
                     internal_printf("User:   %ls\n", pTmpBuf->sesi10_username);
-                    internal_printf("Active: %d\n", pTmpBuf->sesi10_time);
-                    internal_printf("Idle:   %d\n", pTmpBuf->sesi10_idle_time);
+                    internal_printf("Active: %lu\n", pTmpBuf->sesi10_time);
+                    internal_printf("Idle:   %lu\n", pTmpBuf->sesi10_idle_time);
                     internal_printf("--------------------\n");
 
                     pTmpBuf++;
@@ -74,7 +71,7 @@ void NetSessions(wchar_t* hostname){
         // Otherwise, indicate a system error.
         //
         else
-            BeaconPrintf(CALLBACK_ERROR, "A system error has occurred: %d\n", nStatus);
+            BeaconPrintf(CALLBACK_ERROR, "A system error has occurred: %lu\n", nStatus);
         //
         // Free the allocated memory.
         //
@@ -92,9 +89,10 @@ void NetSessions(wchar_t* hostname){
     //
     // Print the final count of sessions enumerated.
     //
-    internal_printf("\nTotal of %d entries enumerated\n", dwTotalCount);
+    internal_printf("\nTotal of %lu entries enumerated\n", dwTotalCount);
 }
 
+#ifdef BOF
 VOID go( IN PCHAR Buffer, IN ULONG Length) 
 {
     datap  parser;
@@ -114,5 +112,16 @@ VOID go( IN PCHAR Buffer, IN ULONG Length)
 
     NetSessions(hostname);
     printoutput(TRUE);
-    bofstop();
 };
+#else
+int main(int argc, char ** argv)
+{
+    char * hostname = argv[1];
+    wchar_t whostname[260] = {0};
+    MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, hostname, -1, whostname, 260);
+    NetSessions(argv[1]? whostname: NULL);
+
+    return 0;
+}
+
+#endif
