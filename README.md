@@ -45,6 +45,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |whoami|whoami| simulates whoami /all|
 |windowlist|windowlist [opt:all]| lists visible windows in the current users session|
 |wmi_query|wmi_query query [opt: server] [opt: namespace]| Run a wmi query and display results in CSV format|
+|netsession|netsession [opt:computer] | Enumerates all sessions on the specified computer or the local one|
 
 Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote systems and has the ability to recursively enumerate a whole key.
 
@@ -56,7 +57,9 @@ The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df
 Thank you to martindube for his contribution of listmods</br>
 Thank you to ajpc500 for their contribution of ldapsearch</br>
 Thank you to Kapn-kaos for their contribution of tasklist and wmi_query</br>
-Thank you to JohnLaTwC for opening issues related to code correctness that prompted a full code review
+Thank you to JohnLaTwC for opening issues related to code correctness that prompted a full code review</br>
+Thank you to sysenter-eip for the fix to a possible crash in internal_printf</br>
+Thank you to m0t for their contribution of get-netsession
 
 ##### compiler used
 The follow compiler was used.  This project has not been tested with other compilers.
