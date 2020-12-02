@@ -243,27 +243,15 @@ alias netuse {
 		if ("PERSIST" in @keys) {
 			$persist = "TRUE"
 		}
+	}    
+	
+	if ($share ne ""){
+	    if ($share !ismatch '\\\\.*\\.*'){
+		    berror($1, beacon_command_detail("netuse"));
+		    berror($1, "Invalid computer\\share name");
+		    return;
+	    } 
 	}
-	
-    
-	
-	if ($share !ismatch '\\\\.*\\.*'){
-		berror($1, beacon_command_detail("netuser"));
-		berror($1, "Invalid computer\\share name");
-		return;
-	} 
-	else{
-		blog($1, "$share is a valid share name");
-		
-		
-	}
-	
-	blog($1, "device:   $device");
-	blog($1, "share:    $share");
-	blog($1, "password: $password");
-	blog($1, "user:     $user");	
-	blog($1, "delete:   $delete");
-	blog($1, "persist:  $persist");
 
     $args = bof_pack($1, "ZZZZZZ", $device, $share, $password, $user, $delete, $persist);
     beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);

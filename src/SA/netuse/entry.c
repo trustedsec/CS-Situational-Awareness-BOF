@@ -214,11 +214,6 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 	WCHAR			pwszUserName[MAX_PATH];
 	DWORD			dwszUserNameLength = MAX_PATH;
 
-
-	internal_printf("Net_use_list\n");
-	internal_printf("pswzDeviceName: %p\n", pswzDeviceName);
-
-
 	// Call the WNetOpenEnum function to begin the enumeration
 	dwResult = MPR$WNetOpenEnumW(
 		RESOURCE_CONNECTED,	// scope - all connected resources
@@ -259,7 +254,7 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 		if (dwResult == NO_ERROR)
 		{
 			// If we are listing all connected devices, then display the header
-			if (NULL == pswzDeviceName)
+			if ( (NULL == pswzDeviceName) || (0 == MSVCRT$wcslen(pswzDeviceName)) )
 			{
 				internal_printf(NET_USE_LIST_FMT_STRING, L"Status", L"Local", L"Remote", L"Network");
 				internal_printf("-------------------------------------------------------------------------------------------------\n");
@@ -332,7 +327,7 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 				}
 
 				// If we are listing all connected devices, then add to the list
-				if ( NULL == pswzDeviceName)
+				if ( ( NULL == pswzDeviceName) || (0 == MSVCRT$wcslen(pswzDeviceName)) )
 				{
 					internal_printf(
 						NET_USE_LIST_FMT_STRING, 
@@ -407,7 +402,7 @@ DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, 
 	if (
 		( (NULL == pswzShareName) || (0 == MSVCRT$wcslen(pswzShareName)) ) 
 		&& 
-		( (NULL == pswzDelete) || (0 == MSVCRT$wcslen(pswzDelete)) )
+		( (NULL == pswzDelete) || (0 == MSVCRT$wcslen(pswzDelete)) || (0 == MSVCRT$_wcsicmp(pswzDelete, STR_FALSE)) )
 		)
 	{
 		// list connections
@@ -508,14 +503,21 @@ int main()
 	LPWSTR	pswzDelete		= NULL;
 	LPWSTR	pswzPersist		= NULL;
 	
+	pswzDeviceName	= L"";
+	pswzShareName	= L"";
+	pswzPassword	= L"";
+	pswzUsername	= L"";
+	pswzDelete		= STR_FALSE;
+	pswzPersist		= STR_FALSE;
+
 	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
 	BeaconPrintf(CALLBACK_OUTPUT, "Test: List all devices\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: %S\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  %S\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   %S\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   %S\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     %S\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    %S\n", pswzPersist);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
 	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
 
     dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
@@ -537,12 +539,12 @@ int main()
 
 	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
 	BeaconPrintf(CALLBACK_OUTPUT, "Test: Add network resource\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: %S\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  %S\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   %S\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   %S\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     %S\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    %S\n", pswzPersist);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
 	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
 
 	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
@@ -565,12 +567,12 @@ int main()
 
 	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
 	BeaconPrintf(CALLBACK_OUTPUT, "Test: List details of specifc device\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: %S\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  %S\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   %S\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   %S\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     %S\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    %S\n", pswzPersist);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
 	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
 
 	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
@@ -592,12 +594,12 @@ int main()
 
 	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
 	BeaconPrintf(CALLBACK_OUTPUT, "Test: Delete specific device\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: %S\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  %S\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   %S\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   %S\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     %S\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    %S\n", pswzPersist);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
 	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
 
 	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
@@ -619,12 +621,12 @@ int main()
 
 	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
 	BeaconPrintf(CALLBACK_OUTPUT, "Test: List all devices\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: %S\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  %S\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   %S\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   %S\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     %S\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    %S\n", pswzPersist);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
+	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
 	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
 
 	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
