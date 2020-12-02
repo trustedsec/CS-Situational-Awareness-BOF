@@ -29,8 +29,6 @@ HRESULT task_list(
 	DWORD	dwCurrentRowIndex = 0;
 	DWORD	dwCurrentColumnIndex = 0;
 
-	hr = S_OK;
-
 	// Initialize COM
 	hr = Wmi_Initialize(&m_WMI);
 	if (FAILED(hr))
@@ -92,12 +90,8 @@ fail:
 		ppbstrResults = NULL;
 	}
 
-	hr = Wmi_Finalize(&m_WMI);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "Wmi_Destroy failed: 0x%08lx", hr);
-	}
-
+	Wmi_Finalize(&m_WMI);
+	
 	return hr;
 }
 
@@ -135,7 +129,7 @@ int main(int argc, char ** argv)
 	wchar_t wserver[260] = {0};
 	MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, server, -1, wserver, 260);
 	HRESULT hr = task_list(wserver);
-	if(S_OK != hr)
+	if(FAILED(hr))
 	{
 		BeaconPrintf(CALLBACK_ERROR, "task_list failed: 0x%08lx", hr);
 	}
