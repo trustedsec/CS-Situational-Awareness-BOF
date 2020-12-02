@@ -857,3 +857,17 @@ Note:    You must have a valid login token for the system specified if not
          local. This token can be obtained using make_token.
 "
 );
+
+
+alias netsession {
+	local('$args $hostname');
+
+	$args = bof_pack($1, "Z", $2);
+	beacon_inline_execute($1, readbof($1, "get-netsession"), "go", $args);
+}
+
+beacon_command_register(
+	"netsession",
+	"list sessions on server",
+	"Synopsis: netsession <computer> "
+);
