@@ -11,7 +11,7 @@ const char * gServiceName = 1;
 
 void init_enums()
 {
-	EServiceStatus = antiStringResolve(8, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
+	EServiceStatus = antiStringResolve(7, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
 }
 
 char * resolveType(DWORD T)

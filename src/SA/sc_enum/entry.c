@@ -42,8 +42,8 @@ void init_enums()
 	//These are all actually const but I don't want to go update all my code at the moment
 	#pragma GCC diagnostic push
 	#pragma GCC diagnostic ignored "-Wincompatible-pointer-types"
-	EServiceStatus = antiStringResolve(8, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
-	EServiceStartup = antiStringResolve(6, "BOOT_DRIVER", "SYSTEM_START_DRIVER", "AUTO_START", "DEMAND_START", "DISABLED");
+	EServiceStatus = antiStringResolve(7, "SPACER", "STOPPED", "START_PENDING", "STOP_PENDING", "RUNNING", "CONTINUE_PENDING", "PAUSE_PENDING");
+	EServiceStartup = antiStringResolve(5, "BOOT_DRIVER", "SYSTEM_START_DRIVER", "AUTO_START", "DEMAND_START", "DISABLED");
 	ETriggerType = antiStringResolve(21, "", "DEVICE_ARRIVAL", "IP_UP_DOWN", "DOMAIN_JOIN_LEAVE", "FIREWALL_PORT_EVENT", "GROUP_POLICY_UPDATE", "NETWORK_ENDPOINT", "", "", "", ""\
 										 "", "", "", "", "", "", "", "", "", "", "CUSTOM");
 	Estartstop = antiStringResolve(3, "", "START_SERVICE", "STOP_SERVICE");
@@ -406,7 +406,7 @@ VOID go(
 {
 	const char * hostname = NULL;
 	const char * servicename = NULL;
-	DWORD result = 0;
+	DWORD result = ERROR_SUCCESS;
 	datap parser;
 	init_enums();
 	BeaconDataParse(&parser, Buffer, Length);
@@ -421,16 +421,16 @@ VOID go(
 	{
 		result = KERNEL32$GetLastError();
 	}
-	if(result == S_OK)
+	if(ERROR_SUCCESS == result)
 	{
 		result = enumerate_services();
-		if(result != S_OK)
+		if(ERROR_SUCCESS != result)
 		{
-			BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %u", result);
+			BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %lu", result);
 		}
 	} else
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Failed to connect to service manager: %u", result);
+		BeaconPrintf(CALLBACK_ERROR, "Failed to connect to service manager: %lu", result);
 	}
 	
 	printoutput(TRUE);
@@ -442,28 +442,72 @@ VOID go(
 
 int main()
 {
-	DWORD result = 0;
+	DWORD result = ERROR_SUCCESS;
+	
+
+	// Test #1
 	init_enums();
 	if ((gscManager = ADVAPI32$OpenSCManagerA("", SERVICES_ACTIVE_DATABASEA, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
 	{
-		return 1;
+		result = KERNEL32$GetLastError();
 	}
-	enumerate_services();
+	if (ERROR_SUCCESS == result)
+	{
+		result = enumerate_services();
+		if (ERROR_SUCCESS != result)
+		{
+			BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %lu", result);
+		}
+	}
+	else
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Failed to connect to service manager: %lu", result);
+	}
 	cleanup_enums();
+
+
+	// Test #2
 	init_enums();
 	if ((gscManager = ADVAPI32$OpenSCManagerA("172.31.0.1", SERVICES_ACTIVE_DATABASEA, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
 	{
-		return 1;
+		result = KERNEL32$GetLastError();
 	}
-	enumerate_services();
+	if (ERROR_SUCCESS == result)
+	{
+		result = enumerate_services();
+		if (ERROR_SUCCESS != result)
+		{
+			BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %lu", result);
+		}
+	}
+	else
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Failed to connect to service manager: %lu", result);
+	}
 	cleanup_enums();
+
+
+	// Test #3
 	init_enums();
 	if ((gscManager = ADVAPI32$OpenSCManagerA("asdf", SERVICES_ACTIVE_DATABASEA, SC_MANAGER_CONNECT | GENERIC_READ)) == NULL)
 	{
-		return 1;
+		result = KERNEL32$GetLastError();
 	}
-	enumerate_services();
+	if (ERROR_SUCCESS == result)
+	{
+		result = enumerate_services();
+		if (ERROR_SUCCESS != result)
+		{
+			BeaconPrintf(CALLBACK_ERROR, "Failed to query service: %lu", result);
+		}
+	}
+	else
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Failed to connect to service manager: %lu", result);
+	}
 	cleanup_enums();
+
+
 	return 0;
 }
 

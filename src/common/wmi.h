@@ -42,6 +42,6 @@ HRESULT Wmi_ParseResults(
 	LPDWORD pdwColumnCount
 );
 
-HRESULT Wmi_Finalize(
+void Wmi_Finalize(
 	WMI* pWmi
 );
