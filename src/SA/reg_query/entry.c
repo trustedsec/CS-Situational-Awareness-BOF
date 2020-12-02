@@ -323,15 +323,17 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
         {intFree(currentvaluename); currentvaluename = NULL;}
         if(currentdata)
         {intFree(currentdata); currentdata = NULL;}
-        retCode = ERROR_SUCCESS;
-        i = 0;
         cSubKeys = 0;
         cbMaxSubKey = 0;
         cValues = 0;
         cchMaxValue = 0;
         cchMaxData = 0;
-        free_regkey(curitem);
-        curitem = NULL;
+		if (curitem)
+		{
+			free_regkey(curitem);
+			intFree(curitem);
+			curitem = NULL;
+		}
     } // end While
 
 	END:

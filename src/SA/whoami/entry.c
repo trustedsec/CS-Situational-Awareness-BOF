@@ -129,7 +129,7 @@ int WhoamiGroups(void)
     char szDomainName[255] = {0};
 
     DWORD cchGroupName  = _countof(szGroupName);
-    DWORD cchDomainName = _countof(szGroupName);
+    DWORD cchDomainName = _countof(szDomainName);
 
     SID_NAME_USE Use = 0;
 
