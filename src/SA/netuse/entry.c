@@ -88,27 +88,27 @@ DWORD Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPasswo
 	}
 	else if (ERROR_ALREADY_ASSIGNED == dwResult)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "%S is already connected to a network resource.\n", pswzDeviceName);
+		BeaconPrintf(CALLBACK_ERROR, "The device is already connected to a network resource.\n");
 		goto fail;
 	}
 	else if (ERROR_BAD_DEVICE == dwResult)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "%S is not a valid device name.\n", pswzDeviceName);
+		BeaconPrintf(CALLBACK_ERROR, "The device name is not valid.\n");
 		goto fail;
 	}
 	else if (ERROR_BAD_NET_NAME == dwResult)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "The network name %S cannot be found.\n", pswzShareName);
+		BeaconPrintf(CALLBACK_ERROR, "The network name cannot be found.\n");
 		goto fail;
 	}
 	else if (ERROR_BAD_USERNAME == dwResult)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "The user name %S is not valid.\n", pswzUsername);
+		BeaconPrintf(CALLBACK_ERROR, "The user name is not valid.\n");
 		goto fail;
 	}
 	else if (ERROR_INVALID_PASSWORD == dwResult)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "The password %S is not valid.\n", pswzPassword);
+		BeaconPrintf(CALLBACK_ERROR, "The password is not valid.\n");
 		goto fail;
 	}
 	else if (ERROR_LOGON_FAILURE == dwResult)
@@ -201,9 +201,9 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 {
 	DWORD			dwResult = NO_ERROR;
 	HANDLE			hEnum = NULL;
-	DWORD			cbBuffer = BIG_BUFFER_SIZE;     // 16K is a good size
-	DWORD			cEntries = -1;        // enumerate all possible entries
-	LPNETRESOURCEW	lpnrLocal = NULL;    // pointer to enumerated structures
+	DWORD			cbBuffer = BIG_BUFFER_SIZE;
+	DWORD			cEntries = -1;
+	LPNETRESOURCEW	lpnrLocal = NULL;
 	DWORD			i = 0;
 	LPNETRESOURCEW	lpCurrent = NULL;
 	LPNETRESOURCEW	lpnrRemote = NULL;
@@ -213,14 +213,17 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 	WCHAR			pwszDriveType[SMALL_BUFFER_SIZE];
 	WCHAR			pwszUserName[MAX_PATH];
 	DWORD			dwszUserNameLength = MAX_PATH;
+	WCHAR			pwszLocalName[MAX_PATH];
+	WCHAR			pwszRemoteName[MAX_PATH];
+	WCHAR			pwszProviderName[MAX_PATH];
 
 	// Call the WNetOpenEnum function to begin the enumeration
 	dwResult = MPR$WNetOpenEnumW(
 		RESOURCE_CONNECTED,	// scope - all connected resources
-		RESOURCETYPE_ANY,	// type - all resources
+		RESOURCETYPE_ANY,	// type  - all resources
 		0,					// usage - all resources
 		NULL,
-		&hEnum				// handle to the resource
+		&hEnum				// handle to the resource enumeration
 	);
 	if (dwResult != NO_ERROR)
 	{
@@ -237,6 +240,7 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 		goto fail;
 	}
 
+	// Loop through enumerating the devices until there are no more
 	do
 	{
 		// Initialize the buffer
@@ -244,9 +248,9 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 
 		// Call the WNetEnumResource function to continue the enumeration
 		dwResult = MPR$WNetEnumResourceW(
-			hEnum,			// resource handle
-			&cEntries,		// defined locally as -1
-			lpnrLocal,		// LPNETRESOURCE
+			hEnum,			// resource enumeration handle
+			&cEntries,		// as many entries as possible (-1)
+			lpnrLocal,		// the results, an array of  resource
 			&cbBuffer		// buffer size
 		);
 
@@ -259,18 +263,67 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 				internal_printf(NET_USE_LIST_FMT_STRING, L"Status", L"Local", L"Remote", L"Network");
 				internal_printf("-------------------------------------------------------------------------------------------------\n");
 			}
+			// Loop through all the returned network resources in array
 			for (i = 0; i < cEntries; i++)
 			{
+				// Reset/initialize values for current resource
 				lpCurrent = &lpnrLocal[i];
 				lpnrRemote = NULL;
 				dwResourceInformationLength = BIG_BUFFER_SIZE;
 				lpSystem = NULL;
 				dwszUserNameLength = SMALL_BUFFER_SIZE;
-
 				intZeroMemory(pwszStatus, SMALL_BUFFER_SIZE);
 				intZeroMemory(pwszDriveType, SMALL_BUFFER_SIZE);
 				intZeroMemory(pwszUserName, MAX_PATH);
+				intZeroMemory(pwszLocalName, MAX_PATH);
+				intZeroMemory(pwszRemoteName, MAX_PATH);
+				intZeroMemory(pwszProviderName, MAX_PATH);
 
+				// Get the local name
+				if (lpCurrent->lpLocalName)
+				{
+					MSVCRT$wcscpy(pwszLocalName, lpCurrent->lpLocalName);
+				}
+				else
+				{
+					MSVCRT$wcscpy(pwszLocalName, L"");
+				}
+
+				// Get the remote name
+				if (lpCurrent->lpRemoteName)
+				{
+					MSVCRT$wcscpy(pwszRemoteName, lpCurrent->lpRemoteName);
+				}
+				else
+				{
+					MSVCRT$wcscpy(pwszRemoteName, L"");
+				}
+
+				// Get the network provider
+				if (lpCurrent->lpProvider)
+				{
+					MSVCRT$wcscpy(pwszProviderName, lpCurrent->lpProvider);
+				}
+				else
+				{
+					MSVCRT$wcscpy(pwszProviderName, L"");
+				}
+
+				// Get the Drive Type
+				if (RESOURCETYPE_DISK == lpCurrent->dwType)
+				{
+					MSVCRT$wcscpy(pwszDriveType, L"Disk");
+				}
+				else if (RESOURCETYPE_PRINT == lpCurrent->dwType)
+				{
+					MSVCRT$wcscpy(pwszDriveType, L"Print");
+				}
+				else
+				{
+					MSVCRT$wcscpy(pwszDriveType, L"Other");
+				}
+
+				// Get the status
 				lpnrRemote = (LPNETRESOURCEW)SAFE_ALLOC(dwResourceInformationLength);
 				if (NULL == lpnrRemote)
 				{
@@ -278,8 +331,6 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 					BeaconPrintf(CALLBACK_ERROR, "SAFE_ALLOC failed: 0x%08lx\n", dwResult);
 					goto fail;
 				}
-				
-				// Get the status
 				dwResult = MPR$WNetGetResourceInformationW(
 					lpCurrent,
 					lpnrRemote,
@@ -302,29 +353,14 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 				{
 					MSVCRT$wcscpy(pwszStatus, L"");
 				}
-
 				SAFE_FREE(lpnrRemote);
 
 				// Get the username
 				dwResult = MPR$WNetGetUserW(
-					lpCurrent->lpLocalName,
+					pwszLocalName,
 					pwszUserName,
 					&dwszUserNameLength
 				);
-
-				// Get the Drive Type
-				if (RESOURCETYPE_DISK == lpCurrent->dwType)
-				{
-					MSVCRT$wcscpy(pwszDriveType, L"Disk");
-				}
-				else if (RESOURCETYPE_PRINT == lpCurrent->dwType)
-				{
-					MSVCRT$wcscpy(pwszDriveType, L"Print");
-				}
-				else
-				{
-					MSVCRT$wcscpy(pwszDriveType, L"Other");
-				}
 
 				// If we are listing all connected devices, then add to the list
 				if ( ( NULL == pswzDeviceName) || (0 == MSVCRT$wcslen(pswzDeviceName)) )
@@ -332,34 +368,30 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 					internal_printf(
 						NET_USE_LIST_FMT_STRING, 
 						pwszStatus, 
-						lpCurrent->lpLocalName, 
-						lpCurrent->lpRemoteName, 
-						lpCurrent->lpProvider
+						pwszLocalName, 
+						pwszRemoteName, 
+						pwszProviderName
 					);
 				}
-				else // Looking for a specific network device
+				else // else we are looking for a specific device
 				{
 					// Is this the one we are looking for, if not continue
-					if (0 != MSVCRT$_wcsicmp(lpCurrent->lpLocalName, pswzDeviceName))
+					if (0 != MSVCRT$_wcsicmp(pwszLocalName, pswzDeviceName))
 					{
 						continue;
 					}
 					
 					internal_printf(
 						NET_USE_DETAIL_FMT_STRING, 
-						lpCurrent->lpLocalName, 
-						lpCurrent->lpRemoteName, 
+						pwszLocalName, 
+						pwszRemoteName, 
 						pwszDriveType,
 						pwszStatus,
 						pwszUserName
 					);
-					
 				} // end else we are looking for a specific device
-
-				
-
-			} // end for loop
-		} // end if MPR$WNetEnumResourceW was successful
+			} // end loop through all the returned network resources in array
+		} // end if the call succeeds, loop through the structures
 		else if (dwResult != ERROR_NO_MORE_ITEMS)
 		{
 			BeaconPrintf(CALLBACK_ERROR, "MPR$WNetEnumResourceW failed with error %lu\n", dwResult);
