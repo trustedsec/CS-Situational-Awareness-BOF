@@ -50,6 +50,32 @@ REG_QWORD => 11);
 	REG_DWORD => 1, 
 	REG_QWORD => 1);
 
+# subrotine to parse options for script.
+# Returns optios as a hash
+sub ops {
+	local('$count');
+	$count = 0;
+    %arguments = ohash();
+    foreach $arg ($1) {
+		if ($count > 0) {
+			if ($arg ismatch '/.*:.*') {
+				$arg = replace($arg, '\A/',"");
+				($key $val) = split(":", $arg, 2);
+				%arguments[$key] = $val;
+			}
+			else if ($arg ismatch '/.*') {
+				$arg = replace($arg, '\A/',"");
+				%arguments[$arg] = "TRUE";
+			}
+			else {
+				%arguments["$count"] = $arg;
+			}
+		}
+		$count = $count + 1;
+    }
+    return (%arguments);
+}
+
 
 sub readbof {
     local('$barch $handle $data $args');
@@ -184,6 +210,75 @@ beacon_command_register(
 	"lists process modules",
 	"Synopsis: listmods <opt: pid> "
 );
+
+
+alias netuse {
+	local('$params $keys $args $device $share $user $password');
+
+    %params = ops(@_);
+    @keys = keys(%params);
+    
+	$device = "";
+	$share = "";
+	$user = "";
+	$password = "";
+	$delete = "FALSE";
+	$persist = "FALSE";
+	
+    if ("1" in @keys) {
+		$device = %params["1"];
+		
+		if ("2" in @keys) {
+			$share = %params["2"];
+			if ("3" in @keys) {
+				$password = %params["3"];
+			}
+			if ("USER" in @keys) {
+				$user = %params["USER"];
+			}
+		}
+		if ("DELETE" in @keys) {
+			$delete = "TRUE"
+		}
+		if ("PERSIST" in @keys) {
+			$persist = "TRUE"
+		}
+	}    
+	
+	if ($share ne ""){
+	    if ($share !ismatch '\\\\.*\\.*'){
+		    berror($1, beacon_command_detail("netuse"));
+		    berror($1, "Invalid computer\\share name");
+		    return;
+	    } 
+	}
+
+    $args = bof_pack($1, "ZZZZZZ", $device, $share, $password, $user, $delete, $persist);
+    beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
+}
+
+beacon_command_register(
+    "netuse",
+    "Lists, connects to, or disconnects from a shared resource",
+    "
+Command: netuse
+Summary: This command connects a computer to a shared resource or disconnects a
+         computer from a shared resource. When used without options, it lists
+         the computer's connections.
+Usage:   netuse (devicename) (sharename) (password) (/USER:username) (/DELETE) (/PERSIST)
+         devicename     Optional. The device name on the local system to list, 
+                        connect, or disconnect. List all devices if devicename
+                        is omitted.
+         sharename      Optional. The network name of the shared resource to 
+                        connect the local device name to, or 'DELETE' to 
+                        disconnect the device.
+         password       Optional. The password to use for the remote connection.
+         username       Optional. The username to use for the remote connection.
+         DELETE         Optional. Delete the connection.
+         PERSIST        Optional. Persist the connection.
+"
+);
+
 
 alias netuser {
 	local('$args $domain');
