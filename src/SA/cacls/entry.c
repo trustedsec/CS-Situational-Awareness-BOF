@@ -73,7 +73,7 @@ PrintFileDacl(IN LPWSTR FilePath,
     DWORD SDSize = 0;
     WCHAR FullFileName[MAX_PATH + 1];
     BOOL Error = FALSE, Ret = FALSE;
-    DWORD x = 0, x2 = 0;
+    int x = 0, x2 = 0;
     if(ST == File)
     {
         Length = KERNEL32$lstrlenW(FilePath) + KERNEL32$lstrlenW(FileName);
@@ -292,7 +292,7 @@ PrintSpecialAccess:
                                 internal_printf("%s", IDS_SPECIAL_ACCESS);
                                 /* print the special access rights */
                                 x = 26;
-                                while (x != 0)
+                                while (x >= 0)
                                 {
                                     if ((Ace->Mask & AccessRights[x].Access) == AccessRights[x].Access)
                                     {

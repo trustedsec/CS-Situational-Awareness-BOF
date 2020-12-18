@@ -298,15 +298,15 @@ void query_service(LPCSTR cpServiceName)
 			internal_printf("Unable to query any additional service information: %lu\n", dwResult);
 			break;
 		}
-		if((dwResult = get_service_config(scService)) == 0)
+		if((dwResult = get_service_config(scService)) != 0)
 		{
 			internal_printf("\tUnable to query base configuration: %lu\n", dwResult);
 		}
-		if((dwResult = get_service_failure(scService)) == 0)
+		if((dwResult = get_service_failure(scService)) != 0)
 		{
 			internal_printf("\tUnable to query failure configuration: %lu\n", dwResult);
 		}
-		if((dwResult = get_service_triggers(scService)) == 0)
+		if((dwResult = get_service_triggers(scService)) != 0)
 		{
 			internal_printf("\tUnable to query trigger configuration: %lu\n", dwResult);
 		}
