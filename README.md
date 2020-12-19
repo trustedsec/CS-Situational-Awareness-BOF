@@ -18,6 +18,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |-------|-----|-----|
 |cacls|cacls [filepath]|lists user permissions for the specified file, wildcards supported|
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
+|env|env| Prints process environment variables|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
 |ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] | Executes LDAP searches |
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
