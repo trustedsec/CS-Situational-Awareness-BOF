@@ -11,7 +11,7 @@ void getEnvs() {
     // Get a pointer to the environment block. 
     lpvEnv = KERNEL32$GetEnvironmentStrings();
 
-    BeaconPrintf(CALLBACK_OUTPUT, "Gathering Environment variables");
+    internal_printf("Gathering Process Environment Variables:\n\n");
 
     // If the returned pointer is NULL, exit.
     if (lpvEnv == NULL)

@@ -4,7 +4,6 @@
 #include <process.h>
 #include <winternl.h>
 #include <imagehlp.h>
-#include <winldap.h>
 #include <iphlpapi.h>
 #include <stdio.h>
 #include <windns.h>
