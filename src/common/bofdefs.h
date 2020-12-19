@@ -4,6 +4,7 @@
 #include <process.h>
 #include <winternl.h>
 #include <imagehlp.h>
+#include <winldap.h>
 #include <iphlpapi.h>
 #include <stdio.h>
 #include <windns.h>
@@ -59,6 +60,11 @@ WINBASEAPI VOID WINAPI KERNEL32$SetLastError (DWORD dwErrCode);
 #define intZeroMemory(addr,size) MSVCRT$memset((addr),0,size)
 DECLSPEC_IMPORT HGLOBAL KERNEL32$GlobalAlloc(UINT uFlags, SIZE_T dwBytes);
 DECLSPEC_IMPORT HGLOBAL KERNEL32$GlobalFree(HGLOBAL hMem);
+DECLSPEC_IMPORT LPTCH WINAPI KERNEL32$GetEnvironmentStrings();
+DECLSPEC_IMPORT WINBASEAPI BOOL WINAPI KERNEL32$FreeEnvironmentStringsA(LPSTR);
+DECLSPEC_IMPORT WINBASEAPI int WINAPI KERNEL32$lstrlenA(LPCSTR);
+
+
 
 //Iphlpapi.lib
 //ULONG WINAPI IPHLPAPI$GetAdaptersInfo (PIP_ADAPTER_INFO AdapterInfo, PULONG SizePointer);

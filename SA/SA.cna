@@ -101,6 +101,17 @@ sub readbof {
 
 
 beacon_command_register(
+"env", 
+"Print environment variables.", 
+"env - Print environment variables for current process");
+
+alias env {
+	# execute it.
+	beacon_inline_execute($1, readbof($1, "env"), "go");
+}
+
+
+beacon_command_register(
 "ldapsearch", 
 "BOF - Perform LDAP search.", 
 "ldapsearch <query> [comma_separated_attributes] [result_count]
