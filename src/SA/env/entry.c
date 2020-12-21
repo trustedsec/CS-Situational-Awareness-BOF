@@ -33,6 +33,7 @@ void getEnvs() {
     return;
 }
 
+#ifdef BOF
 VOID go() 
 {
 	
@@ -46,3 +47,10 @@ VOID go()
 	printoutput(TRUE);
 	bofstop();
 };
+#else
+int main()
+{
+    getEnvs();
+    return 1;
+}
+#endif

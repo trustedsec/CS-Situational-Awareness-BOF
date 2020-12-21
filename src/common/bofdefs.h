@@ -523,6 +523,9 @@ __forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$mems
 #define VERSION$GetFileVersionInfoA GetFileVersionInfoA
 #define VERSION$VerQueryValueA VerQueryValueA
 #define NETAPI32$NetSessionEnum NetSessionEnum
+#define KERNEL32$GetEnvironmentStrings GetEnvironmentStrings
+#define KERNEL32$FreeEnvironmentStringsA FreeEnvironmentStringsA
+#define KERNEL32$lstrlenA lstrlenA 
 #define internal_printf printf
 #define BeaconPrintf(t, s, ...) printf(s, ##__VA_ARGS__)
 #endif
