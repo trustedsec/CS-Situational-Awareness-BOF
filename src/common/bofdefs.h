@@ -59,6 +59,11 @@ WINBASEAPI VOID WINAPI KERNEL32$SetLastError (DWORD dwErrCode);
 #define intZeroMemory(addr,size) MSVCRT$memset((addr),0,size)
 DECLSPEC_IMPORT HGLOBAL KERNEL32$GlobalAlloc(UINT uFlags, SIZE_T dwBytes);
 DECLSPEC_IMPORT HGLOBAL KERNEL32$GlobalFree(HGLOBAL hMem);
+DECLSPEC_IMPORT LPTCH WINAPI KERNEL32$GetEnvironmentStrings();
+DECLSPEC_IMPORT WINBASEAPI BOOL WINAPI KERNEL32$FreeEnvironmentStringsA(LPSTR);
+DECLSPEC_IMPORT WINBASEAPI int WINAPI KERNEL32$lstrlenA(LPCSTR);
+
+
 
 //Iphlpapi.lib
 //ULONG WINAPI IPHLPAPI$GetAdaptersInfo (PIP_ADAPTER_INFO AdapterInfo, PULONG SizePointer);
@@ -518,6 +523,9 @@ __forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$mems
 #define VERSION$GetFileVersionInfoA GetFileVersionInfoA
 #define VERSION$VerQueryValueA VerQueryValueA
 #define NETAPI32$NetSessionEnum NetSessionEnum
+#define KERNEL32$GetEnvironmentStrings GetEnvironmentStrings
+#define KERNEL32$FreeEnvironmentStringsA FreeEnvironmentStringsA
+#define KERNEL32$lstrlenA lstrlenA 
 #define internal_printf printf
 #define BeaconPrintf(t, s, ...) printf(s, ##__VA_ARGS__)
 #endif
