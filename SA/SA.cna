@@ -102,9 +102,8 @@ sub readbof {
 
 alias dir {
     local('$args $targetdir');
-    $targetdir = ".";
 
-    $targetdir = iff(-istrue $2, $2, ".");
+    $targetdir = iff(-istrue $2, $2, ".\\");
 
     $args = bof_pack($1, "Z", $targetdir);
     beacon_inline_execute($1, readbof($1, "dir"), "go", $args);
