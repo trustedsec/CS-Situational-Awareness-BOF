@@ -994,3 +994,23 @@ beacon_command_register(
 	"list sessions on server",
 	"Synopsis: netsession <computer> "
 );
+
+alias resources {
+        beacon_inline_execute($1, readbof($1, "resources"), "go", $null);
+}
+
+beacon_command_register(
+"resources",
+"List available memory and space on the primary disk drive",
+"Usage: resources");
+
+
+alias uptime {
+        beacon_inline_execute($1, readbof($1, "uptime"), "go", $null);
+}
+
+beacon_command_register(
+"uptime",
+"Lists system boot time",
+"Usage: uptime");
+
