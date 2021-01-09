@@ -17,6 +17,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |command|Usage|notes|
 |-------|-----|-----|
 |cacls|cacls [filepath]|lists user permissions for the specified file, wildcards supported|
+|dir|dir [directory]|List files in a directory. Supports wildcards (e.g. "C:\Windows\S*") the CobaltStrike `ls` command|
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 |env|env| Prints process environment variables|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
@@ -47,6 +48,8 @@ Realistically, this could be compressed into a helper script, but those steps we
 |windowlist|windowlist [opt:all]| lists visible windows in the current users session|
 |wmi_query|wmi_query query [opt: server] [opt: namespace]| Run a wmi query and display results in CSV format|
 |netsession|netsession [opt:computer] | Enumerates all sessions on the specified computer or the local one|
+|resources|resources| Prints memory usage and available disk space on the primary hard drive|
+|uptime|uptime| Prints system boot time and how long it's been since then|
 
 Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote systems and has the ability to recursively enumerate a whole key.
 
