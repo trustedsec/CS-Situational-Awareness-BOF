@@ -3,8 +3,8 @@
 #include "base.c"
 
 
-void printUptime() {
-
+#ifdef __x86_64__
+void printUptime64() {
 	// Counts millisecond ticks since last boot
 	ULONGLONG ticks = KERNEL32$GetTickCount64();
 
@@ -30,7 +30,20 @@ void printUptime() {
 	KERNEL32$FileTimeToSystemTime(&curFTime, &curTime);
 	internal_printf("Boot time: %4d-%.2d-%.2d %.2d:%.2d:%.2d\n", curTime.wYear, curTime.wMonth, 
 			curTime.wDay, curTime.wHour, curTime.wMinute, curTime.wSecond);
-	
+}
+#endif
+
+void printUptime32() {
+	// Counts millisecond ticks since last boot
+	DWORD ticks = KERNEL32$GetTickCount();
+    
+	DWORD seconds = ticks/1000;
+	DWORD minutes = seconds/60;
+	DWORD hours =   minutes/60;
+	DWORD days =	hours/24;
+
+	internal_printf("Uptime: %ld days, %ld hours, %ld minutes, %ld seconds\n", 
+		days, hours % 24, minutes % 60, seconds % 60);
 }
 
 VOID go(
@@ -42,7 +55,11 @@ VOID go(
 	{
 		return;
 	}
-	printUptime();
+#ifdef __x86_64__
+	printUptime64();
+# else 
+	printUptime32();
+#endif
 	printoutput(TRUE);
 	bofstop();
 };

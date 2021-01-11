@@ -10,6 +10,7 @@ void listDir(wchar_t *path) {
 	LONGLONG totalFileSize = 0;
 	int nFiles = 0;
 	int nDirs = 0;
+    wchar_t * newPath = intAlloc(1024);
 	
 	// If the file ends in \ or is a drive (C:), throw a * on there
 	int a = MSVCRT$wcslen(path);
@@ -46,7 +47,7 @@ void listDir(wchar_t *path) {
 		// File size (or ujust print dir)
 		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-				internal_printf("%16s %ls\n", "<junction", fd.cFileName);
+				internal_printf("%16s %ls\n", "<junction>", fd.cFileName);
 			} else {
 				internal_printf("%16s %ls\n", "<dir>", fd.cFileName);
 			}
@@ -84,12 +85,17 @@ VOID go(
 	BeaconDataParse(&parser, Buffer, Length);
 	wchar_t * path = (wchar_t *)BeaconDataExtract(&parser, NULL);
 
+    // Not positive how long path is, let's be safe
+    // At worst, we will append \* so give it four bytes (= 2 wchar_t)
+    wchar_t * realPath = intAlloc(1024);
+    MSVCRT$wcsncat(realPath, path, 1020);
+
 	if(!bofstart())
 	{
 		return;
 	}
 
-	listDir(path);
+	listDir(realPath);
 	printoutput(TRUE);
 };
 
