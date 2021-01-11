@@ -166,7 +166,7 @@ void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
     }
 }
 
-void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count){
+void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, char * hostname){
     char szDN[1024] = {0};
 	ULONG ulSize = sizeof(szDN)/sizeof(szDN[0]);
 	
@@ -212,7 +212,9 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count)
 	// Initialise LDAP Session
     // Taken from https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ldap/searching-a-directory
 	//////////////////////////////
-    pLdapConnection = InitialiseLDAPConnection(pdcInfo->DomainControllerName + 2, distinguishedName);
+    char * targetdc = (hostname == NULL) ? pdcInfo->DomainControllerAddress + 2 : hostname;
+    BeaconPrintf(CALLBACK_OUTPUT, "Binding to %s", targetdc);
+    pLdapConnection = InitialiseLDAPConnection(targetdc, distinguishedName);
 
     if(!pLdapConnection)
         {goto end;}
@@ -361,14 +363,17 @@ VOID go(
 	datap  parser;
 	char * ldap_filter;
 	char * ldap_attributes;
+    char * hostname;
 	ULONG results_count;
 
 	BeaconDataParse(&parser, Buffer, Length);
 	ldap_filter = BeaconDataExtract(&parser, NULL);
 	ldap_attributes = BeaconDataExtract(&parser, NULL);
 	results_count = BeaconDataInt(&parser);
+    hostname = BeaconDataExtract(&parser, NULL);
 
     ldap_attributes = *ldap_attributes == 0 ? NULL : ldap_attributes;
+    hostname = *hostname == 0 ? NULL : hostname;
 
 
 	if(!bofstart())
@@ -376,7 +381,7 @@ VOID go(
 		return;
 	}
 
-	ldapSearch(ldap_filter, ldap_attributes, results_count);
+	ldapSearch(ldap_filter, ldap_attributes, results_count, hostname);
 
 	printoutput(TRUE);
     if(fuuidtostring != (void *)1)
