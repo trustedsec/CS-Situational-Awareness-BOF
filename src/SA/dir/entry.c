@@ -10,7 +10,6 @@ void listDir(wchar_t *path) {
 	LONGLONG totalFileSize = 0;
 	int nFiles = 0;
 	int nDirs = 0;
-    wchar_t * newPath = intAlloc(1024);
 	
 	// If the file ends in \ or is a drive (C:), throw a * on there
 	int a = MSVCRT$wcslen(path);
@@ -96,6 +95,7 @@ VOID go(
 	}
 
 	listDir(realPath);
+    intFree(realPath);
 	printoutput(TRUE);
 };
 
