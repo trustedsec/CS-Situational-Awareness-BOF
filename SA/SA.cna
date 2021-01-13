@@ -82,6 +82,7 @@ sub readbof {
 	$barch  = barch($1);
 
 	# read in the right BOF file
+    println(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
 	$handle = openf(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
 	$data   = readb($handle, -1);
 	closef($handle);
