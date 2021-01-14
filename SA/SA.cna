@@ -55,8 +55,8 @@ REG_QWORD => 11);
 sub ops {
 	local('$count');
 	$count = 0;
-    %arguments = ohash();
-    foreach $arg ($1) {
+	%arguments = ohash();
+	foreach $arg ($1) {
 		if ($count > 0) {
 			if ($arg ismatch '/.*:.*') {
 				$arg = replace($arg, '\A/',"");
@@ -72,17 +72,17 @@ sub ops {
 			}
 		}
 		$count = $count + 1;
-    }
-    return (%arguments);
+	}
+	return (%arguments);
 }
 
 
 sub readbof {
-    local('$barch $handle $data $args');
+	local('$barch $handle $data $args');
 	$barch  = barch($1);
 
 	# read in the right BOF file
-	println(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
+    println(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
 	$handle = openf(script_resource("$2 $+ / $+ $2 $+ . $+ $barch $+ .o"));
 	$data   = readb($handle, -1);
 	closef($handle);
@@ -96,8 +96,23 @@ sub readbof {
 
 	# announce what we're doing
 	btask($1, "Running $2");
-    return $data;
+	return $data;
 }
+
+
+alias dir {
+	local('$args $targetdir');
+	$targetdir = iff(-istrue $2, $2, ".\\");
+
+	$args = bof_pack($1, "Z", $targetdir);
+	beacon_inline_execute($1, readbof($1, "dir"), "go", $args);
+}
+
+beacon_command_register(
+	"dir",
+	"Lists a target directory using BOF.",
+	"Usage: dir [directory]"
+);
 
 
 beacon_command_register(
@@ -226,9 +241,9 @@ beacon_command_register(
 alias netuse {
 	local('$params $keys $args $device $share $user $password');
 
-    %params = ops(@_);
-    @keys = keys(%params);
-    
+	%params = ops(@_);
+	@keys = keys(%params);
+	
 	$device = "";
 	$share = "";
 	$user = "";
@@ -236,7 +251,7 @@ alias netuse {
 	$delete = "FALSE";
 	$persist = "FALSE";
 	
-    if ("1" in @keys) {
+	if ("1" in @keys) {
 		$device = %params["1"];
 		
 		if ("2" in @keys) {
@@ -254,39 +269,39 @@ alias netuse {
 		if ("PERSIST" in @keys) {
 			$persist = "TRUE"
 		}
-	}    
+	}	
 	
 	if ($share ne ""){
-	    if ($share !ismatch '\\\\.*\\.*'){
-		    berror($1, beacon_command_detail("netuse"));
-		    berror($1, "Invalid computer\\share name");
-		    return;
-	    } 
+		if ($share !ismatch '\\\\.*\\.*'){
+			berror($1, beacon_command_detail("netuse"));
+			berror($1, "Invalid computer\\share name");
+			return;
+		} 
 	}
 
-    $args = bof_pack($1, "ZZZZZZ", $device, $share, $password, $user, $delete, $persist);
-    beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
+	$args = bof_pack($1, "ZZZZZZ", $device, $share, $password, $user, $delete, $persist);
+	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
 }
 
 beacon_command_register(
-    "netuse",
-    "Lists, connects to, or disconnects from a shared resource",
-    "
+	"netuse",
+	"Lists, connects to, or disconnects from a shared resource",
+	"
 Command: netuse
 Summary: This command connects a computer to a shared resource or disconnects a
-         computer from a shared resource. When used without options, it lists
-         the computer's connections.
+		 computer from a shared resource. When used without options, it lists
+		 the computer's connections.
 Usage:   netuse (devicename) (sharename) (password) (/USER:username) (/DELETE) (/PERSIST)
-         devicename     Optional. The device name on the local system to list, 
-                        connect, or disconnect. List all devices if devicename
-                        is omitted.
-         sharename      Optional. The network name of the shared resource to 
-                        connect the local device name to, or 'DELETE' to 
-                        disconnect the device.
-         password       Optional. The password to use for the remote connection.
-         username       Optional. The username to use for the remote connection.
-         DELETE         Optional. Delete the connection.
-         PERSIST        Optional. Persist the connection.
+		 devicename	 Optional. The device name on the local system to list, 
+						connect, or disconnect. List all devices if devicename
+						is omitted.
+		 sharename	  Optional. The network name of the shared resource to 
+						connect the local device name to, or 'DELETE' to 
+						disconnect the device.
+		 password	   Optional. The password to use for the remote connection.
+		 username	   Optional. The username to use for the remote connection.
+		 DELETE		 Optional. Delete the connection.
+		 PERSIST		Optional. Persist the connection.
 "
 );
 
@@ -893,74 +908,74 @@ If a value to query is not specified, that one key is enumerated");
 
 
 alias tasklist{
-    local('$args $system')
+	local('$args $system')
 
-    $system = "";
+	$system = "";
 
-    if ((size(@_) < 1) || (size(@_) > 2))
-    {
-        berror($1, beacon_command_detail("tasklist"));
-        berror($1, "Invalid number of arguments");
-        return;
-    }
-    $system = iff(-istrue $2, $2, ".");
-    blog($1, "Connecting to \\\\$system and retrieving list of currently running processes");
-    $args = bof_pack($1, "Z", $system);
-    beacon_inline_execute($1, readbof($1, "tasklist"), "go", $args);
+	if ((size(@_) < 1) || (size(@_) > 2))
+	{
+		berror($1, beacon_command_detail("tasklist"));
+		berror($1, "Invalid number of arguments");
+		return;
+	}
+	$system = iff(-istrue $2, $2, ".");
+	blog($1, "Connecting to \\\\$system and retrieving list of currently running processes");
+	$args = bof_pack($1, "Z", $system);
+	beacon_inline_execute($1, readbof($1, "tasklist"), "go", $args);
 }
 
 beacon_command_register(
-    "tasklist",
-    "Lists currently running processes",
-    "
+	"tasklist",
+	"Lists currently running processes",
+	"
 Command: tasklist
 Summary: This command displays a list of currently running processes on either
-         a local or remote machine.
+		 a local or remote machine.
 Usage:   tasklist (system)
-         system       - Optional. Specifies the remote system to connect to. Do
-                        not include or use '.' to indicate the command should
-                        be run on the local system.
-Note:    You must have a valid login token for the system specified if not
-         local. This token can be obtained using make_token.
+		 system	   - Optional. Specifies the remote system to connect to. Do
+						not include or use '.' to indicate the command should
+						be run on the local system.
+Note:	You must have a valid login token for the system specified if not
+		 local. This token can be obtained using make_token.
 "
 );
 
 
 alias wmi_query{
-    local('$query $system $namespace $args')
+	local('$query $system $namespace $args')
 
-    if ((size(@_) < 2) || (size(@_) > 4))
-    {
-        berror($1, beacon_command_detail("wmi_query"));
-        berror($1, "Invalid number of arguments");
-        return;
-    }
-    $query = $2;
-    $system = iff(-istrue $3, $3, ".");
-    $namespace = iff(-istrue $4, $4, "root\\cimv2");
+	if ((size(@_) < 2) || (size(@_) > 4))
+	{
+		berror($1, beacon_command_detail("wmi_query"));
+		berror($1, "Invalid number of arguments");
+		return;
+	}
+	$query = $2;
+	$system = iff(-istrue $3, $3, ".");
+	$namespace = iff(-istrue $4, $4, "root\\cimv2");
 
-    blog($1, "Connecting to \\\\$system\\$namespace and running the WMI query \'$query\'");
+	blog($1, "Connecting to \\\\$system\\$namespace and running the WMI query \'$query\'");
 
-    $args = bof_pack($1, "ZZZ", $system, $namespace, $query);
-    beacon_inline_execute($1, readbof($1, "wmi_query"), "go", $args);
+	$args = bof_pack($1, "ZZZ", $system, $namespace, $query);
+	beacon_inline_execute($1, readbof($1, "wmi_query"), "go", $args);
 }
 
 beacon_command_register(
-    "wmi_query",
-    "Runs a general WMI query",
-    "
+	"wmi_query",
+	"Runs a general WMI query",
+	"
 Command: wmi_query
 Summary: This command runs a general WMI query on either a local or remote
-         machine and displays the results in a comma separated table.
+		 machine and displays the results in a comma separated table.
 Usage:   wmi_query [query] (system) (namespace)
-         query        - The query to run. The query should be in WQL.
-         system       - Optional. Specifies the remote system to connect to. Do
-                        not include or use '.' to indicate the command should
-                        be run on the local system.
-         namespace    - Optional. Specifies the namespace to connect to. This
-                        defaults to root\\cimv2 if not specified.
-Note:    You must have a valid login token for the system specified if not
-         local. This token can be obtained using make_token.
+		 query		- The query to run. The query should be in WQL.
+		 system	   - Optional. Specifies the remote system to connect to. Do
+						not include or use '.' to indicate the command should
+						be run on the local system.
+		 namespace	- Optional. Specifies the namespace to connect to. This
+						defaults to root\\cimv2 if not specified.
+Note:	You must have a valid login token for the system specified if not
+		 local. This token can be obtained using make_token.
 "
 );
 
@@ -977,3 +992,24 @@ beacon_command_register(
 	"list sessions on server",
 	"Synopsis: netsession <computer> "
 );
+
+
+alias resources {
+		beacon_inline_execute($1, readbof($1, "resources"), "go", $null);
+}
+
+beacon_command_register(
+"resources",
+"List available memory and space on the primary disk drive",
+"Usage: resources");
+
+
+alias uptime {
+		beacon_inline_execute($1, readbof($1, "uptime"), "go", $null);
+}
+
+beacon_command_register(
+"uptime",
+"Lists system boot time",
+"Usage: uptime");
+
