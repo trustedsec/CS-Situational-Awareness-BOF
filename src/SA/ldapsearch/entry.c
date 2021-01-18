@@ -166,11 +166,11 @@ void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
     }
 }
 
-void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, char * hostname){
+void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, char * hostname, char * domain){
     char szDN[1024] = {0};
 	ULONG ulSize = sizeof(szDN)/sizeof(szDN[0]);
 	
-    BOOL res = SECUR32$GetUserNameExA(NameFullyQualifiedDN, szDN, &ulSize);
+    BOOL res = (domain) ? TRUE : SECUR32$GetUserNameExA(NameFullyQualifiedDN, szDN, &ulSize);
     DWORD dwRet = 0;
     PDOMAIN_CONTROLLER_INFO pdcInfo = NULL;
     LDAP* pLdapConnection = NULL; 
@@ -185,7 +185,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
     ULONG results_limit = 0;
     BOOL isbinary = FALSE;
 
-	distinguishedName = MSVCRT$strstr(szDN, "DC");
+	distinguishedName = (domain) ? domain : MSVCRT$strstr(szDN, "DC");
 	if(distinguishedName != NULL && res) {
     	internal_printf("[*] Distinguished name: %s\n", distinguishedName);	
 	}
@@ -198,10 +198,12 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	////////////////////////////
 	// Retrieve PDC
 	////////////////////////////
-
+    
     dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
     if (ERROR_SUCCESS == dwRet) {
-        internal_printf("[*] DC: %s\n", pdcInfo->DomainControllerName);       
+        if(!hostname){
+            internal_printf("[*] targeting DC: %s\n", pdcInfo->DomainControllerName);       
+        }
     } else {
         BeaconPrintf(CALLBACK_ERROR, "Failed to identify PDC, are we domain joined?");
         goto end;
@@ -364,6 +366,7 @@ VOID go(
 	char * ldap_filter;
 	char * ldap_attributes;
     char * hostname;
+    char * domain;
 	ULONG results_count;
 
 	BeaconDataParse(&parser, Buffer, Length);
@@ -371,9 +374,11 @@ VOID go(
 	ldap_attributes = BeaconDataExtract(&parser, NULL);
 	results_count = BeaconDataInt(&parser);
     hostname = BeaconDataExtract(&parser, NULL);
+    domain = BeaconDataExtract(&parser, NULL);
 
     ldap_attributes = *ldap_attributes == 0 ? NULL : ldap_attributes;
     hostname = *hostname == 0 ? NULL : hostname;
+    domain = *domain == 0 ? NULL : domain;
 
 
 	if(!bofstart())
@@ -381,7 +386,7 @@ VOID go(
 		return;
 	}
 
-	ldapSearch(ldap_filter, ldap_attributes, results_count, hostname);
+	ldapSearch(ldap_filter, ldap_attributes, results_count, hostname, domain);
 
 	printoutput(TRUE);
     if(fuuidtostring != (void *)1)

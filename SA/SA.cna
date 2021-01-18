@@ -130,7 +130,9 @@ alias env {
 beacon_command_register(
 "ldapsearch", 
 "BOF - Perform LDAP search.", 
-"ldapsearch <query> [comma_separated_attributes] [result_count]
+"ldapsearch <query> [comma_separated_attributes] [result_count] [DC hostname or IP] [Distingished Name to use]
+	\"\" works as a default for attributes (get all) DC hostname / IP (use Primary DC) and distingished name (use Base domain Level)
+	0 works as default for result_count (get all)
 
 Useful queries:
 
@@ -141,7 +143,7 @@ Useful queries:
 - Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))");
 
 alias ldapsearch {
-	local('$args $attributes $result_limit $hostname');
+	local('$args $attributes $result_limit $hostname $domain');
 	
 	if(size(@_) < 2)
 	{
@@ -152,8 +154,9 @@ alias ldapsearch {
 	$attributes = iff(-istrue $3, $3, "");
 	$result_limit = iff(-istrue $4, $4, 0);
 	$hostname = iff(-istrue $5, $5, "");
+	$domain = iff(-istrue $6, $6, "");
 
-	$args   = bof_pack($1, "zziz", $2, $attributes, $result_limit, $hostname);
+	$args   = bof_pack($1, "zzizz", $2, $attributes, $result_limit, $hostname, $domain);
 
 	# execute it.
 	beacon_inline_execute($1, readbof($1, "ldapsearch"), "go", $args);
