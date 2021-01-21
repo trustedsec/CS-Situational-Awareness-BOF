@@ -271,6 +271,10 @@ WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_search_s(LDAP *ld,PSTR base,ULONG scope,PS
 WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_count_entries(LDAP*,LDAPMessage*);
 WINLDAPAPI struct berval **LDAPAPI WLDAP32$ldap_get_values_lenA (LDAP *ExternalHandle,LDAPMessage *Message,const PCHAR attr);
 WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_value_free_len(struct berval **vals);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_set_optionA(LDAP *ld,int option,const void *invalue);
+WINLDAPAPI PLDAPSearch LDAPAPI WLDAP32$ldap_search_init_pageA(PLDAP ExternalHandle,const PCHAR DistinguishedName,ULONG ScopeOfSearch,const PCHAR SearchFilter,PCHAR AttributeList[],ULONG AttributesOnly,PLDAPControlA *ServerControls,PLDAPControlA *ClientControls,ULONG PageTimeLimit,ULONG TotalSizeLimit,PLDAPSortKeyA *SortKeys);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_get_paged_count(PLDAP ExternalHandle,PLDAPSearch SearchBlock,ULONG *TotalCount,PLDAPMessage Results);
+WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_get_next_page_s(PLDAP ExternalHandle,PLDAPSearch SearchHandle,struct l_timeval *timeout,ULONG PageSize,ULONG *TotalCount,LDAPMessage **Results);
 
 WINLDAPAPI LDAPMessage*  LDAPAPI WLDAP32$ldap_first_entry(LDAP *ld,LDAPMessage *res);
 WINLDAPAPI LDAPMessage*  LDAPAPI WLDAP32$ldap_next_entry(LDAP*,LDAPMessage*);
@@ -300,13 +304,13 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$GetFileVersionInfoA(LPCSTR lptstrFilename
 DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen);
 
 #else
-//Not Kept up to date, update if required
-#define KERNEL32$VirtualAlloc VirtualAlloc
-#define KERNEL32$VirtualFree VirtualFree
-#define KERNEL32$WideCharToMultiByte WideCharToMultiByte
-#define Kernel32$WideCharToMultiByte WideCharToMultiByte
-__forceinline LPVOID intAlloc(SIZE_T size) { return KERNEL32$VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);}
-__forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, MEM_RELEASE);}
+#define intAlloc(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
+#define intRealloc(ptr, size) (ptr) ? KERNEL32$HeapReAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, ptr, size) : KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
+#define intFree(addr) KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, addr)
+#define intZeroMemory(addr,size) MSVCRT$memset((addr),0,size)
+
+#define KERNEL32$VirtualAlloc  VirtualAlloc 
+#define KERNEL32$VirtualFree  VirtualFree 
 #define KERNEL32$LocalAlloc  LocalAlloc 
 #define KERNEL32$LocalFree  LocalFree 
 #define KERNEL32$HeapAlloc  HeapAlloc 
@@ -319,12 +323,18 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define KERNEL32$FileTimeToSystemTime  FileTimeToSystemTime 
 #define KERNEL32$GetDateFormatW  GetDateFormatW 
 #define KERNEL32$GetSystemTimeAsFileTime  GetSystemTimeAsFileTime 
+#define KERNEL32$GetLocalTime  GetLocalTime 
+#define KERNEL32$SystemTimeToFileTime  SystemTimeToFileTime 
+#define KERNEL32$SystemTimeToTzSpecificLocalTime  SystemTimeToTzSpecificLocalTime 
+#define KERNEL32$GlobalMemoryStatusEx  GlobalMemoryStatusEx 
+#define KERNEL32$GetDiskFreeSpaceExA  GetDiskFreeSpaceExA 
 #define KERNEL32$GetCurrentProcess  GetCurrentProcess 
 #define KERNEL32$GetCurrentProcessId GetCurrentProcessId
 #define KERNEL32$GetLastError  GetLastError 
 #define KERNEL32$CloseHandle  CloseHandle 
 #define KERNEL32$CreateThread  CreateThread 
 #define KERNEL32$GetTickCount  GetTickCount 
+#define KERNEL32$GetTickCount64  GetTickCount64 
 #define KERNEL32$CreateFiber  CreateFiber 
 #define KERNEL32$ConvertThreadToFiber  ConvertThreadToFiber 
 #define KERNEL32$ConvertFiberToThread  ConvertFiberToThread 
@@ -346,8 +356,14 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define KERNEL32$FindNextFileW  FindNextFileW 
 #define KERNEL32$FindClose  FindClose 
 #define KERNEL32$SetLastError  SetLastError 
+#define KERNEL32$HeapAlloc HeapAlloc
+#define KERNEL32$HeapFree HeapFree
+#define MSVCRT$memset memset
 #define KERNEL32$GlobalAlloc GlobalAlloc
 #define KERNEL32$GlobalFree GlobalFree
+#define KERNEL32$GetEnvironmentStrings GetEnvironmentStrings
+#define KERNEL32$FreeEnvironmentStringsA FreeEnvironmentStringsA
+#define KERNEL32$lstrlenA lstrlenA
 #define IPHLPAPI$GetAdaptersInfo  GetAdaptersInfo 
 #define IPHLPAPI$GetAdaptersInfo GetAdaptersInfo
 #define IPHLPAPI$GetIpForwardTable  GetIpForwardTable 
@@ -355,14 +371,15 @@ __forceinline BOOL intFree(LPVOID addr) { return KERNEL32$VirtualFree(addr, 0, M
 #define IPHLPAPI$GetUdpTable  GetUdpTable 
 #define IPHLPAPI$GetTcpTable  GetTcpTable 
 #define MSVCRT$calloc calloc
+#define MSVCRT$memcpy memcpy
 #define MSVCRT$realloc realloc
 #define MSVCRT$free free
 #define MSVCRT$memset memset
-__forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$memset((addr),0,size); }
 #define MSVCRT$sprintf sprintf
 #define MSVCRT$vsnprintf vsnprintf
 #define MSVCRT$strnlen strnlen
 #define MSVCRT$_snwprintf _snwprintf
+#define MSVCRT$wcscpy_s wcscpy_s
 #define MSVCRT$wcslen wcslen
 #define MSVCRT$sprintf  sprintf 
 #define MSVCRT$strncmp strncmp
@@ -374,7 +391,6 @@ __forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$mems
 #define MSVCRT$_wcsicmp _wcsicmp
 #define MSVCRT$wcschr wcschr
 #define MSVCRT$wcsncat wcsncat
-#define MSVCRT$wcscpy_s wcscpy_s
 #define MSVCRT$wcsrchr wcsrchr
 #define MSVCRT$wcsrchr wcsrchr
 #define MSVCRT$strcmp strcmp
@@ -402,6 +418,7 @@ __forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$mems
 #define NETAPI32$NetUserSetInfo NetUserSetInfo
 #define NETAPI32$NetShareEnum NetShareEnum
 #define NETAPI32$NetApiBufferFree NetApiBufferFree
+#define NETAPI32$NetSessionEnum NetSessionEnum
 #define MPR$WNetOpenEnumW WNetOpenEnumW
 #define MPR$WNetEnumResourceW WNetEnumResourceW
 #define MPR$WNetCloseEnum WNetCloseEnum
@@ -464,14 +481,14 @@ __forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$mems
 #define ADVAPI32$InitializeSecurityDescriptor  InitializeSecurityDescriptor 
 #define ADVAPI32$SetSecurityDescriptorDacl  SetSecurityDescriptorDacl 
 #define ADVAPI32$ConvertSecurityDescriptorToStringSecurityDescriptorW ConvertSecurityDescriptorToStringSecurityDescriptorW
+#define ADVAPI32$StartServiceA StartServiceA
+#define ADVAPI32$ControlService ControlService
+#define ADVAPI32$EnumDependentServicesA EnumDependentServicesA
 #define NTDLL$NtCreateFile NtCreateFile
 #define NTDLL$NtClose NtClose
 #define IMAGEHLP$ImageEnumerateCertificates ImageEnumerateCertificates
 #define IMAGEHLP$ImageGetCertificateHeader ImageGetCertificateHeader
 #define IMAGEHLP$ImageGetCertificateData ImageGetCertificateData
-#define ADVAPI32$StartServiceA StartServiceA
-#define ADVAPI32$ControlService ControlService
-#define ADVAPI32$EnumDependentServicesA EnumDependentServicesA
 #define CRYPT32$CryptVerifyMessageSignature  CryptVerifyMessageSignature 
 #define CRYPT32$CertGetNameStringW  CertGetNameStringW 
 #define CRYPT32$CertFreeCertificateContext  CertFreeCertificateContext 
@@ -507,11 +524,15 @@ __forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$mems
 #define WLDAP32$ldap_bind_s ldap_bind_s
 #define WLDAP32$ldap_search_s ldap_search_s
 #define WLDAP32$ldap_count_entries ldap_count_entries
+#define WLDAP32$ldap_get_values_lenA  ldap_get_values_lenA 
+#define WLDAP32$ldap_value_free_len ldap_value_free_len
+#define WLDAP32$ldap_set_optionA ldap_set_optionA
+#define WLDAP32$ldap_search_init_pageA ldap_search_init_pageA
+#define WLDAP32$ldap_get_paged_count ldap_get_paged_count
+#define WLDAP32$ldap_get_next_page_s ldap_get_next_page_s
 #define WLDAP32$ldap_first_entry ldap_first_entry
 #define WLDAP32$ldap_next_entry ldap_next_entry
 #define WLDAP32$ldap_first_attribute ldap_first_attribute
-#define WLDAP32$ldap_get_values_lenA ldap_get_values_lenA
-#define WLDAP32$ldap_value_free_len ldap_value_free_len
 #define WLDAP32$ldap_count_values ldap_count_values
 #define WLDAP32$ldap_get_values ldap_get_values
 #define WLDAP32$ldap_value_free ldap_value_free
@@ -528,10 +549,6 @@ __forceinline void* intZeroMemory(LPVOID addr, SIZE_T size) { return MSVCRT$mems
 #define VERSION$GetFileVersionInfoSizeA GetFileVersionInfoSizeA
 #define VERSION$GetFileVersionInfoA GetFileVersionInfoA
 #define VERSION$VerQueryValueA VerQueryValueA
-#define NETAPI32$NetSessionEnum NetSessionEnum
-#define KERNEL32$GetEnvironmentStrings GetEnvironmentStrings
-#define KERNEL32$FreeEnvironmentStringsA FreeEnvironmentStringsA
-#define KERNEL32$lstrlenA lstrlenA 
+#define BeaconPrintf(x, y, ...) printf(y, ##__VA_ARGS__)
 #define internal_printf printf
-#define BeaconPrintf(t, s, ...) printf(s, ##__VA_ARGS__)
 #endif

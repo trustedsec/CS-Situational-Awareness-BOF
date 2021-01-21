@@ -140,7 +140,9 @@ Useful queries:
 
 - AS-REP Roastable:\n(&(samAccountType=805306368)(userAccountControl:1.2.840.113556.1.4.803:=4194304))
 
-- Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))");
+- Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))
+
+If this fails with an error about paging not being supported you can try tou se nonpagedldapsearch instead (its unregistered but has the same arguments)");
 
 alias ldapsearch {
 	local('$args $attributes $result_limit $hostname $domain');
@@ -162,6 +164,26 @@ alias ldapsearch {
 	beacon_inline_execute($1, readbof($1, "ldapsearch"), "go", $args);
 }
 
+alias nonpagedldapsearch
+{
+	local('$args $attributes $result_limit $hostname $domain');
+	
+	if(size(@_) < 2)
+	{
+		berror($1, beacon_command_detail("ldapsearch"));
+		return;
+	}
+
+	$attributes = iff(-istrue $3, $3, "");
+	$result_limit = iff(-istrue $4, $4, 0);
+	$hostname = iff(-istrue $5, $5, "");
+	$domain = iff(-istrue $6, $6, "");
+
+	$args   = bof_pack($1, "zzizz", $2, $attributes, $result_limit, $hostname, $domain);
+
+	# execute it.
+	beacon_inline_execute($1, readbof($1, "nonpagedldapsearch"), "go", $args);
+}
 
 alias ipconfig {
 
