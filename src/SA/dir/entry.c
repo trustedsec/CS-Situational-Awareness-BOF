@@ -61,7 +61,7 @@ void listDir(wchar_t *path, unsigned short subdirs) {
 			}
 			// Queue subdirectory for recursion
 			if (subdirs) {
-				nextPath = (WCHAR *)intAlloc(MSVCRT$wcslen(path) + MAX_PATH); // could MAX_PATH be the length of fd.cFileName instead?
+				nextPath = (WCHAR *)intAlloc((MSVCRT$wcslen(path) + MSVCRT$wcslen(fd.cFileName) + 3) * 2);
 				MSVCRT$wcsncat(nextPath, path, MSVCRT$wcslen(path)-1);
 				MSVCRT$wcscat(nextPath, fd.cFileName);
 				dirQueue->push(dirQueue, nextPath);
