@@ -109,11 +109,11 @@ alias dir {
 	$targetdir = ".\\";
 	$subdirs = 0;
 
+	if ("s" in @keys) {
+		$subdirs = 1;
+	}
 	if ("1" in @keys) {
 		$targetdir = %params["1"];
-		if ("s" in @keys) {
-			$subdirs = 1;
-		}
 	}
 
 	$args = bof_pack($1, "Zs", $targetdir, $subdirs);
