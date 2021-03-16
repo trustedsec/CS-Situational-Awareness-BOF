@@ -58,23 +58,9 @@ Note the reason for including reg_query when CS has a built in reg query(v) comm
 The functional code for most of these commands was taken from the reactos project or code examples hosted on MSDN.  
 The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df09f83d3620013f5d370d3b9
 
-Thank you to martindube for his contribution of listmods</br>
-Thank you to ajpc500 for their contribution of ldapsearch</br>
-Thank you to Kapn-kaos for their contribution of tasklist and wmi_query</br>
-Thank you to JohnLaTwC for opening issues related to code correctness that prompted a full code review</br>
-Thank you to sysenter-eip for the fix to a possible crash in internal_printf</br>
-Thank you to m0t for their contribution of get-netsession
+Thank you to all of the contributors listed under contributors.  Each have contributed something meaningful to this repository and dealt with me and my review processes.  I appreciate each and every one of them for teaching me and helping to make this BOF repository the best it can be!
 
 ##### compiler used
-The follow compiler was used.  This project has not been tested with other compilers.
-```
-Using built-in specs.
-COLLECT_GCC=x86_64-w64-mingw32-gcc
-COLLECT_LTO_WRAPPER=/usr/local/Cellar/mingw-w64/7.0.0_2/toolchain-x86_64/libexec/gcc/x86_64-w64-mingw32/9.3.0/lto-wrapper
-Target: x86_64-w64-mingw32
-Configured with: ../configure --target=x86_64-w64-mingw32 --with-sysroot=/usr/local/Cellar/mingw-w64/7.0.0_2/toolchain-x86_64 --prefix=/usr/local/Cellar/mingw-w64/7.0.0_2/toolchain-x86_64 --with-bugurl=https://github.com/Homebrew/homebrew-core/issues --enable-languages=c,c++,fortran --with-ld=/usr/local/Cellar/mingw-w64/7.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-ld --with-as=/usr/local/Cellar/mingw-w64/7.0.0_2/toolchain-x86_64/bin/x86_64-w64-mingw32-as --with-gmp=/usr/local/opt/gmp --with-mpfr=/usr/local/opt/mpfr --with-mpc=/usr/local/opt/libmpc --with-isl=/usr/local/opt/isl --disable-multilib --enable-threads=posix
-Thread model: posix
-gcc version 9.3.0 (GCC) 
-```
+Precompiled BOF's are provided in this project and are compiled using a recent version of Mingw-w64 typcially installed from brew.
 
 
