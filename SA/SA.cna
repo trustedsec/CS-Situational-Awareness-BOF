@@ -101,17 +101,29 @@ sub readbof {
 
 
 alias dir {
-	local('$args $targetdir');
-	$targetdir = iff(-istrue $2, $2, ".\\");
+	local('$params $keys $args $targetdir $subdirs');
 
-	$args = bof_pack($1, "Z", $targetdir);
+	%params = ops(@_);
+	@keys = keys(%params);
+
+	$targetdir = ".\\";
+	$subdirs = 0;
+
+	if ("s" in @keys) {
+		$subdirs = 1;
+	}
+	if ("1" in @keys) {
+		$targetdir = %params["1"];
+	}
+
+	$args = bof_pack($1, "Zs", $targetdir, $subdirs);
 	beacon_inline_execute($1, readbof($1, "dir"), "go", $args);
 }
 
 beacon_command_register(
 	"dir",
 	"Lists a target directory using BOF.",
-	"Usage: dir [directory]"
+	"Usage: dir [directory] [/s]"
 );
 
 
