@@ -206,6 +206,15 @@ beacon_command_register(
 "runs an internal ipconfig command", 
 "Synopsis: ipconfig \n\nLists out adapters, system hostname and configured dns server");
 
+
+alias arp {
+    beacon_inline_execute($1,readbof($1,'arp'),"go",$null);
+}
+
+beacon_command_register("arp", 
+"Runs an internal ARP command", 
+"Synopsis: arp \n\nLists out ARP table");
+
 alias nslookup {
 	local('$args $barch $lookup $server $type');
 	
