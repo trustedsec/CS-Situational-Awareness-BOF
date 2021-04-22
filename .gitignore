@@ -1,3 +1,4 @@
 .vs
 *.exe
 .vscode
+/src/SA/enum_filter_driver/*.log

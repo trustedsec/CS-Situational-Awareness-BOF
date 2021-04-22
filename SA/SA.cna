@@ -1060,3 +1060,38 @@ beacon_command_register(
 "Lists system boot time",
 "Usage: uptime");
 
+
+
+alias enum_filter_driver{
+	local('$args $system')
+
+	$system = "";
+
+	if ((size(@_) < 1) || (size(@_) > 2))
+	{
+		berror($1, beacon_command_detail("enum_filter_driver"));
+		berror($1, "Invalid number of arguments");
+		return;
+	}
+	$system = iff(-istrue $2, $2, $null);
+	blog($1, "Retrieving list of filter drivers");
+	$args = bof_pack($1, "Z", $system);
+	beacon_inline_execute($1, readbof($1, "enum_filter_driver"), "go", $args);
+}
+
+beacon_command_register(
+	"enum_filter_driver",
+	"Lists filter drivers on the system",
+	"
+Command: enum_filter_driver
+Summary: This command displays a list of filter drivers installed on the 
+         system. The results are returned in a CSV format with the type, name,
+         and altitude number.
+Usage:   enum_filter_driver <opt:system>
+         system    Optional. Specifies the remote system to connect to. Do not 
+                   include a system argument to indicate the command should be 
+                   run on the local system.
+Note:    You must have a valid login token for the system specified if not 
+         local. This token can be obtained using make_token.
+"
+);
