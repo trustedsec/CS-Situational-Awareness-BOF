@@ -1075,7 +1075,7 @@ alias enum_filter_driver{
 	}
 	$system = iff(-istrue $2, $2, $null);
 	blog($1, "Retrieving list of filter drivers");
-	$args = bof_pack($1, "Z", $system);
+	$args = bof_pack($1, "z", $system);
 	beacon_inline_execute($1, readbof($1, "enum_filter_driver"), "go", $args);
 }
 
