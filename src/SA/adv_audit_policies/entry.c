@@ -196,7 +196,7 @@ DWORD Combine_CSV(LPWSTR* lpswzFileSet, DWORD dwFileSetCount, LPSTR** lpszCSV, P
 				}
 
 				// read the current file contents into buffer
-				if ( FALSE == ReadFile(	hFile, lpFileContent, dwFileContentSize, &dwBytesRead, NULL )	)
+				if ( FALSE == KERNEL32$ReadFile( hFile, lpFileContent, dwFileContentSize, &dwBytesRead, NULL ) )
 				{
 					dwErrorCode = KERNEL32$GetLastError();
 					internal_printf("ReadFile failed. (%lu)\n", dwErrorCode);
@@ -239,6 +239,7 @@ DWORD Combine_CSV(LPWSTR* lpswzFileSet, DWORD dwFileSetCount, LPSTR** lpszCSV, P
 
 					// copy the current line
 					MSVCRT$strcpy(szLine, lpFileToken);
+					szLine[dwLineSize-2] = '\n';
 
 					// check if the line is already in the csv
 					for( dwCSVOffset = 0; dwCSVOffset < (*lpdwCSVCount); dwCSVOffset++ )
@@ -348,7 +349,7 @@ VOID go(
 		{
 			if (NULL != lpszCSV[dwCSVOffset])
 			{
-				internal_printf("%s\n", lpszCSV[dwCSVOffset]);
+				internal_printf("%s", lpszCSV[dwCSVOffset]);
 			}
 		}
 	}
@@ -435,7 +436,7 @@ int main()
 		{
 			if (NULL != lpszCSV[dwCSVOffset])
 			{
-				internal_printf("%s\n", lpszCSV[dwCSVOffset]);
+				internal_printf("%s", lpszCSV[dwCSVOffset]);
 			}
 		}
 	}

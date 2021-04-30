@@ -1095,3 +1095,22 @@ Note:    You must have a valid login token for the system specified if not
          local. This token can be obtained using make_token.
 "
 );
+
+
+
+alias adv_audit_policies{
+	blog($1, "Retrieving advanced security audit policies");
+	
+	beacon_inline_execute($1, readbof($1, "adv_audit_policies"), "go", $null);
+}
+
+beacon_command_register(
+	"adv_audit_policies",
+	"Retrieves advanced security audit policies",
+	"
+Command: adv_audit_policies
+Summary: This command retrieves the advanced security audit policies set in the
+         group policy of the local system and/or domain.
+Usage:   adv_audit_policies
+"
+);

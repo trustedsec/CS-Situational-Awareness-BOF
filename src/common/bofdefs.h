@@ -49,6 +49,7 @@ WINBASEAPI VOID WINAPI KERNEL32$Sleep (DWORD dwMilliseconds);
 WINBASEAPI WINBOOL WINAPI KERNEL32$DeleteFileW (LPCWSTR lpFileName);
 WINBASEAPI HANDLE WINAPI KERNEL32$CreateFileW (LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 WINBASEAPI DWORD WINAPI KERNEL32$GetFileSize (HANDLE hFile, LPDWORD lpFileSizeHigh);
+WINBASEAPI WINBOOL WINAPI KERNEL32$ReadFile (HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped);
 WINBASEAPI HANDLE WINAPI KERNEL32$OpenProcess (DWORD dwDesiredAccess, WINBOOL bInheritHandle, DWORD dwProcessId);
 WINBASEAPI WINBOOL WINAPI KERNEL32$GetComputerNameExW (COMPUTER_NAME_FORMAT NameType, LPWSTR lpBuffer, LPDWORD nSize);
 WINBASEAPI int WINAPI KERNEL32$lstrlenW (LPCWSTR lpString);
@@ -355,6 +356,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define KERNEL32$DeleteFileW  DeleteFileW 
 #define KERNEL32$CreateFileW  CreateFileW 
 #define KERNEL32$GetFileSize  GetFileSize 
+#define KERNEL32$ReadFile  ReadFile
 #define KERNEL32$OpenProcess  OpenProcess 
 #define KERNEL32$GetComputerNameExW  GetComputerNameExW 
 #define KERNEL32$lstrlenW  lstrlenW 
