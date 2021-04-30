@@ -212,7 +212,7 @@ DWORD Combine_CSV(LPWSTR* lpswzFileSet, DWORD dwFileSetCount, LPSTR** lpszCSV, P
 				}
 				
 				// loop through the lines in the file
-				for(lpFileToken = MSVCRT$strtok_s((LPSTR)lpFileContent, "\n", &lpNextFileToken); NULL != lpFileToken; lpFileToken = strtok_s(NULL, "\n", &lpNextFileToken))
+				for(lpFileToken = MSVCRT$strtok_s((LPSTR)lpFileContent, "\n", &lpNextFileToken); NULL != lpFileToken; lpFileToken = MSVCRT$strtok_s(NULL, "\n", &lpNextFileToken))
 				{
 					// check the number of fields in the line
 					dwFieldCount = 0;
