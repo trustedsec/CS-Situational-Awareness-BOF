@@ -4,6 +4,7 @@
 
 #define SWZ_ROOT_DIRECTORY L"%SYSTEMROOT%\\system32\\GroupPolicy"
 #define SWZ_SEARCH_FILENAME L"audit.csv"
+#define DW_FIELD_COUNT 6
 
 DWORD RecursiveFindFile(LPWSTR swzDirectory, LPWSTR swzFileName, LPWSTR** lpswzResults, PDWORD lpdwResultsCount)
 {
@@ -123,38 +124,27 @@ END:
 	return dwErrorCode;
 }
 
-DWORD Deduplicate_CSV(LPWSTR* lpswzFileSet, DWORD dwFileSetCount, LPSTR* lpszCSV, PDWORD lpdwCSVSize)
+DWORD Combine_CSV(LPWSTR* lpswzFileSet, DWORD dwFileSetCount, LPSTR** lpszCSV, PDWORD lpdwCSVCount)
 {
 	DWORD dwErrorCode = ERROR_SUCCESS;
 	HANDLE hFile = NULL;
-	DWORD dwFileContentSize = 0;
-	PBYTE lpFileContent = NULL;
-	PBYTE lpFileContentEnd = NULL;
 	DWORD dwBytesRead = 0;
-	LPSTR szCurrentLine = NULL;
-	LPSTR szCurrentLineEnd = NULL;
-	DWORD dwCurrentLineSize = 0;
-
-	LPSTR szNewCSV = NULL;
-	DWORD dwNewCSVSize = 0;
-	LPSTR szCurrentCSV = NULL;
-	DWORD dwCurrentCSVSize = 0;
-	
-	szCurrentCSV = intAlloc(1);
-	if (NULL == szCurrentCSV)
-	{
-		dwErrorCode = ERROR_OUTOFMEMORY;
-		internal_printf("intAlloc failed. (%lu)\n", dwErrorCode);
-		goto END;
-	}
-
-	internal_printf("Deduplicating %lu audit files\n", dwFileSetCount);
+	PBYTE lpFileContent = NULL;
+	DWORD dwFileContentSize = 0;
+	LPSTR lpFileToken = NULL;
+	LPSTR lpNextFileToken = NULL;
+	LPSTR szLine = NULL;
+	DWORD dwLineSize = 0;
+	LPSTR lpLineToken = NULL;
+	DWORD dwFileSetIndex=0;
+	DWORD dwCSVOffset = 0;
+	DWORD dwFieldCount = 0;
 
 	// check if there are files
 	if (NULL != lpswzFileSet)
 	{
 		// loop through all the files in the set
-		for(DWORD dwFileSetIndex=0; dwFileSetIndex<dwFileSetCount; dwFileSetIndex++)
+		for(dwFileSetIndex=0; dwFileSetIndex<dwFileSetCount; dwFileSetIndex++)
 		{
 			// check if the filename is not null
 			if (NULL != lpswzFileSet[dwFileSetIndex])
@@ -221,55 +211,67 @@ DWORD Deduplicate_CSV(LPWSTR* lpswzFileSet, DWORD dwFileSetCount, LPSTR* lpszCSV
 					goto END;
 				}
 				
-				lpFileContentEnd = lpFileContent + dwFileContentSize;
-
-				// loop through the current file contents
-				for(szCurrentLine = (LPSTR)lpFileContent; szCurrentLine < (LPSTR)(lpFileContentEnd); szCurrentLine = szCurrentLineEnd+2)
+				// loop through the lines in the file
+				for(lpFileToken = MSVCRT$strtok_s((LPSTR)lpFileContent, "\n", &lpNextFileToken); NULL != lpFileToken; lpFileToken = strtok_s(NULL, "\n", &lpNextFileToken))
 				{
-					// get the end to the first line
-					szCurrentLineEnd = MSVCRT$strstr(szCurrentLine, "\r\n");
-					if ( NULL == szCurrentLineEnd ) break;
-					
-					dwCurrentLineSize = szCurrentLineEnd - szCurrentLine + 2;
+					// check the number of fields in the line
+					dwFieldCount = 0;
+					lpLineToken = lpFileToken;
+					while (TRUE)
+					{
+						lpLineToken = MSVCRT$strstr(lpLineToken, ",");
+						if (NULL == lpLineToken) { break; }
+						lpLineToken++;
+						dwFieldCount++;
+					} 
+					if ( dwFieldCount < DW_FIELD_COUNT ) { break; }
 
-					// update the total size with just the size of this line
-					dwNewCSVSize = dwCurrentCSVSize + dwCurrentLineSize;
+					dwLineSize = MSVCRT$strlen(lpFileToken) + 1;
 
-					// allocate a new csv buffer to hold the new entry
-					szNewCSV = (LPSTR)intAlloc( dwNewCSVSize );
-					if (NULL == szNewCSV)
+					// allocate a new buffer for the current line
+					szLine = (LPSTR)intAlloc(dwLineSize);
+					if ( NULL == szLine )
+					{
+						dwErrorCode = ERROR_OUTOFMEMORY;
+						internal_printf("intAlloc failed. (%lu)\n", dwErrorCode);
+						goto END;
+					}
+
+					// copy the current line
+					MSVCRT$strcpy(szLine, lpFileToken);
+
+					// check if the line is already in the csv
+					for( dwCSVOffset = 0; dwCSVOffset < (*lpdwCSVCount); dwCSVOffset++ )
+					{
+						if ( 0 == MSVCRT$strcmp((*lpszCSV)[dwCSVOffset], szLine)) {	break; }
+					}
+					if ( dwCSVOffset < (*lpdwCSVCount) ) { continue; }
+
+					// increment the find count
+					(*lpdwCSVCount) = (*lpdwCSVCount) + 1;
+
+					// re-allocate the CSV buffer to hold the new entry
+					(*lpszCSV) = intRealloc((*lpszCSV), ((*lpdwCSVCount)*sizeof(LPSTR)));
+					if (NULL == (*lpszCSV))
 					{
 						dwErrorCode = ERROR_OUTOFMEMORY;
 						internal_printf("intRealloc failed. (%lu)\n", dwErrorCode);
 						goto END;
 					}
-
-					// copy the current buffer
-					MSVCRT$memcpy(szNewCSV, szCurrentCSV, dwCurrentCSVSize);
-
-					// append the current line to the overall
-					MSVCRT$memcpy(szNewCSV+dwCurrentCSVSize, szCurrentLine, dwCurrentLineSize);
-
-					// update the current buffer and size
-					intFree(szCurrentCSV);
-					szCurrentCSV = szNewCSV;
-					szNewCSV = NULL;
-					dwCurrentCSVSize = dwNewCSVSize;
-				} // end loop through current file contents
+					
+					// update the CSV buffer with the new entry
+					(*lpszCSV)[((*lpdwCSVCount)-1)] = szLine;
+					szLine = NULL;
+				} // end loop through lines in file
 			} // end if filename is not null
 		} // end loop through all the files in the set
 	} // end if there are files
 	else
 	{
 		dwErrorCode = ERROR_BAD_ARGUMENTS;
-		internal_printf("file list is empty.\n");
+		internal_printf("No audit.csv files\n");
 		goto END;
 	}
-
-	*lpdwCSVSize = dwCurrentCSVSize;
-	*lpszCSV = szCurrentCSV;
-
-	szCurrentCSV = NULL;
 
 END:
 
@@ -285,16 +287,10 @@ END:
 		lpFileContent=NULL;
 	}
 
-	if (NULL != szCurrentCSV)
+	if (NULL != szLine)
 	{
-		intFree(szCurrentCSV);
-		szCurrentCSV=NULL;
-	}
-
-	if (NULL != szNewCSV)
-	{
-		intFree(szNewCSV);
-		szNewCSV=NULL;
+		intFree(szLine);
+		szLine=NULL;
 	}
 
 	return dwErrorCode;
@@ -308,10 +304,12 @@ VOID go(
 )
 {
 	DWORD dwErrorCode = ERROR_SUCCESS;
+	WCHAR swzRootDirectory[MAX_PATH];
 	LPWSTR* lpswzResults = NULL;
 	DWORD dwResultsCount = 0;
-	WCHAR swzRootDirectory[MAX_PATH];
-	
+	LPSTR* lpszCSV = NULL;
+	DWORD dwCSVCount = 0;
+
 	if(!bofstart())
 	{
 		return;
@@ -334,20 +332,31 @@ VOID go(
         goto END;
 	}
 
-  
-/*
-	// deduplicate entries in the all the audit.csv files
-	internal_printf("Deduplicate results...\n");
-	dwErrorCode = Deduplicate_CSV(lpswzResults, dwResultsCount);
+  	// Combine entries in the all the audit.csv files
+	internal_printf("Combine results...\n");
+	dwErrorCode = Combine_CSV(lpswzResults, dwResultsCount, &lpszCSV, &dwCSVCount );
 	if (ERROR_SUCCESS != dwErrorCode)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Deduplicate_CSV FAILED (%lu)\n", dwErrorCode);
+		BeaconPrintf(CALLBACK_ERROR, "Combine_CSV FAILED (%lu)\n", dwErrorCode);
         goto END;
 	}
-*/
+
+	if (NULL != lpszCSV)
+	{
+		internal_printf("Combined audit.csv (%lu lines):\n", dwCSVCount);
+		for(DWORD dwCSVOffset=0; dwCSVOffset<dwCSVCount; dwCSVOffset++)
+		{
+			if (NULL != lpszCSV[dwCSVOffset])
+			{
+				internal_printf("%s\n", lpszCSV[dwCSVOffset]);
+			}
+		}
+	}
+
     internal_printf("SUCCESS.\n");
 
 END:
+
 	if (NULL != lpswzResults)
 	{
 		for(DWORD dwResultsOffset=0; dwResultsOffset<dwResultsCount; dwResultsOffset++)
@@ -360,6 +369,20 @@ END:
 		}
 		intFree(lpswzResults);
 		lpswzResults=NULL;
+	}
+
+	if (NULL != lpszCSV)
+	{
+		for(DWORD dwCSVOffset=0; dwCSVOffset<dwCSVCount; dwCSVOffset++)
+		{
+			if (NULL != lpszCSV[dwCSVOffset])
+			{
+				intFree(lpszCSV[dwCSVOffset]);
+				lpszCSV[dwCSVOffset]=NULL;
+			}
+		}
+		intFree(lpszCSV);
+		lpszCSV=NULL;
 	}
 
 	printoutput(TRUE);
@@ -375,8 +398,8 @@ int main()
 	WCHAR swzRootDirectory[MAX_PATH];
 	LPWSTR* lpswzResults = NULL;
 	DWORD dwResultsCount = 0;
-	LPSTR szCSV = NULL;
-	DWORD dwCSVSize = 0;
+	LPSTR* lpszCSV = NULL;
+	DWORD dwCSVCount = 0;
 
 	// get the root directory
 	if (0 == KERNEL32$ExpandEnvironmentStringsW(SWZ_ROOT_DIRECTORY, swzRootDirectory, MAX_PATH))
@@ -396,26 +419,30 @@ int main()
 	}
 
 
-	// deduplicate entries in the all the audit.csv files
-	internal_printf("Deduplicate results...\n");
-	dwErrorCode = Deduplicate_CSV(lpswzResults, dwResultsCount, &szCSV, &dwCSVSize );
+	// Combine entries in the all the audit.csv files
+	internal_printf("Combine results...\n");
+	dwErrorCode = Combine_CSV(lpswzResults, dwResultsCount, &lpszCSV, &dwCSVCount );
 	if (ERROR_SUCCESS != dwErrorCode)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Deduplicate_CSV FAILED (%lu)\n", dwErrorCode);
+		BeaconPrintf(CALLBACK_ERROR, "Combine_CSV FAILED (%lu)\n", dwErrorCode);
         goto END;
 	}
 
-	internal_printf("Deduplicate result:\n%s\n", szCSV);
+	if (NULL != lpszCSV)
+	{
+		internal_printf("Combined audit.csv (%lu lines):\n", dwCSVCount);
+		for(DWORD dwCSVOffset=0; dwCSVOffset<dwCSVCount; dwCSVOffset++)
+		{
+			if (NULL != lpszCSV[dwCSVOffset])
+			{
+				internal_printf("%s\n", lpszCSV[dwCSVOffset]);
+			}
+		}
+	}
 
     internal_printf("SUCCESS.\n");
 
 END:
-
-	if (NULL != szCSV)
-	{
-		intFree(szCSV);
-		szCSV=NULL;
-	}
 
 	if (NULL != lpswzResults)
 	{
@@ -429,6 +456,20 @@ END:
 		}
 		intFree(lpswzResults);
 		lpswzResults=NULL;
+	}
+
+	if (NULL != lpszCSV)
+	{
+		for(DWORD dwCSVOffset=0; dwCSVOffset<dwCSVCount; dwCSVOffset++)
+		{
+			if (NULL != lpszCSV[dwCSVOffset])
+			{
+				intFree(lpszCSV[dwCSVOffset]);
+				lpszCSV[dwCSVOffset]=NULL;
+			}
+		}
+		intFree(lpszCSV);
+		lpszCSV=NULL;
 	}
 
 	return dwErrorCode;

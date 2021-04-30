@@ -19,7 +19,7 @@ scanbuild:
 	$(CC) entry.c -o $(BOFNAME).scanbuild.exe $(COMINCLUDE) $(LIBINCLUDE)
 
 check:
-	cppcheck --enable=all $(COMINCLUDE) --platform=win64 entry.c
+	cppcheck --enable=all --suppress=unusedFunction --suppress=missingIncludeSystem $(COMINCLUDE) --platform=win64 entry.c
 
 clean:
 	rm $(BOFNAME).*.exe
