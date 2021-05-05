@@ -11,9 +11,7 @@ void EnumLocalSessions(){
     DWORD index;
     int users = 0;
     
-    DECLSPEC_IMPORT DWORD WINAPI WTSAPI32$WTSEnumerateSessionsA(LPVOID, DWORD, DWORD, PWTS_SESSION_INFO*, DWORD*);
-    DECLSPEC_IMPORT DWORD WINAPI WTSAPI32$WTSQuerySessionInformationA(LPVOID, DWORD, WTS_INFO_CLASS , LPSTR*, DWORD*);
-    DECLSPEC_IMPORT DWORD WINAPI WTSAPI32$WTSFreeMemory(LPTSTR);
+
         
     nStatus = WTSAPI32$WTSEnumerateSessionsA(
         WTS_CURRENT_SERVER_HANDLE,
@@ -28,12 +26,12 @@ void EnumLocalSessions(){
     {
         for (index = 0; index < wtscount; index++)
             {
-                LPTSTR username;
-                LPTSTR domain;
-                LPTSTR stationId;
-                LPTSTR idleTime;
+                LPTSTR username = NULL;
+                LPTSTR domain = NULL;
+                BOOL freedomain = FALSE;
+                LPTSTR stationId = NULL;
+                BOOL freestation = FALSE;
                 DWORD size;
-                int len;
                 
                 nStatus = WTSAPI32$WTSQuerySessionInformationA(
                     WTS_CURRENT_SERVER_HANDLE,
@@ -47,10 +45,22 @@ void EnumLocalSessions(){
                     if (strlen(username) > 0 && 
                         (wtsinfo[index].State == WTSActive || wtsinfo[index].State == WTSDisconnected))
                     {
-                        nStatus = WTSAPI32$WTSQuerySessionInformationA(WTS_CURRENT_SERVER_HANDLE,wtsinfo[index].SessionId,WTSDomainName,&domain,&size);
-                        nStatus = WTSAPI32$WTSQuerySessionInformationA(WTS_CURRENT_SERVER_HANDLE,wtsinfo[index].SessionId,WTSWinStationName,&stationId,&size);
+                        if(!WTSAPI32$WTSQuerySessionInformationA(WTS_CURRENT_SERVER_HANDLE,wtsinfo[index].SessionId,WTSDomainName,&domain,&size))
+                        {domain = "(NULL)";}
+                        else {freedomain = TRUE;}
+                        if(wtsinfo[index].State == WTSDisconnected)
+                        {stationId = "(Disconnected)";}
+                        else
+                        {
+                            if(!WTSAPI32$WTSQuerySessionInformationA(WTS_CURRENT_SERVER_HANDLE,wtsinfo[index].SessionId,WTSWinStationName,&stationId,&size))
+                            {stationId = "(NULL)";}
+                            else {freestation = TRUE;}
+                        }
                         
-                        internal_printf("  - [%d] %s: %s\\%s\n", wtsinfo[index].SessionId,stationId,domain,username);
+                        internal_printf("  - [%lu] %s: %s\\%s\n", wtsinfo[index].SessionId,stationId,domain,username);
+                        WTSAPI32$WTSFreeMemory(username);
+                        if(freedomain) {WTSAPI32$WTSFreeMemory(domain);}
+                        if(freestation) {WTSAPI32$WTSFreeMemory(stationId);}
                         users++;
                     }
                 }
@@ -60,6 +70,7 @@ void EnumLocalSessions(){
                 } 
                 
             }
+            WTSAPI32$WTSFreeMemory(wtsinfo);
     }
     //
     // Otherwise, indicate a system error.
@@ -72,7 +83,7 @@ void EnumLocalSessions(){
     //
     // Print the final count of sessions enumerated.
     //
-    internal_printf("\nTotal of %lu entries enumerated\n", users);
+    internal_printf("\nTotal of %d entries enumerated\n", users);
         
 }
 
@@ -81,15 +92,12 @@ VOID go(
     IN PCHAR Buffer, 
     IN ULONG Length
 ) 
-{
-    datap  parser;
-    
+{   
     if(!bofstart())
     {
         return;
     }
     
-    BeaconDataParse(&parser, Buffer, Length);
 
     internal_printf("Enumerating sessions for local system:\n");
     EnumLocalSessions();

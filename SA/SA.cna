@@ -1118,3 +1118,7 @@ Summary: This command retrieves the advanced security audit policies set in the
 Usage:   adv_audit_policies
 "
 );
+alias enumLocalSessions{
+	beacon_inline_execute($1, readbof($1, "enumLocalSessions"), "go", $null);
+}
+
