@@ -14,7 +14,7 @@ void ListDomainGroups(const wchar_t * domain)
 	{ 
 
 		res = NETAPI32$NetQueryDisplayInformation(domain, 3, i, 100, MAX_PREFERRED_LENGTH, &dwRec, (PVOID*) &pBuff);
-		if((res==ERROR_SUCCESS) || (res==ERROR_MORE_DATA))
+		if((res==ERROR_SUCCESS) || (res==ERROR_MORE_DATA) && dwRec != 0 && pBuff != NULL)
 		{
 			p = pBuff;
 			for(;dwRec>0;dwRec--)
@@ -32,6 +32,7 @@ void ListDomainGroups(const wchar_t * domain)
 				p++;
 			}
 			NETAPI32$NetApiBufferFree(pBuff);
+			pBuff = NULL;
 		}
 		else
 		{
