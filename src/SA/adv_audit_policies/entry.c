@@ -3,6 +3,7 @@
 #include "base.c"
 
 #define SWZ_ROOT_DIRECTORY L"%SYSTEMROOT%\\system32\\GroupPolicy"
+#define SWZ_ROOT_WOW64DIRECTORY L"%SYSTEMROOT%\\sysnative\\GroupPolicy"
 #define SWZ_SEARCH_FILENAME L"audit.csv"
 #define DW_FIELD_COUNT 6
 
@@ -310,14 +311,19 @@ VOID go(
 	DWORD dwResultsCount = 0;
 	LPSTR* lpszCSV = NULL;
 	DWORD dwCSVCount = 0;
+	datap parser;
+    BOOL iswow64 = 0;
 
 	if(!bofstart())
 	{
 		return;
 	}
 
+	BeaconDataParse(&parser, Buffer, Length);
+	iswow64 = BeaconDataInt(&parser);
+
 	// get the root directory
-	if (0 == KERNEL32$ExpandEnvironmentStringsW(SWZ_ROOT_DIRECTORY, swzRootDirectory, MAX_PATH))
+	if (0 == KERNEL32$ExpandEnvironmentStringsW((iswow64) ? SWZ_ROOT_WOW64DIRECTORY : SWZ_ROOT_DIRECTORY, swzRootDirectory, MAX_PATH))
 	{
 		dwErrorCode = KERNEL32$GetLastError();
 		BeaconPrintf(CALLBACK_ERROR, "ExpandEnvironmentStringsW FAILED (%lu)\n", dwErrorCode);
