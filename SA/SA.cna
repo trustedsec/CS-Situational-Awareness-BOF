@@ -1118,6 +1118,18 @@ Summary: This command retrieves the advanced security audit policies set in the
 Usage:   adv_audit_policies
 "
 );
+
+alias listpipes
+{
+	blog($1, "Listing Named Pipes");
+	bls($1, "//./pipe/");
+}
+
+beacon_command_register(
+	"listpipes",
+	"Lists local named pipes",
+	"Usage: listpipes"
+);
 alias enumLocalSessions{
 	beacon_inline_execute($1, readbof($1, "enumLocalSessions"), "go", $null);
 }
