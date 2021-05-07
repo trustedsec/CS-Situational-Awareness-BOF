@@ -27,6 +27,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] | Executes LDAP searches |
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
 |listmods|listmods [opt: pid]| List a process modules (DLL). Target current process if pid is empty. Complement to driversigs to determine if our process was injected by edr/av.|
+|listpipes|listpipes| Lists named pipes|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
 |netuser|netuser [username] [opt: domain]| Pulls info about specific user.  Pulls from domain if a domainname is specified|
 |netview|netview| Gets a list of reachable servers in the current domain|
