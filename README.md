@@ -22,6 +22,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |dir|dir [directory] [/s]|List files in a directory. Supports wildcards (e.g. "C:\Windows\S*") the CobaltStrike `ls` command|
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
 |enum_filter_driver|enum_filter_driver [opt:computer] | Enumerates all the filter drivers|
+|enumLocalSessions|enumLocalSessions| Enumerate the currently attached user sessions both local and over rdp|
 |env|env| Prints process environment variables|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
 |ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] | Executes LDAP searches |

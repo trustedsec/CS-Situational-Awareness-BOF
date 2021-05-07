@@ -10,6 +10,7 @@
 #include <dbghelp.h>
 #include <winldap.h>
 #include <winnetwk.h>
+#include <wtsapi32.h>
 
 //KERNEL32
 #ifdef BOF
@@ -73,7 +74,10 @@ DECLSPEC_IMPORT WINBASEAPI BOOL WINAPI KERNEL32$FreeEnvironmentStringsA(LPSTR);
 WINBASEAPI DWORD WINAPI KERNEL32$ExpandEnvironmentStringsW (LPCWSTR lpSrc, LPWSTR lpDst, DWORD nSize);
 DECLSPEC_IMPORT WINBASEAPI int WINAPI KERNEL32$lstrlenA(LPCSTR);
 
-
+//WTSAPI32
+DECLSPEC_IMPORT DWORD WINAPI WTSAPI32$WTSEnumerateSessionsA(LPVOID, DWORD, DWORD, PWTS_SESSION_INFO*, DWORD*);
+DECLSPEC_IMPORT DWORD WINAPI WTSAPI32$WTSQuerySessionInformationA(LPVOID, DWORD, WTS_INFO_CLASS , LPSTR*, DWORD*);
+DECLSPEC_IMPORT DWORD WINAPI WTSAPI32$WTSFreeMemory(PVOID);
 
 //Iphlpapi.lib
 //ULONG WINAPI IPHLPAPI$GetAdaptersInfo (PIP_ADAPTER_INFO AdapterInfo, PULONG SizePointer);
@@ -453,6 +457,9 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define USER32$GetWindowTextA GetWindowTextA
 #define USER32$GetClassNameA GetClassNameA
 #define USER32$CharPrevW CharPrevW
+#define WTSAPI32$WTSEnumerateSessionsA WTSEnumerateSessionsA
+#define WTSAPI32$WTSQuerySessionInformationA WTSQuerySessionInformationA
+#define WTSAPI32$WTSFreeMemory WTSFreeMemory
 #define SECUR32$GetUserNameExA  GetUserNameExA 
 #define ADVAPI32$OpenProcessToken  OpenProcessToken 
 #define ADVAPI32$GetTokenInformation  GetTokenInformation 

@@ -1130,3 +1130,7 @@ beacon_command_register(
 	"Lists local named pipes",
 	"Usage: listpipes"
 );
+alias enumLocalSessions{
+	beacon_inline_execute($1, readbof($1, "enumLocalSessions"), "go", $null);
+}
+
