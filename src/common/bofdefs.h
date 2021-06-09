@@ -6,11 +6,13 @@
 #include <imagehlp.h>
 #include <iphlpapi.h>
 #include <stdio.h>
+#include <tlhelp32.h>
 #include <windns.h>
 #include <dbghelp.h>
 #include <winldap.h>
 #include <winnetwk.h>
 #include <wtsapi32.h>
+#include <shlwapi.h>
 
 //KERNEL32
 #ifdef BOF
@@ -72,6 +74,14 @@ DECLSPEC_IMPORT HGLOBAL KERNEL32$GlobalFree(HGLOBAL hMem);
 DECLSPEC_IMPORT LPTCH WINAPI KERNEL32$GetEnvironmentStrings();
 DECLSPEC_IMPORT WINBASEAPI BOOL WINAPI KERNEL32$FreeEnvironmentStringsA(LPSTR);
 WINBASEAPI DWORD WINAPI KERNEL32$ExpandEnvironmentStringsW (LPCWSTR lpSrc, LPWSTR lpDst, DWORD nSize);
+WINBASEAPI HANDLE WINAPI KERNEL32$CreateToolhelp32Snapshot(DWORD dwFlags,DWORD th32ProcessID);
+WINBASEAPI WINBOOL WINAPI KERNEL32$Process32First(HANDLE hSnapshot,LPPROCESSENTRY32 lppe);
+WINBASEAPI WINBOOL WINAPI KERNEL32$Process32Next(HANDLE hSnapshot,LPPROCESSENTRY32 lppe);
+WINBASEAPI WINBOOL WINAPI KERNEL32$Module32First(HANDLE hSnapshot,LPMODULEENTRY32 lpme);
+WINBASEAPI WINBOOL WINAPI KERNEL32$Module32Next(HANDLE hSnapshot,LPMODULEENTRY32 lpme);
+
+
+
 DECLSPEC_IMPORT WINBASEAPI int WINAPI KERNEL32$lstrlenA(LPCSTR);
 
 //WTSAPI32
@@ -171,6 +181,9 @@ WINUSERAPI LPWSTR WINAPI USER32$CharPrevW(LPCWSTR lpszStart,LPCWSTR lpszCurrent)
 
 //secur32
 WINBASEAPI BOOLEAN WINAPI SECUR32$GetUserNameExA (int NameFormat, LPSTR lpNameBuffer, PULONG nSize);
+
+//shlwapi
+LWSTDAPI_(LPSTR) SHLWAPI$StrStrIA(LPCSTR lpFirst,LPCSTR lpSrch);
 
 //advapi32
 WINADVAPI WINBOOL WINAPI ADVAPI32$OpenProcessToken (HANDLE ProcessHandle, DWORD DesiredAccess, PHANDLE TokenHandle);
@@ -318,6 +331,8 @@ DECLSPEC_IMPORT DWORD WINAPI VERSION$GetFileVersionInfoSizeA(LPCSTR lptstrFilena
 DECLSPEC_IMPORT WINBOOL WINAPI VERSION$GetFileVersionInfoA(LPCSTR lptstrFilename, DWORD dwHandle, DWORD dwLen, LPVOID lpData);
 DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen);
 
+
+
 #else
 #define intAlloc(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
 #define intRealloc(ptr, size) (ptr) ? KERNEL32$HeapReAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, ptr, size) : KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
@@ -360,7 +375,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define KERNEL32$DeleteFileW  DeleteFileW 
 #define KERNEL32$CreateFileW  CreateFileW 
 #define KERNEL32$GetFileSize  GetFileSize 
-#define KERNEL32$ReadFile  ReadFile
+#define KERNEL32$ReadFile  ReadFile 
 #define KERNEL32$OpenProcess  OpenProcess 
 #define KERNEL32$GetComputerNameExW  GetComputerNameExW 
 #define KERNEL32$lstrlenW  lstrlenW 
@@ -374,20 +389,30 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define KERNEL32$FindClose  FindClose 
 #define KERNEL32$SetLastError  SetLastError 
 #define KERNEL32$HeapAlloc HeapAlloc
+#define KERNEL32$HeapReAlloc HeapReAlloc
 #define KERNEL32$HeapFree HeapFree
 #define MSVCRT$memset memset
 #define KERNEL32$GlobalAlloc GlobalAlloc
 #define KERNEL32$GlobalFree GlobalFree
 #define KERNEL32$GetEnvironmentStrings GetEnvironmentStrings
 #define KERNEL32$FreeEnvironmentStringsA FreeEnvironmentStringsA
-#define KERNEL32$ExpandEnvironmentStringsW ExpandEnvironmentStringsW
+#define KERNEL32$ExpandEnvironmentStringsW  ExpandEnvironmentStringsW 
+#define KERNEL32$CreateToolhelp32Snapshot CreateToolhelp32Snapshot
+#define KERNEL32$Process32First Process32First
+#define KERNEL32$Process32Next Process32Next
+#define KERNEL32$Module32First Module32First
+#define KERNEL32$Module32Next Module32Next
 #define KERNEL32$lstrlenA lstrlenA
+#define WTSAPI32$WTSEnumerateSessionsA WTSEnumerateSessionsA
+#define WTSAPI32$WTSQuerySessionInformationA WTSQuerySessionInformationA
+#define WTSAPI32$WTSFreeMemory WTSFreeMemory
 #define IPHLPAPI$GetAdaptersInfo  GetAdaptersInfo 
 #define IPHLPAPI$GetAdaptersInfo GetAdaptersInfo
 #define IPHLPAPI$GetIpForwardTable  GetIpForwardTable 
 #define IPHLPAPI$GetNetworkParams GetNetworkParams
 #define IPHLPAPI$GetUdpTable  GetUdpTable 
 #define IPHLPAPI$GetTcpTable  GetTcpTable 
+#define IPHLPAPI$GetIpNetTable GetIpNetTable
 #define MSVCRT$calloc calloc
 #define MSVCRT$memcpy memcpy
 #define MSVCRT$realloc realloc
@@ -399,7 +424,6 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define MSVCRT$wcscpy_s wcscpy_s
 #define MSVCRT$wcslen wcslen
 #define MSVCRT$sprintf  sprintf 
-#define MSVCRT$strncmp strncmp
 #define MSVCRT$wcscmp wcscmp
 #define MSVCRT$wcstok wcstok
 #define MSVCRT$wcsstr wcsstr
@@ -411,12 +435,13 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define MSVCRT$wcsncat wcsncat
 #define MSVCRT$wcsrchr wcsrchr
 #define MSVCRT$wcsrchr wcsrchr
+#define MSVCRT$strcat strcat
 #define MSVCRT$strnlen strnlen
 #define MSVCRT$strlen strlen
 #define MSVCRT$strcmp strcmp
+#define MSVCRT$strncmp strncmp
 #define MSVCRT$strcpy strcpy
 #define MSVCRT$strstr strstr
-#define MSVCRT$strcat strcat
 #define MSVCRT$strtok strtok
 #define MSVCRT$strtok_s strtok_s
 #define MSVCRT$strtoul strtoul
@@ -457,10 +482,8 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define USER32$GetWindowTextA GetWindowTextA
 #define USER32$GetClassNameA GetClassNameA
 #define USER32$CharPrevW CharPrevW
-#define WTSAPI32$WTSEnumerateSessionsA WTSEnumerateSessionsA
-#define WTSAPI32$WTSQuerySessionInformationA WTSQuerySessionInformationA
-#define WTSAPI32$WTSFreeMemory WTSFreeMemory
 #define SECUR32$GetUserNameExA  GetUserNameExA 
+#define SHLWAPI$StrStrIA StrStrIA
 #define ADVAPI32$OpenProcessToken  OpenProcessToken 
 #define ADVAPI32$GetTokenInformation  GetTokenInformation 
 #define ADVAPI32$ConvertSidToStringSidA ConvertSidToStringSidA
