@@ -8,7 +8,6 @@ BOOL ListModules(DWORD PID, const char * modSearchString)
 	MODULEENTRY32 modinfo = {0};
 	modinfo.dwSize = sizeof(MODULEENTRY32);
 	HANDLE hSnap = INVALID_HANDLE_VALUE;
-	DWORD count = 0;
 	BOOL retVal = FALSE;
 	hSnap = KERNEL32$CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, PID);
 	BOOL more = KERNEL32$Module32First(hSnap, &modinfo);
@@ -24,7 +23,6 @@ BOOL ListModules(DWORD PID, const char * modSearchString)
 		more = KERNEL32$Module32Next(hSnap, &modinfo);
 	}
 
-	end:
 	if(hSnap != INVALID_HANDLE_VALUE) { KERNEL32$CloseHandle(hSnap); }
 	return retVal;
 
@@ -40,7 +38,7 @@ void ListProcesses(const char * procSearchString, const char * modSearchString)
 	hSnap = KERNEL32$CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if(hSnap == INVALID_HANDLE_VALUE)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Unable to list processes: %d", KERNEL32$GetLastError());
+		BeaconPrintf(CALLBACK_ERROR, "Unable to list processes: %lu", KERNEL32$GetLastError());
 		goto end;
 	}
 	//And now we Enumerate procs and Call up to List Modules with them
@@ -52,7 +50,7 @@ void ListProcesses(const char * procSearchString, const char * modSearchString)
 		{
 			if(ListModules(procinfo.th32ProcessID, modSearchString))
 			{
-				internal_printf("%-10d : %s\n", procinfo.th32ProcessID, procinfo.szExeFile);
+				internal_printf("%-10lu : %s\n", procinfo.th32ProcessID, procinfo.szExeFile);
 				count++;
 			}
 		}
@@ -62,7 +60,7 @@ void ListProcesses(const char * procSearchString, const char * modSearchString)
 	DWORD exitStatus = KERNEL32$GetLastError();
 	if(exitStatus != ERROR_NO_MORE_FILES)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "Unable to enumerate all processes: %d", exitStatus);
+		BeaconPrintf(CALLBACK_ERROR, "Unable to enumerate all processes: %lu", exitStatus);
 		goto end;
 	}
 
