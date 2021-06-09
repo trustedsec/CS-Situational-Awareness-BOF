@@ -24,6 +24,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |enum_filter_driver|enum_filter_driver [opt:computer] | Enumerates all the filter drivers|
 |enumLocalSessions|enumLocalSessions| Enumerate the currently attached user sessions both local and over rdp|
 |env|env| Prints process environment variables|
+|findLoadedModule|findLoadedModule [modulepart] [opt:procnamepart]| Finds what processes \*modulepart\* is loaded into, optionally searching just \*procnamepart\*|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
 |ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] | Executes LDAP searches |
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|

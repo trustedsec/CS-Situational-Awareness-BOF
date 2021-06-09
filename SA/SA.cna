@@ -1134,3 +1134,30 @@ alias enumLocalSessions{
 	beacon_inline_execute($1, readbof($1, "enumLocalSessions"), "go", $null);
 }
 
+alias findLoadedModule{
+	local('$iswow64 $modname $procname $args');
+	if(-is64 $1 && barch($1) eq "x86")
+	{
+		berror($1, "Unable to run this BOF properly when under WOW64 (32bit proc on 64bit host)");
+		return;
+	}
+	if(size(@_) > 3 || size(@_) < 2){
+		berror($1, "Invalid number of arguments");
+		berror($1, beacon_command_detail("findLoadedModule"));
+		return;
+	}
+	$modname = $2;
+	$procname = iff(-istrue $3, $3, "");
+	$args = bof_pack($1, "zz", $modname, $procname);
+	beacon_inline_execute($1, readbof($1, "findLoadedModule"), "go", $args);
+}
+
+beacon_command_register(
+	"findLoadedModule",
+	"Finds processes loading a specific dll",
+	"Usage:
+	findLoadedModule <part dll name> [opt: part proc name]
+	
+	Searches are done in *<part>* manner, so partial matches will hit
+	If you specify a proc name then only processes matching that partial hit will be searched"
+);

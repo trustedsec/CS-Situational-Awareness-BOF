@@ -80,6 +80,7 @@ void NetSessions(wchar_t* hostname){
             NETAPI32$NetApiBufferFree(pBuf);
             pBuf = NULL;
         }
+
     }    
     while (nStatus == ERROR_MORE_DATA);
     // Check again for an allocated buffer.
