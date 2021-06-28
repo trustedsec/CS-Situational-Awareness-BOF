@@ -1131,7 +1131,7 @@ beacon_command_register(
 	"Usage: listpipes"
 );
 alias enumLocalSessions{
-	beacon_inline_execute($1, readbof($1, "enumLocalSessions"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "enumlocalsessions"), "go", $null);
 }
 
 alias findLoadedModule{
