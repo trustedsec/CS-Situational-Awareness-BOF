@@ -12,7 +12,7 @@ all:
 	mv $(BOFNAME)*.o ../../../SA/$(BOFNAME)
 
 test:
-	$(CC_x64) entry.c $(COMINCLUDE) $(LIBINCLUDE)  -o $(BOFNAME).x64.exe
+	$(CC_x64) entry.c $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).x64.exe
 	$(CC_x86) entry.c $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).x86.exe
 
 scanbuild:

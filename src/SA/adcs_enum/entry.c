@@ -6,90 +6,55 @@
 #include "adcs_com.c"
 
 
-HRESULT adcs_enum(
-	LPWSTR pwszServer,
-	LPWSTR pwszNameSpace,	
-	LPWSTR pwszQuery
-)
+HRESULT adcs_enum()
 {
-	HRESULT	hr						= S_OK;
+	HRESULT	hr = S_OK;
 	ADCS    m_ADCS;
-	size_t	ullColumnsSize			= 0;
-	LPWSTR	lpwszColumns			= NULL;	
-	BSTR**	ppbstrResults			= NULL;
-	DWORD	dwRowCount				= 0;
-	DWORD	dwColumnCount			= 0;
-	DWORD	dwCurrentRowIndex		= 0;
-	DWORD	dwCurrentColumnIndex	= 0;
+
+	MSVCRT$memset(&m_ADCS, 0, sizeof(ADCS));
 
 	// Initialize COM
+	//internal_printf("adcs_com_Initialize\n");
 	hr = adcs_com_Initialize(&m_ADCS);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_com_Initialize failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_com_Initialize failed: 0x%08lx\n", hr);
 		goto fail;
 	}
 
 	// Connect to ADCS on host
-	hr = adcs_com_Connect(&m_ADCS, pwszServer, pwszNameSpace);
+	//internal_printf("adcs_com_Connect\n");
+	hr = adcs_com_Connect(&m_ADCS);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_com_Connect failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_com_Connect failed: 0x%08lx\n", hr);
 		goto fail;
 	}
 
-	// Run the ADCS query
-	hr = adcs_com_Query(&m_ADCS, pwszQuery);
+	// Run the ADCS enumeration to get info for all CAs
+	//internal_printf("adcs_com_GetCertificateServices\n");
+	hr = adcs_com_GetCertificateServices(&m_ADCS);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_com_Query failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetCertificateServices failed: 0x%08lx\n", hr);
 		goto fail;
 	}
 
-	// Parse the results
-	hr = adcs_com_ParseAllResults(&m_ADCS, &ppbstrResults, &dwRowCount, &dwColumnCount);
+	// Print the results
+	//internal_printf("adcs_com_PrintInfo\n");
+	hr = adcs_com_PrintInfo(&m_ADCS);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_com_ParseAllResults failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_com_PrintInfo failed: 0x%08lx\n", hr);
 		goto fail;
-	}
-
-	// Display the resuls in CSV format
-	for (dwCurrentRowIndex = 0; dwCurrentRowIndex < dwRowCount; dwCurrentRowIndex++)
-	{
-		for (dwCurrentColumnIndex = 0; dwCurrentColumnIndex < dwColumnCount; dwCurrentColumnIndex++)
-		{
-            if ( 0 == dwCurrentColumnIndex )		
-            {
-    			internal_printf( "%S", ppbstrResults[dwCurrentRowIndex][dwCurrentColumnIndex] );			
-            }
-            else
-            {
-                internal_printf( ", %S", ppbstrResults[dwCurrentRowIndex][dwCurrentColumnIndex] );    			
-            }
-		}
-		internal_printf( "\n" );
 	}
 
 	hr = S_OK;
 
 fail:
 
-	for (dwCurrentRowIndex = 0; dwCurrentRowIndex < dwRowCount; dwCurrentRowIndex++)
-	{
-		for (dwCurrentColumnIndex = 0; dwCurrentColumnIndex < dwColumnCount; dwCurrentColumnIndex++)
-		{
-			SAFE_FREE(ppbstrResults[dwCurrentRowIndex][dwCurrentColumnIndex]);
-		}
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, ppbstrResults[dwCurrentRowIndex]);
-	}
-	
-	if (ppbstrResults)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, ppbstrResults);
-		ppbstrResults = NULL;
-	}
-
+	// Perform the clean up
+	//internal_printf("adcs_com_Finalize\n");
 	adcs_com_Finalize(&m_ADCS);
 	
 	return hr;
@@ -113,15 +78,12 @@ VOID go(
 	}
 
 	BeaconDataParse(&parser, Buffer, Length);
-    pwszServer = (wchar_t *)BeaconDataExtract(&parser, NULL);
-	pwszNameSpace = (wchar_t *)BeaconDataExtract(&parser, NULL);	
-	pwszQuery = (wchar_t *)BeaconDataExtract(&parser, NULL);
 	
-	hr = adcs_enum(pwszServer, pwszNameSpace, pwszQuery);
+	hr = adcs_enum();
 
 	if (S_OK != hr)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx\n", hr);
 	}
 
 	printoutput(TRUE);
@@ -131,11 +93,11 @@ int main(int argc, char ** argv)
 {
 	HRESULT hr = S_OK;
 
-	hr = adcs_enum(L".", L"root\\cimv2", L"select * from win32_process");
+	hr = adcs_enum();
 
 	if (S_OK != hr)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx\n", hr);
 	}
 	return 0;
 }

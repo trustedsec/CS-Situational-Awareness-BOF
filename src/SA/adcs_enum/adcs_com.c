@@ -1,25 +1,39 @@
 #include <windows.h>
 #include <stdio.h>
 #include <oleauto.h>
-#include <wbemcli.h>
 #include <wchar.h>
 #include <io.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <combaseapi.h>
 #include "beacon.h"
 #include "bofdefs.h"
 #include "adcs_com.h"
 
-#define KEY_SEPARATOR			L" ,\t\n"
-#define HEADER_ROW				0
-#define WMI_QUERY_LANGUAGE		L"WQL"
-#define WMI_NAMESPACE_CIMV2		L"root\\cimv2"
-#define RESOURCE_FMT_STRING		L"\\\\%s\\%s"
-#define RESOURCE_LOCAL_HOST		L"."
-#define ERROR_RESULT			L"*ERROR*"
-#define EMPTY_RESULT			L"(EMPTY)"
-#define NULL_RESULT				L"(NULL)"
+#define STR_NOT_AVAILALBE L"N/A"
+
+#define CERTCONFIG_FIELD_CONFIG L"Config"
+#define CERTCONFIG_FIELD_WEBERNOLLMENTSERVERS L"WebEnrollmentServers"
+
+#define PROPTYPE_INT 1
+#define PROPTYPE_DATE 2
+#define PROPTYPE_BINARY 3
+#define PROPTYPE_STRING 4
+
+#define STR_CATYPE_ENTERPRISE_ROOT L"Enterprise Root"
+#define STR_CATYPE_ENTERPRISE_SUB L"Enterprise Sub"
+#define STR_CATYPE_STANDALONE_ROOT L"Standalone Root"
+#define STR_CATYPE_STANDALONE_SUB L"Standalone Sub"
+
+#define STR_AUTHENTICATION_NONE L"None"
+#define STR_AUTHENTICATION_ANONYMOUS L"Anonymous"
+#define STR_AUTHENTICATION_KERBEROS L"Kerberos"
+#define STR_AUTHENTICATION_USERNAMEANDPASSWORD L"UserNameAndPassword"
+#define STR_AUTHENTICATION_CLIENTCERTIFICATE L"ClientCertificate"
+
+#define STR_TRUE L"True"
+#define STR_FALSE L"False"
 
 #define SAFE_DESTROY( arraypointer )	\
 	if ( (arraypointer) != NULL )	\
@@ -41,22 +55,13 @@
 	}
 
 
-
 HRESULT adcs_com_Initialize(ADCS* pADCS)
 {
 	HRESULT	hr = S_OK;
 
-	pADCS->pWbemServices = NULL;
-	pADCS->pWbemLocator  = NULL;
-	pADCS->bstrServer = NULL;
-	pADCS->pEnumerator = NULL;
-	pADCS->bstrLanguage  = NULL;
-	pADCS->bstrNameSpace = NULL;
-	pADCS->bstrNetworkResource = NULL;
-	pADCS->bstrQuery = NULL;
-	
-	pADCS->bstrLanguage = OLEAUT32$SysAllocString(WMI_QUERY_LANGUAGE);
-	pADCS->bstrNameSpace = OLEAUT32$SysAllocString(WMI_NAMESPACE_CIMV2);
+	pADCS->pConfig = NULL;
+	pADCS->pRequest = NULL;	
+	pADCS->ulCertificateServicesServerCount = 0;
 
 	// Initialize COM parameters
 	hr = OLE32$CoInitializeEx(
@@ -65,22 +70,10 @@ HRESULT adcs_com_Initialize(ADCS* pADCS)
 	);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeEx failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeEx failed: 0x%08lx\n", hr);
 		goto fail;
 	}
 
-	// Initialize COM process security
-	hr = OLE32$CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, 0);
-	if (FAILED(hr))
-	{
-		if (RPC_E_TOO_LATE != hr)
-		{
-			BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeSecurity failed: 0x%08lx", hr);
-			OLE32$CoUninitialize();
-			goto fail;
-		}
-	}
-	
 	hr = S_OK;
 
 fail:
@@ -89,490 +82,558 @@ fail:
 }
 
 HRESULT adcs_com_Connect(
-	ADCS* pADCS, 
-	LPWSTR pwszServerArg,
-	LPWSTR pwszNameSpaceArg
+	ADCS* pADCS
 )
 {
 	HRESULT hr = S_OK;
-	LPWSTR  pwszServer = NULL;
-	LPWSTR  pwszNameSpace = NULL;	
-	size_t	ullNetworkResourceSize = 0;
-	LPWSTR	lpwszNetworkResource = NULL;
+
+	CLSID	CLSID_CCertConfig = { 0x372fce38, 0x4324, 0x11D0, {0x88, 0x10, 0x00, 0xA0, 0xC9, 0x03, 0xB8, 0x3C} };
+	IID		IID_ICertConfig2 = { 0x7a18edde, 0x7e78, 0x4163, {0x8d, 0xed, 0x78, 0xe2, 0xc9, 0xce, 0xe9, 0x24} };
+
+	//{98AFF3F0-5524-11D0-8812-00A0C903B83C}
+	CLSID	CLSID_CCertRequest = { 0x98AFF3F0, 0x5524, 0x11D0, {0x88, 0x12, 0x00, 0xA0, 0xC9, 0x03, 0xB8, 0x3C} };
+	//{A4772988-4A85-4FA9-824E-B5CF5C16405A}
+	IID		IID_ICertRequest2 = { 0xA4772988, 0x4A85, 0x4FA9, {0x82, 0x4E, 0xB5, 0xCF, 0x5C, 0x16, 0x40, 0x5A} };
 
 
-	CLSID	CLSID_WbemLocator = { 0x4590F811, 0x1D3A, 0x11D0, {0x89, 0x1F, 0, 0xAA, 0, 0x4B, 0x2E, 0x24} };
-	IID		IID_IWbemLocator = { 0xDC12A687, 0x737F, 0x11CF, {0x88, 0x4D, 0, 0xAA, 0, 0x4B, 0x2E, 0x24} };
-	
-	// Get the server
-	pwszServer = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH*sizeof(wchar_t));
-	if (NULL == pwszServer)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	if ( (NULL != pwszServerArg) && (MSVCRT$wcslen(pwszServerArg) > 0) )
-	{
-		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, pwszServerArg);
-	}
-	else
-	{
-		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, RESOURCE_LOCAL_HOST);		
-	}
-	
-	// Get the namespace	
-	pwszNameSpace = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH*sizeof(wchar_t));
-	if (NULL == pwszNameSpace)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	if ( (NULL != pwszNameSpaceArg) && (MSVCRT$wcslen(pwszNameSpaceArg) > 0) )
-	{
-		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, pwszNameSpaceArg);
-	}
-	else
-	{
-		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, WMI_NAMESPACE_CIMV2);		
-	}
-	
-	// Create the full resource path from the server and namespace
-	ullNetworkResourceSize = (2 + MSVCRT$wcslen(pwszServer) + 1 + MSVCRT$wcslen(pwszNameSpace) + 1) * sizeof(wchar_t);
-	lpwszNetworkResource = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, ullNetworkResourceSize);
-	if (NULL == lpwszNetworkResource)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	if (-1 == MSVCRT$_snwprintf(lpwszNetworkResource, ullNetworkResourceSize, RESOURCE_FMT_STRING, pwszServer, pwszNameSpace))
-	{
-		hr = WBEM_E_INVALID_NAMESPACE;
-		BeaconPrintf(CALLBACK_ERROR, "MSVCRT$swprintf failed: 0x%08lx", hr);
-		goto fail;
-	}
-	
-	// Set the properties in the ADCS object
-	pADCS->bstrServer = OLEAUT32$SysAllocString(pwszServer);
-	pADCS->bstrNetworkResource = OLEAUT32$SysAllocString(lpwszNetworkResource);
-
-	// Obtain the initial locator to Windows Management on host computer
-	SAFE_RELEASE(pADCS->pWbemLocator);
+	// Create an instance of the CertConfig class with the ICertConfig2 interface
+	SAFE_RELEASE(pADCS->pConfig);
 	hr = OLE32$CoCreateInstance(
-		&CLSID_WbemLocator,
+		&CLSID_CCertConfig,
 		0,
-		CLSCTX_ALL,
-		&IID_IWbemLocator,
-		(LPVOID *)&(pADCS->pWbemLocator)
+		CLSCTX_INPROC_SERVER,
+		&IID_ICertConfig2,
+		(LPVOID *)&(pADCS->pConfig)
+		
 	);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_CCertConfig,IID_ICertConfig2) failed: 0x%08lx\n", hr);
 		OLE32$CoUninitialize();
 		goto fail;
 	}
 
-	// Connect to the ADCS namespace on host computer with the current user
-	hr = pADCS->pWbemLocator->lpVtbl->ConnectServer(
-		pADCS->pWbemLocator,
-		pADCS->bstrNetworkResource,
-		NULL,
-		NULL,
-		NULL,
+	// Create an instance of the CertRequest class with the ICertRequest2 interface
+	SAFE_RELEASE(pADCS->pRequest);
+	hr = OLE32$CoCreateInstance(
+		&CLSID_CCertRequest,
 		0,
-		NULL,
-		NULL,
-		&(pADCS->pWbemServices)
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "ConnectServer failed: 0x%08lx", hr);
-		goto fail;
-	}
-
-	// Set the IWbemServices proxy so that impersonation of the user (client) occurs
-	hr = OLE32$CoSetProxyBlanket(
-		(IUnknown *)(pADCS->pWbemServices),
-		RPC_C_AUTHN_WINNT,
-		RPC_C_AUTHZ_NONE,
-		NULL,
-		RPC_C_AUTHN_LEVEL_DEFAULT,
-		RPC_C_IMP_LEVEL_IMPERSONATE,
-		NULL,
-		EOAC_DYNAMIC_CLOAKING
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoSetProxyBlanket failed: 0x%08lx", hr);
-		goto fail;
-	}
-
-	hr = S_OK;
-
-fail:
-    // Free local allocations
-	if (pwszServer)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszServer);
-		pwszServer = NULL;
-	}
-	if (pwszNameSpace)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszNameSpace);
-		pwszNameSpace = NULL;
-	}
-	if (lpwszNetworkResource)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, lpwszNetworkResource);
-		lpwszNetworkResource = NULL;
-	}
-	
-	return hr;
-}
-
-HRESULT adcs_com_Query(
-	ADCS* pADCS, 
-	LPWSTR pwszQuery
-)
-{
-	HRESULT hr = 0;
-
-	// Free any previous queries
-	SAFE_FREE(pADCS->bstrQuery);
-
-	// Set the query
-	pADCS->bstrQuery = OLEAUT32$SysAllocString(pwszQuery);
-
-	// Free any previous results
-	SAFE_RELEASE(pADCS->pEnumerator);
-
-	// Use the IWbemServices pointer to make requests of ADCS
-	hr = pADCS->pWbemServices->lpVtbl->ExecQuery(
-		pADCS->pWbemServices,
-		pADCS->bstrLanguage,
-		pADCS->bstrQuery,
-		WBEM_FLAG_BIDIRECTIONAL,
-		NULL,
-		&(pADCS->pEnumerator));
-	if (FAILED(hr))
-	{
-    	BeaconPrintf(CALLBACK_ERROR, "ExecQuery failed: 0x%08lx", hr);
-		SAFE_RELEASE(pADCS->pEnumerator);
-		goto fail;
-	}
-
-	// Set the IWbemServices proxy so that impersonation of the user (client) occurs
-	hr = OLE32$CoSetProxyBlanket(
-		(IUnknown *)(pADCS->pEnumerator),
-		RPC_C_AUTHN_WINNT,
-		RPC_C_AUTHZ_NONE,
-		NULL,
-		RPC_C_AUTHN_LEVEL_DEFAULT,
-		RPC_C_IMP_LEVEL_IMPERSONATE,
-		NULL,
-		EOAC_DYNAMIC_CLOAKING
-	);
-	if (FAILED(hr))
-	{
-    	BeaconPrintf(CALLBACK_ERROR, "OLE32$CoSetProxyBlanket failed: 0x%08lx", hr);
-    	SAFE_RELEASE(pADCS->pEnumerator);
-		goto fail;
-	}
-
-	hr = S_OK;
-
-fail:
-	return hr;
-}
-
-
-HRESULT adcs_com_ParseResults(
-	ADCS* pADCS,
-	LPWSTR pwszKeys,
-	BSTR*** ppwszResults,
-	LPDWORD pdwRowCount,
-	LPDWORD pdwColumnCount
-)
-{
-	HRESULT hr = 0;
-	BSTR    bstrColumns = NULL;
-	BSTR**  bstrResults = NULL;
-	BSTR*   bstrCurrentRow = NULL;
-	DWORD   dwColumnCount = 1;
-	DWORD   dwRowCount = 0;
-	LPWSTR  pCurrentKey = NULL;
-	DWORD   dwIndex = 0;
-	IWbemClassObject *pWbemClassObjectResult = NULL;
-	ULONG   ulResultCount = 0;
-	VARIANT varProperty;
-
-	// Fill in the header row
-	// Count the number of header columns
-	bstrColumns = OLEAUT32$SysAllocString(pwszKeys);
-	for(dwIndex = 0; bstrColumns[dwIndex]; dwIndex++)
-	{
-		if (bstrColumns[dwIndex] == L',')
-			dwColumnCount++;
-	} 
-	// Allocate space for the columns in the header row
-	bstrCurrentRow = (BSTR*)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BSTR)*dwColumnCount);
-	if (NULL == bstrCurrentRow)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	// Fill in each column in the header row
-	pCurrentKey = MSVCRT$wcstok(bstrColumns, KEY_SEPARATOR); ;
-	for(dwIndex = 0; pCurrentKey; dwIndex++)
-	{
-		bstrCurrentRow[dwIndex] = OLEAUT32$SysAllocString(pCurrentKey);
-		pCurrentKey = MSVCRT$wcstok(NULL, KEY_SEPARATOR);
-	} 
-	// Allocate space for the results including the current row
-	dwRowCount++;
-	bstrResults = (BSTR**)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BSTR*)*dwRowCount);
-	if (NULL == bstrResults)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	bstrResults[dwRowCount-1] = bstrCurrentRow;
-	bstrCurrentRow = NULL;
-
-	// Loop through the enumeration of results
-	hr = WBEM_S_NO_ERROR;
-	while (WBEM_S_NO_ERROR == hr)
-	{
-		// Get the next result in our enumeration of results
-		hr = pADCS->pEnumerator->lpVtbl->Next(pADCS->pEnumerator, WBEM_INFINITE, 1, &pWbemClassObjectResult, &ulResultCount); //Scanbuild false positive
-		if (hr == S_OK && ulResultCount > 0) 
-		{
-			if (pWbemClassObjectResult == NULL) 
-			{
-				continue;
-			}
-
-			// Allocate space for the columns in the current row
-			bstrCurrentRow = (BSTR*)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(BSTR)*dwColumnCount);
-			if (NULL == bstrCurrentRow)
-			{
-				hr = WBEM_E_OUT_OF_MEMORY;
-				BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-				goto fail;
-			}
-			
-			// Loop through each column/key and get that property from the current result
-			for (dwIndex = 0; dwIndex < dwColumnCount; dwIndex++)
-			{
-				pCurrentKey = bstrResults[HEADER_ROW][dwIndex];
-
-				OLEAUT32$VariantInit(&varProperty);
-
-				// Get the corresponding entry from the current result for the current key
-				hr = pWbemClassObjectResult->lpVtbl->Get(pWbemClassObjectResult, pCurrentKey, 0, &varProperty, 0, 0);
-				if (FAILED(hr))
-				{
-					BeaconPrintf(CALLBACK_ERROR, "pWbemClassObjectResult->lpVtbl->Get failed: 0x%08lx", hr);
-					//goto fail;
-					continue;
-				}
-
-				if (VT_EMPTY == varProperty.vt)
-				{
-					bstrCurrentRow[dwIndex] = OLEAUT32$SysAllocString(EMPTY_RESULT);
-				}
-				else if (VT_NULL == varProperty.vt)
-				{
-					bstrCurrentRow[dwIndex] = OLEAUT32$SysAllocString(NULL_RESULT);
-				}
-				else
-				{
-					hr = OLEAUT32$VariantChangeType(&varProperty, &varProperty, VARIANT_ALPHABOOL, VT_BSTR);
-					if (FAILED(hr))
-					{
-						hr = WBEM_S_NO_ERROR;
-						bstrCurrentRow[dwIndex] = OLEAUT32$SysAllocString(ERROR_RESULT);
-					}
-					else
-					{
-						bstrCurrentRow[dwIndex] = OLEAUT32$SysAllocString(varProperty.bstrVal);
-					}
-				}
-
-				OLEAUT32$VariantClear(&varProperty);
-
-			} // end for loop through each column/key
-
-			// Allocate space for the results including the current row
-			dwRowCount++;
-			bstrResults = (BSTR**)KERNEL32$HeapReAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, bstrResults, sizeof(BSTR*)*dwRowCount);
-			if (NULL == bstrResults)
-			{
-				hr = WBEM_E_OUT_OF_MEMORY;
-				BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapReAlloc failed: 0x%08lx", hr);
-				goto fail;
-			}
-			bstrResults[dwRowCount - 1] = bstrCurrentRow;
-			bstrCurrentRow = NULL;
-
-			// Release the current result
-			pWbemClassObjectResult->lpVtbl->Release(pWbemClassObjectResult);
-
-		} // end if we got a pWbemClassObjectResult
-
-	} // end While loop through enumeration of results
-
-
-	*ppwszResults = bstrResults;
-	*pdwRowCount = dwRowCount;
-	*pdwColumnCount = dwColumnCount;
-fail:
-	SAFE_FREE(bstrColumns);
-
-	return hr;
-}
-
-// Get a list of all the properties returned from the query
-// Then call the normal ParseResults using all the returned 
-// properties as the keys/columns
-HRESULT adcs_com_ParseAllResults(
-	ADCS* pADCS,
-	BSTR*** ppwszResults,
-	LPDWORD pdwRowCount,
-	LPDWORD pdwColumnCount
-)
-{
-	HRESULT     hr = 0;
-	IWbemClassObject *pWbemClassObjectResult = NULL;
-	ULONG       ulResultCount = 0;
-	LONG        lFlags = WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY;
-	SAFEARRAY*  psaProperties = NULL;
-	LONG        lLBound = 0;
-	LONG        lUBound = 0;
-	size_t      ullKeysLength = 1;
-	LPWSTR      pwszKeys = NULL;
-	LONG        lKeyCount = 0;
-	VARIANT     varProperty;
-
-	pwszKeys = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, ullKeysLength*sizeof(wchar_t));
-	if (NULL == pwszKeys)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	
-    // Get the first result in our enumeration of results
-	hr = pADCS->pEnumerator->lpVtbl->Next(pADCS->pEnumerator, WBEM_INFINITE, 1, &pWbemClassObjectResult, &ulResultCount);
-	if (FAILED(hr))
-	{
-	    BeaconPrintf(CALLBACK_ERROR, "pEnumerator->Next failed: 0x%08lx", hr);
-		goto fail;
-	}
-	else if (ulResultCount == 0 || pWbemClassObjectResult == NULL)
-	{
-	    BeaconPrintf(CALLBACK_ERROR, "No results");
-	    goto fail;
-	}
+		CLSCTX_INPROC_SERVER,
+		&IID_ICertRequest2,
+		(LPVOID *)&(pADCS->pRequest)
 		
-			
-	// Get a list of all the properties in the object
-	hr = pWbemClassObjectResult->lpVtbl->GetNames(pWbemClassObjectResult, NULL, lFlags, NULL, &psaProperties );
-	if ( FAILED(hr) )
+	);
+	if (FAILED(hr))
 	{
-	    BeaconPrintf(CALLBACK_ERROR, "pWbemClassObjectResult->GetNames failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_CCertRequest,IID_ICertRequest2) failed: 0x%08lx\n", hr);
+		OLE32$CoUninitialize();
 		goto fail;
 	}
-	hr = OLEAUT32$SafeArrayGetLBound(psaProperties, 1, &lLBound);
-    if ( FAILED(hr) )
-    {
-	    BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetLBound failed: 0x%08lx", hr);
-		goto fail;
-	}
-	hr = OLEAUT32$SafeArrayGetUBound(psaProperties, 1, &lUBound);
-    if ( FAILED(hr) )
-    {
-	    BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetUBound failed: 0x%08lx", hr);
-		goto fail;
-	}
+
+	hr = S_OK;
+
+fail:
 	
-	// Iterate through all the properties and create a CSV key list
-	for (LONG lIndex = lLBound; lIndex <= lUBound; ++lIndex )
-    {
-        LPWSTR pwszCurrentName = NULL;
-        hr = OLEAUT32$SafeArrayGetElement(psaProperties, &lIndex, &pwszCurrentName);
-        if ( FAILED(hr) )
-        {
-	        BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayGetElement(%ld) failed: 0x%08lx", lIndex, hr);
-		    goto fail;
-	    }
-	    
-	    OLEAUT32$VariantInit(&varProperty);
+	return hr;
+}
 
-		// Get the corresponding property for the current property name
-		hr = pWbemClassObjectResult->lpVtbl->Get(pWbemClassObjectResult, pwszCurrentName, 0, &varProperty, 0, 0);
-		if (FAILED(hr))
+HRESULT adcs_com_GetWebEnrollmentServers(
+	ADCS* pADCS,
+	ULONG ulCertificateServicesServerIndex
+)
+{
+	HRESULT hr = S_OK;
+	BSTR 	bstrCCFieldWebEnrollmentServers = NULL;
+	BSTR 	bstrWebEnrollmentServers = NULL;
+	LPWSTR	swzTokenize = NULL;
+	UINT	dwTokenizeLength = 0;
+	LPWSTR	swzToken = NULL;
+	ULONG	dwTokenValue = 0;
+
+
+	bstrCCFieldWebEnrollmentServers = OLEAUT32$SysAllocString(CERTCONFIG_FIELD_WEBERNOLLMENTSERVERS);
+
+	hr = pADCS->pConfig->lpVtbl->GetField(
+			pADCS->pConfig,
+			bstrCCFieldWebEnrollmentServers,
+			&(bstrWebEnrollmentServers)
+	);
+	if (FAILED(hr))
+	{
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount = 0;
+		hr = S_OK;
+		goto fail;
+	}
+
+	// Parse the WebEnrollmentServer array
+	dwTokenizeLength = OLEAUT32$SysStringLen(bstrWebEnrollmentServers);
+	swzTokenize = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*(dwTokenizeLength+1));
+	if (NULL == swzTokenize)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+	MSVCRT$wcscpy(swzTokenize, bstrWebEnrollmentServers);
+
+	// Get the number of entries in the array
+	swzToken = MSVCRT$wcstok(swzTokenize, L"\n");
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount = MSVCRT$wcstoul(swzToken, NULL, 10);
+	//internal_printf( "ulWebEnrollmentServerCount: %lu\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount );
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers = (WebEnrollmentServer*)KERNEL32$HeapAlloc(
+		KERNEL32$GetProcessHeap(), 
+		HEAP_ZERO_MEMORY, 
+		sizeof(WebEnrollmentServer)*(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount)
+	);
+	if (NULL == pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+
+	// Loop through and parse the entries
+	for(ULONG ulWebEnrollmentServerIndex=0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
+	{
+		// Get the authentication type
+		swzToken = MSVCRT$wcstok(NULL, L"\n");
+		if (NULL == swzToken)
 		{
-			BeaconPrintf(CALLBACK_ERROR, "pWbemClassObjectResult->lpVtbl->Get failed: 0x%08lx", hr);
-			//goto fail;
-			continue;
+			break;
 		}
-
-        // Check the type of property because we aren't interested in references
-		if (VT_BYREF & varProperty.vt)
+		if (swzToken[0] == L'1')
 		{
-			BeaconPrintf(CALLBACK_OUTPUT, "%S is a reference, so skip", pwszCurrentName);
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_ANONYMOUS);
+		}
+		else if (swzToken[0] == L'2')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_KERBEROS);
+		}
+		else if (swzToken[0] == L'4')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_USERNAMEANDPASSWORD);
+		}
+		else if (swzToken[0] == L'8')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_CLIENTCERTIFICATE);
 		}
 		else
 		{
-            ullKeysLength = ullKeysLength + MSVCRT$wcslen( pwszCurrentName ) + 1;
-            pwszKeys = (LPWSTR)KERNEL32$HeapReAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, pwszKeys, sizeof(wchar_t)*ullKeysLength);
-            if (NULL == pwszKeys)
-	        {
-		        hr = WBEM_E_OUT_OF_MEMORY;
-		        BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapReAlloc failed: 0x%08lx", hr);
-		        goto fail;
-	        }
-	        // If this isn't the first column, prepend a comma
-	        if ( 0 != lKeyCount )
-	        {
-	            pwszKeys = MSVCRT$wcscat(pwszKeys, L",");
-	        }
-            pwszKeys = MSVCRT$wcscat(pwszKeys, pwszCurrentName);
-            
-            lKeyCount++;
-        }
-        
-        OLEAUT32$VariantClear(&varProperty);
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_NONE);
+		}
+		
+		// Get the Priority
+		swzToken = MSVCRT$wcstok(NULL, L"\n");
+		if (NULL == swzToken)
+		{
+			break;
+		}
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the Uri
+		swzToken = MSVCRT$wcstok(NULL, L"\n");
+		if (NULL == swzToken)
+		{
+			break;
+		}
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the RenewalOnly flag
+		swzToken = MSVCRT$wcstok(NULL, L"\n");
+		if (NULL == swzToken)
+		{
+			break;
+		}
+		if (swzToken[0] == L'0')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly = OLEAUT32$SysAllocString(STR_FALSE);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly = OLEAUT32$SysAllocString(STR_TRUE);
+		}
 	}
+
+fail:
 	
-	// Release the current result
-	pWbemClassObjectResult->lpVtbl->Release(pWbemClassObjectResult);
-	
-	// Reset the enumeration
-	hr = pADCS->pEnumerator->lpVtbl->Reset(pADCS->pEnumerator);
-	if ( FAILED(hr) )
+	if(swzTokenize)
 	{
-	    BeaconPrintf(CALLBACK_ERROR, "Reset failed: 0x%08lx", hr);
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
+		swzTokenize = NULL;
+	}
+
+	SAFE_FREE(bstrWebEnrollmentServers);
+	SAFE_FREE(bstrCCFieldWebEnrollmentServers);
+
+	return hr;
+}
+
+HRESULT adcs_com_GetTemplates(
+	ADCS* pADCS,
+	ULONG ulCertificateServicesServerIndex
+)
+{
+	HRESULT hr = S_OK;
+	BSTR 	bstrCCFieldWebEnrollmentServers = NULL;
+	BSTR 	bstrWebEnrollmentServers = NULL;
+	LPWSTR	swzTokenize = NULL;
+	UINT	dwTokenizeLength = 0;
+	LPWSTR	swzToken = NULL;
+	ULONG	dwTokenValue = 0;
+	VARIANT varProperty;
+
+	OLEAUT32$VariantInit(&varProperty);
+
+
+	// Retrieve the CR_PROP_TEMPLATES property
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_TEMPLATES,
+		0,
+		PROPTYPE_STRING,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount = 0;
+		hr = S_OK;
+		goto fail;
+	}
+	//internal_printf( "CR_PROP_TEMPLATES varProperty.bstrVal: %S\n", varProperty.bstrVal );
+	dwTokenizeLength = OLEAUT32$SysStringLen(varProperty.bstrVal);
+	swzTokenize = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*(dwTokenizeLength+1));
+	if (NULL == swzTokenize)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+	MSVCRT$wcscpy(swzTokenize, varProperty.bstrVal);
+
+	// Get the number of entries in the array
+	swzToken = swzTokenize;
+	for (dwTokenValue=0; swzToken[dwTokenValue]; swzToken[dwTokenValue]==L'\n' ? dwTokenValue++ : *swzToken++);
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount = dwTokenValue/2;
+	//internal_printf( "ulTemplateCount: %lu\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount );
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates = (Template*)KERNEL32$HeapAlloc(
+		KERNEL32$GetProcessHeap(), 
+		HEAP_ZERO_MEMORY, 
+		sizeof(Template)*(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount)
+	);
+	if (NULL == pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+
+	swzToken = MSVCRT$wcstok(swzTokenize, L"\n");
+	if (NULL == swzToken)
+	{
+		hr = TYPE_E_UNSUPFORMAT;
+		BeaconPrintf(CALLBACK_ERROR, "Failed to parse templates string\n");
 		goto fail;
 	}
 	
-	// Get the results for all the properties using the newly create key list
-	hr = adcs_com_ParseResults( pADCS, pwszKeys, ppwszResults, pdwRowCount, pdwColumnCount );
-	
-fail:
 
-	if (pwszKeys)
+	// Loop through and parse the entries
+	for(ULONG ulTemplateIndex=0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
 	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszKeys);
-		pwszKeys = NULL;
+		// Get the name
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the OID
+		swzToken = MSVCRT$wcstok(NULL, L"\n");
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the next Name
+		swzToken = MSVCRT$wcstok(NULL, L"\n");
+	}
+
+fail:
+	
+	if(swzTokenize)
+	{
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
+		swzTokenize = NULL;
+	}
+
+	OLEAUT32$VariantClear(&varProperty);
+
+	return hr;
+}
+
+HRESULT adcs_com_GetCertificateServicesServer(
+	ADCS* pADCS,
+	ULONG ulCertificateServicesServerIndex
+)
+{
+	HRESULT hr = S_OK;
+	VARIANT varProperty;
+
+	OLEAUT32$VariantInit(&varProperty);
+
+	// Retrieve the CR_PROP_DNSNAME property
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_DNSNAME,
+		0,
+		PROPTYPE_STRING,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_DNSNAME) failed: 0x%08lx\n", hr);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		//goto fail;
+	}
+	else
+	{
+		//internal_printf( "CR_PROP_DNSNAME varProperty.bstrVal: %S\n", varProperty.bstrVal );
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName = OLEAUT32$SysAllocString(varProperty.bstrVal);
+	}
+
+	OLEAUT32$VariantClear(&varProperty);
+
+	// Retrieve the CR_PROP_SHAREDFOLDER property
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_SHAREDFOLDER,
+		0,
+		PROPTYPE_STRING,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_SHAREDFOLDER) failed: 0x%08lx\n", hr);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		//goto fail;
+	}
+	else
+	{
+		//internal_printf( "CR_PROP_SHAREDFOLDER varProperty.bstrVal: %S\n", varProperty.bstrVal );
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder = OLEAUT32$SysAllocString(varProperty.bstrVal);
+	}
+
+	// Retrieve the CR_PROP_CATYPE property
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_CATYPE,
+		0,
+		PROPTYPE_INT,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_CATYPE) failed: 0x%08lx\n", hr);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		//goto fail;
+	}
+	else
+	{
+		//internal_printf( "CR_PROP_CATYPE varProperty.intVal: %d\n", varProperty.intVal );
+		switch(varProperty.intVal)
+		{
+			case 0: //ENTERPRISE_ROOT
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_ENTERPRISE_ROOT);
+				break;
+			}
+			case 1: //ENTERPRISE_SUB
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_ENTERPRISE_SUB);
+				break;
+			}
+			case 2: //STANDALONE_ROOT
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_STANDALONE_ROOT);
+				break;
+			}
+			case 3: //STANDALONE_SUB
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_STANDALONE_SUB);
+				break;
+			}
+		}
 	}
 	
-    SAFE_DESTROY(psaProperties);
+	// Attempt to retrieve the WebEnrollmentServers field for the current configuration
+	//internal_printf( "Attempt to retrieve the Templates for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
+	hr = adcs_com_GetTemplates(pADCS, ulCertificateServicesServerIndex);
+	if (FAILED(hr))
+	{
+		BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetTemplates failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+	
+	hr = S_OK;
+
+fail:
+	
+	OLEAUT32$VariantClear(&varProperty);
+
+	return hr;
+}
+
+
+HRESULT adcs_com_GetCertificateServices(
+	ADCS* pADCS
+)
+{
+	HRESULT hr = S_OK;
+	BSTR 	bstrCCFieldConfig = NULL;
+	
+	bstrCCFieldConfig = OLEAUT32$SysAllocString(CERTCONFIG_FIELD_CONFIG);
+
+	// Retrieve the number of Certificate Services Servers in the enterprise
+	//internal_printf( "Retrieve the number of Certificate Services Servers in the enterprise\n");
+    hr = pADCS->pConfig->lpVtbl->Reset(
+		pADCS->pConfig,
+		0, 
+		(LONG*)&(pADCS->ulCertificateServicesServerCount)
+	);
+    if (FAILED(hr))
+    {
+        BeaconPrintf(CALLBACK_ERROR, "Reset failed: 0x%08lx\n", hr);
+		goto fail;
+    }
+	//internal_printf( "ulCertificateServicesServerCount: %lu\n", pADCS->ulCertificateServicesServerCount );
+
+	// Allocate space for the Certificate Services Servers results
+	//internal_printf( "Allocate space for results\n");
+	pADCS->lpCertificateServicesServers = KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, pADCS->ulCertificateServicesServerCount*sizeof(CertificateServicesServer));
+	if ( NULL == pADCS->lpCertificateServicesServers )
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}	
+
+	// Loop through all the Certificate Services Servers in the enterprise
+	//internal_printf( "Loop through all the Certificate Services Servers in the enterprise\n");
+	for(ULONG ulCertificateServicesServerIndex = 0; ulCertificateServicesServerIndex < pADCS->ulCertificateServicesServerCount; ulCertificateServicesServerIndex++)
+	{
+		LONG lNextIndex = 0;
+		
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName = NULL;
+
+		// Retrieve the Config field for the current configuration
+		//internal_printf( "Retrieve the Config field for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
+    	hr = pADCS->pConfig->lpVtbl->GetField(
+			pADCS->pConfig,
+			bstrCCFieldConfig, 
+			&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName)
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "GetField(%S) failed: 0x%08lx\n", bstrCCFieldConfig, hr);
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName);
+			goto fail;
+		}
+		//internal_printf( "bstrConfigName: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName );
+		
+		// Attempt to retrieve the WebEnrollmentServers field for the current configuration
+		//internal_printf( "Attempt to retrieve the WebEnrollmentServers field for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
+		hr = adcs_com_GetWebEnrollmentServers(pADCS, ulCertificateServicesServerIndex);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetWebEnrollmentServers failed: 0x%08lx\n", hr);
+			goto fail;
+		}
+
+		// Attempt to retrieve the Certificate Authority information for the current configuration
+		//internal_printf( "Attempt to retrieve the Certificate Authority information for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
+		hr = adcs_com_GetCertificateServicesServer(pADCS, ulCertificateServicesServerIndex);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetCertificateServicesServer failed: 0x%08lx\n", hr);
+			goto fail;
+		}
+
+		// Retrieve the next available Certificate Services
+		//internal_printf( "Retrieve the next available Certificate Services[%lu]\n", ulCertificateServicesServerIndex);
+    	hr = pADCS->pConfig->lpVtbl->Next(
+			pADCS->pConfig,
+			&lNextIndex
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "Next failed: 0x%08lx\n", hr);
+			goto fail;
+		}
+
+	} // end for loop through the configurations
+
+	hr = S_OK;
+
+fail:
+
+	
+	SAFE_FREE(bstrCCFieldConfig);
+
+	return hr;
+}
+
+
+HRESULT adcs_com_PrintInfo(
+	ADCS* pADCS
+)
+{
+	HRESULT hr = S_OK;
+
+	// Make sure we have results
+	if ( ( NULL == pADCS->lpCertificateServicesServers ) || ( 0 == pADCS->ulCertificateServicesServerCount) )
+	{
+		BeaconPrintf(CALLBACK_ERROR, "No CAs to list");
+		hr = ERROR_DS_NO_RESULTS_RETURNED;
+		goto fail;
+	}
+
+	// Loop through all results
+	internal_printf("Certificate Services Servers: (%lu)\n", pADCS->ulCertificateServicesServerCount);
+	internal_printf("================================================================================\n");
+	for( ULONG ulCertificateServicesServerIndex=0; ulCertificateServicesServerIndex<pADCS->ulCertificateServicesServerCount; ulCertificateServicesServerIndex++)
+	{
+		internal_printf(" Config Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName);
+		internal_printf("  CA DNS Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName);
+		internal_printf("  CA Type: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType);
+		internal_printf("  CA Share Folder: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder);
+		internal_printf("  Web Enrollment Servers: (%lu)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount);
+		if (0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount)
+		{
+			internal_printf("  ------------------------------------------------------------------------------\n");
+			for( ULONG ulWebEnrollmentServerIndex = 0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
+			{
+				internal_printf("   Uri: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri);
+				internal_printf("   Authentication: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication);
+				internal_printf("   Priority: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority);
+				internal_printf("   RenewalOnly: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly);
+				internal_printf("  ------------------------------------------------------------------------------\n");
+			}
+		}
+		internal_printf("  Templates: (%lu)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount);
+		if (0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount)
+		{
+			internal_printf("  ------------------------------------------------------------------------------\n");
+			for( ULONG ulTemplateIndex = 0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
+			{
+				internal_printf("   Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName);
+				internal_printf("   OID: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID);
+				internal_printf("  ------------------------------------------------------------------------------\n");
+			}
+		}
+		internal_printf("================================================================================\n");
+	}
+
+fail:
 
 	return hr;
 }
@@ -581,14 +642,35 @@ void adcs_com_Finalize(
 	ADCS* pADCS
 )
 {
-	SAFE_RELEASE(pADCS->pWbemServices);
-	SAFE_RELEASE(pADCS->pWbemLocator);
+	SAFE_RELEASE(pADCS->pRequest);
+	SAFE_RELEASE(pADCS->pConfig);
 
-	SAFE_FREE(pADCS->bstrLanguage);
-	SAFE_FREE(pADCS->bstrServer);
-	SAFE_FREE(pADCS->bstrNameSpace);
-	SAFE_FREE(pADCS->bstrNetworkResource);
-	SAFE_FREE(pADCS->bstrQuery);
+	if ( NULL != pADCS->lpCertificateServicesServers )
+	{
+		for( LONG ulCertificateServicesServerIndex=0; ulCertificateServicesServerIndex<pADCS->ulCertificateServicesServerCount; ulCertificateServicesServerIndex++)
+		{
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName);
+			for( ULONG ulWebEnrollmentServerIndex = 0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
+			{
+				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri);
+				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication);
+				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority);
+				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly);
+			}
+			KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers);
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName);
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder);
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType);
+			for( ULONG ulTemplateIndex = 0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
+			{
+				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName);
+				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID);
+			}
+			KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates);
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrTemplates);
+		}
+	}
+	KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers);
 
 	// un-initialize the COM library
 	OLE32$CoUninitialize();

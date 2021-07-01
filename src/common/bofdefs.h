@@ -121,6 +121,7 @@ WINBASEAPI _CONST_RETURN wchar_t *__cdecl MSVCRT$wcschr(const wchar_t *_Str, wch
 WINBASEAPI wchar_t * __cdecl MSVCRT$wcsncat(wchar_t * __restrict__ _Dest,const wchar_t * __restrict__ _Source,size_t _Count);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsrchr(const wchar_t *_Str,wchar_t _Ch);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsrchr(const wchar_t *_Str,wchar_t _Ch);
+WINBASEAPI unsigned long __cdecl MSVCRT$wcstoul(const wchar_t * __restrict__ _Str,wchar_t ** __restrict__ _EndPtr,int _Radix);
 DECLSPEC_IMPORT char * __cdecl MSVCRT$strcat(char * __restrict__ _Dest,const char * __restrict__ _Source);
 WINBASEAPI size_t __cdecl MSVCRT$strnlen(const char *_Str,size_t _MaxCount);
 WINBASEAPI size_t __cdecl MSVCRT$strlen(const char *_Str);
@@ -183,7 +184,7 @@ WINUSERAPI LPWSTR WINAPI USER32$CharPrevW(LPCWSTR lpszStart,LPCWSTR lpszCurrent)
 WINBASEAPI BOOLEAN WINAPI SECUR32$GetUserNameExA (int NameFormat, LPSTR lpNameBuffer, PULONG nSize);
 
 //shlwapi
-LWSTDAPI_(LPSTR) SHLWAPI$StrStrIA(LPCSTR lpFirst,LPCSTR lpSrch);
+WINBASEAPI LPSTR WINAPI SHLWAPI$StrStrIA(LPCSTR lpFirst,LPCSTR lpSrch);
 
 //advapi32
 WINADVAPI WINBOOL WINAPI ADVAPI32$OpenProcessToken (HANDLE ProcessHandle, DWORD DesiredAccess, PHANDLE TokenHandle);
@@ -277,6 +278,7 @@ DECLSPEC_IMPORT void	WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 DECLSPEC_IMPORT BSTR	WINAPI OLEAUT32$SysAllocString(const OLECHAR *);
 DECLSPEC_IMPORT INT		WINAPI OLEAUT32$SysReAllocString(BSTR *, const OLECHAR *);
 DECLSPEC_IMPORT void	WINAPI OLEAUT32$SysFreeString(BSTR);
+DECLSPEC_IMPORT UINT	WINAPI OLEAUT32$SysStringLen(BSTR);
 DECLSPEC_IMPORT void	WINAPI OLEAUT32$VariantInit(VARIANTARG *pvarg);
 DECLSPEC_IMPORT void	WINAPI OLEAUT32$VariantClear(VARIANTARG *pvarg);
 DECLSPEC_IMPORT HRESULT	WINAPI OLEAUT32$SysAddRefString(BSTR);
@@ -435,6 +437,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define MSVCRT$wcsncat wcsncat
 #define MSVCRT$wcsrchr wcsrchr
 #define MSVCRT$wcsrchr wcsrchr
+#define MSVCRT$wcstoul wcstoul
 #define MSVCRT$strcat strcat
 #define MSVCRT$strnlen strnlen
 #define MSVCRT$strlen strlen
@@ -558,6 +561,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define OLEAUT32$SysAllocString SysAllocString
 #define OLEAUT32$SysReAllocString SysReAllocString
 #define OLEAUT32$SysFreeString SysFreeString
+#define OLEAUT32$SysStringLen SysStringLen
 #define OLEAUT32$VariantInit VariantInit
 #define OLEAUT32$VariantClear VariantClear
 #define OLEAUT32$SysAddRefString SysAddRefString

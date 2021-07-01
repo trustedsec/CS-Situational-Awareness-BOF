@@ -1,47 +1,71 @@
 #pragma once
 
 #include <windows.h>
-#include <wbemidl.h>
+#include <certcli.h>
 #include <stdint.h>
 
+typedef struct _WebEnrollmentServer {
+	BSTR bstrUri;
+	BSTR bstrAuthentication;
+	BSTR bstrPriority;
+	BSTR bstrRenewalOnly;
+} WebEnrollmentServer;
 
+typedef struct _Templates {
+	BSTR bstrName;
+	BSTR bstrOID;
+} Template;
 
-
+typedef struct _CertificateServicesServer {
+	BSTR bstrConfigName;
+	ULONG ulWebEnrollmentServerCount;
+	WebEnrollmentServer * lpWebEnrollmentServers;
+	BSTR bstrCADNSName;
+	BSTR bstrCAShareFolder;
+	BSTR bstrCAType;
+	ULONG ulTemplateCount;
+	Template * lpTemplates;
+	BSTR bstrTemplates;
+} CertificateServicesServer;
 
 typedef struct _ADCS {
-	IWbemServices* pWbemServices;
-	IWbemLocator* pWbemLocator;
-	IEnumWbemClassObject* pEnumerator;
-	BSTR bstrLanguage;
-	BSTR bstrServer;
-	BSTR bstrNameSpace;
-	BSTR bstrNetworkResource;
-	BSTR bstrQuery;
+	ICertConfig2 * pConfig;
+	ICertRequest2 * pRequest;
+	ULONG ulCertificateServicesServerCount;
+	CertificateServicesServer * lpCertificateServicesServers;
 } ADCS;
 
 HRESULT adcs_com_Initialize(
-	ADCS* pWMI
+	ADCS* pADCS
 );
 
 HRESULT adcs_com_Connect(
-	ADCS* pWmi,
-	LPWSTR pwszServer,
-	LPWSTR pwszNameSpace	
+	ADCS* pADCS	
 );
 
-HRESULT adcs_com_Query(
-	ADCS* pWmi, 
-	LPWSTR pwszQuery
+HRESULT adcs_com_GetWebEnrollmentServers(
+	ADCS* pADCS,
+	ULONG ulCurrentConfigIndex
 );
 
-HRESULT adcs_com_ParseResults(
-	ADCS* pWmi,
-	LPWSTR pwszKeys,
-	BSTR*** ppwszResults,
-	LPDWORD pdwRowCount,
-	LPDWORD pdwColumnCount
+HRESULT adcs_com_GetTemplates(
+	ADCS* pADCS,
+	ULONG ulCurrentConfigIndex
+);
+
+HRESULT adcs_com_GetCertificateServicesServer(
+	ADCS* pADCS,
+	ULONG ulCurrentConfigIndex
+);
+
+HRESULT adcs_com_GetCertificateServices(
+	ADCS* pADCS
+);
+
+HRESULT adcs_com_PrintInfo(
+	ADCS* pADCS
 );
 
 void adcs_com_Finalize(
-	ADCS* pWmi
+	ADCS* pADCS
 );
