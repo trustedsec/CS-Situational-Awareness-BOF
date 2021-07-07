@@ -511,12 +511,15 @@ HRESULT adcs_com_GetTemplates(
 	LPWSTR	swzToken = NULL;
 	ULONG	dwTokenValue = 0;
 	VARIANT varProperty;
-	IX509CertificateRequestPkcs7 * pPkcs = NULL;
+	//IX509CertificateRequestPkcs7 * pPkcs = NULL;
+	IX509CertificateRequestPkcs7V2 * pPkcs = NULL;
 
 	//{884E2044-217D-11DA-B2A4-000E7BBB2B09}
 	CLSID	CLSID_CX509CertificateRequestPkcs7 = { 0x884E2044, 0x217D, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 	//{728AB344-217D-11DA-B2A4-000E7BBB2B09}
-	IID		IID_IX509CertificateRequestPkcs7 = { 0x728AB344, 0x217D, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
+	//IID		IID_IX509CertificateRequestPkcs7 = { 0x728AB344, 0x217D, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
+	//{728ab35c-217d-11da-b2a4-000e7bbb2b09}
+	IID		IID_IX509CertificateRequestPkcs7V2 = { 0x728ab35c, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 
 	OLEAUT32$VariantInit(&varProperty);
 
@@ -592,27 +595,30 @@ HRESULT adcs_com_GetTemplates(
 
 		// Create an instance of the X509CertificateRequestPkcs7 class with the IX509CertificateRequestPkcs7 interface
 		SAFE_RELEASE(pPkcs);
+		internal_printf( "CoCreateInstance(CLSID_CX509CertificateRequestPkcs7,IID_IX509CertificateRequestPkcs7V2)\n");
 		hr = OLE32$CoCreateInstance(
 			&CLSID_CX509CertificateRequestPkcs7,
 			0,
 			CLSCTX_INPROC_SERVER,
-			&IID_IX509CertificateRequestPkcs7,
+			&IID_IX509CertificateRequestPkcs7V2,
 			(LPVOID *)&(pPkcs)
 			
 		);
 		if (FAILED(hr))
 		{
-			BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_CX509CertificateRequestPkcs7,IID_IX509CertificateRequestPkcs7) failed: 0x%08lx\n", hr);
+			BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_CX509CertificateRequestPkcs7,IID_IX509CertificateRequestPkcs7V2) failed: 0x%08lx\n", hr);
 			//goto fail;
 			hr = S_OK;
 			continue;
 		}
 		internal_printf( "pPkcs: %p\n", pPkcs );
 
+
 		// Initializes the certificate request by using the template name
 		internal_printf( "InitializeFromTemplateName(%S)\n", 
 			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName
 		);
+/*		
 		hr = pPkcs->lpVtbl->InitializeFromTemplateName(
 			pPkcs,
 			ContextUser,
@@ -625,8 +631,7 @@ HRESULT adcs_com_GetTemplates(
 			hr = S_OK;
 			continue;
 		}
-		
-		//pPkcs->lpVtbl->QueryInterface()
+*/		
 
 	
 	}
