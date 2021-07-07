@@ -2,6 +2,8 @@
 #define WIN32_WINNT 0x0601
 #include <windows.h>
 #include <certcli.h>
+//#include <certsrv.h>
+#include "certenroll.h"
 #include <stdint.h>
 
 typedef struct _WebEnrollmentServer {
@@ -43,6 +45,15 @@ HRESULT adcs_com_Connect(
 	ADCS* pADCS	
 );
 
+HRESULT adcs_com_GetCertificateServices(
+	ADCS* pADCS
+);
+
+HRESULT adcs_com_GetCertificateServicesServer(
+	ADCS* pADCS,
+	ULONG ulCurrentConfigIndex
+);
+
 HRESULT adcs_com_GetWebEnrollmentServers(
 	ADCS* pADCS,
 	ULONG ulCurrentConfigIndex
@@ -51,15 +62,6 @@ HRESULT adcs_com_GetWebEnrollmentServers(
 HRESULT adcs_com_GetTemplates(
 	ADCS* pADCS,
 	ULONG ulCurrentConfigIndex
-);
-
-HRESULT adcs_com_GetCertificateServicesServer(
-	ADCS* pADCS,
-	ULONG ulCurrentConfigIndex
-);
-
-HRESULT adcs_com_GetCertificateServices(
-	ADCS* pADCS
 );
 
 HRESULT adcs_com_PrintInfo(

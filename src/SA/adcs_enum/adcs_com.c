@@ -59,7 +59,9 @@
 
 
 
-HRESULT adcs_com_Initialize(ADCS* pADCS)
+HRESULT adcs_com_Initialize(
+	ADCS* pADCS
+)
 {
 	HRESULT	hr = S_OK;
 
@@ -84,6 +86,7 @@ fail:
 
 	return hr;
 }
+
 
 HRESULT adcs_com_Connect(
 	ADCS* pADCS
@@ -137,351 +140,6 @@ HRESULT adcs_com_Connect(
 
 fail:
 	
-	return hr;
-}
-
-HRESULT adcs_com_GetWebEnrollmentServers(
-	ADCS* pADCS,
-	ULONG ulCertificateServicesServerIndex
-)
-{
-	HRESULT hr = S_OK;
-	BSTR 	bstrCCFieldWebEnrollmentServers = NULL;
-	BSTR 	bstrWebEnrollmentServers = NULL;
-	LPWSTR	swzTokenize = NULL;
-	UINT	dwTokenizeLength = 0;
-	LPWSTR	swzToken = NULL;
-	ULONG	dwTokenValue = 0;
-
-
-	bstrCCFieldWebEnrollmentServers = OLEAUT32$SysAllocString(CERTCONFIG_FIELD_WEBERNOLLMENTSERVERS);
-
-	hr = pADCS->pConfig->lpVtbl->GetField(
-			pADCS->pConfig,
-			bstrCCFieldWebEnrollmentServers,
-			&(bstrWebEnrollmentServers)
-	);
-	if (FAILED(hr))
-	{
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount = 0;
-		hr = S_OK;
-		goto fail;
-	}
-
-	// Parse the WebEnrollmentServer array
-	dwTokenizeLength = OLEAUT32$SysStringLen(bstrWebEnrollmentServers);
-	swzTokenize = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*(dwTokenizeLength+1));
-	if (NULL == swzTokenize)
-	{
-		hr = E_OUTOFMEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
-		goto fail;
-	}
-	MSVCRT$wcscpy(swzTokenize, bstrWebEnrollmentServers);
-
-	// Get the number of entries in the array
-	swzToken = MSVCRT$wcstok(swzTokenize, L"\n");
-	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount = MSVCRT$wcstoul(swzToken, NULL, 10);
-	//internal_printf( "ulWebEnrollmentServerCount: %lu\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount );
-	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers = (WebEnrollmentServer*)KERNEL32$HeapAlloc(
-		KERNEL32$GetProcessHeap(), 
-		HEAP_ZERO_MEMORY, 
-		sizeof(WebEnrollmentServer)*(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount)
-	);
-	if (NULL == pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers)
-	{
-		hr = E_OUTOFMEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
-		goto fail;
-	}
-
-	// Loop through and parse the entries
-	for(ULONG ulWebEnrollmentServerIndex=0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
-	{
-		// Get the authentication type
-		swzToken = MSVCRT$wcstok(NULL, L"\n");
-		if (NULL == swzToken)
-		{
-			break;
-		}
-		if (swzToken[0] == L'1')
-		{
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_ANONYMOUS);
-		}
-		else if (swzToken[0] == L'2')
-		{
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_KERBEROS);
-		}
-		else if (swzToken[0] == L'4')
-		{
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_USERNAMEANDPASSWORD);
-		}
-		else if (swzToken[0] == L'8')
-		{
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_CLIENTCERTIFICATE);
-		}
-		else
-		{
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_NONE);
-		}
-		
-		// Get the Priority
-		swzToken = MSVCRT$wcstok(NULL, L"\n");
-		if (NULL == swzToken)
-		{
-			break;
-		}
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority = OLEAUT32$SysAllocString(swzToken);
-
-		// Get the Uri
-		swzToken = MSVCRT$wcstok(NULL, L"\n");
-		if (NULL == swzToken)
-		{
-			break;
-		}
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri = OLEAUT32$SysAllocString(swzToken);
-
-		// Get the RenewalOnly flag
-		swzToken = MSVCRT$wcstok(NULL, L"\n");
-		if (NULL == swzToken)
-		{
-			break;
-		}
-		if (swzToken[0] == L'0')
-		{
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly = OLEAUT32$SysAllocString(STR_FALSE);
-		}
-		else
-		{
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly = OLEAUT32$SysAllocString(STR_TRUE);
-		}
-	}
-
-fail:
-	
-	if(swzTokenize)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
-		swzTokenize = NULL;
-	}
-
-	SAFE_FREE(bstrWebEnrollmentServers);
-	SAFE_FREE(bstrCCFieldWebEnrollmentServers);
-
-	return hr;
-}
-
-HRESULT adcs_com_GetTemplates(
-	ADCS* pADCS,
-	ULONG ulCertificateServicesServerIndex
-)
-{
-	HRESULT hr = S_OK;
-	BSTR 	bstrCCFieldWebEnrollmentServers = NULL;
-	BSTR 	bstrWebEnrollmentServers = NULL;
-	LPWSTR	swzTokenize = NULL;
-	UINT	dwTokenizeLength = 0;
-	LPWSTR	swzToken = NULL;
-	ULONG	dwTokenValue = 0;
-	VARIANT varProperty;
-
-	OLEAUT32$VariantInit(&varProperty);
-
-	// Retrieve the CR_PROP_TEMPLATES property
-	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
-		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
-		CR_PROP_TEMPLATES,
-		0,
-		PROPTYPE_STRING,
-		0,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount = 0;
-		hr = S_OK;
-		goto fail;
-	}
-	//internal_printf( "CR_PROP_TEMPLATES varProperty.bstrVal: %S\n", varProperty.bstrVal );
-	dwTokenizeLength = OLEAUT32$SysStringLen(varProperty.bstrVal);
-	swzTokenize = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*(dwTokenizeLength+1));
-	if (NULL == swzTokenize)
-	{
-		hr = E_OUTOFMEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
-		goto fail;
-	}
-	MSVCRT$wcscpy(swzTokenize, varProperty.bstrVal);
-
-	// Get the number of entries in the array
-	swzToken = swzTokenize;
-	for (dwTokenValue=0; swzToken[dwTokenValue]; swzToken[dwTokenValue]==L'\n' ? dwTokenValue++ : *swzToken++);
-	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount = dwTokenValue/2;
-	//internal_printf( "ulTemplateCount: %lu\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount );
-	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates = (Template*)KERNEL32$HeapAlloc(
-		KERNEL32$GetProcessHeap(), 
-		HEAP_ZERO_MEMORY, 
-		sizeof(Template)*(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount)
-	);
-	if (NULL == pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates)
-	{
-		hr = E_OUTOFMEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
-		goto fail;
-	}
-
-	swzToken = MSVCRT$wcstok(swzTokenize, L"\n");
-	if (NULL == swzToken)
-	{
-		hr = TYPE_E_UNSUPFORMAT;
-		BeaconPrintf(CALLBACK_ERROR, "Failed to parse templates string\n");
-		goto fail;
-	}
-	
-
-	// Loop through and parse the entries
-	for(ULONG ulTemplateIndex=0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
-	{
-		// Get the name
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName = OLEAUT32$SysAllocString(swzToken);
-
-		// Get the OID
-		swzToken = MSVCRT$wcstok(NULL, L"\n");
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID = OLEAUT32$SysAllocString(swzToken);
-
-		// Get the next Name
-		swzToken = MSVCRT$wcstok(NULL, L"\n");
-	} // end loop through and parse the entries
-
-fail:
-	
-	if(swzTokenize)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
-		swzTokenize = NULL;
-	}
-
-	OLEAUT32$VariantClear(&varProperty);
-
-	return hr;
-}
-
-HRESULT adcs_com_GetCertificateServicesServer(
-	ADCS* pADCS,
-	ULONG ulCertificateServicesServerIndex
-)
-{
-	HRESULT hr = S_OK;
-	VARIANT varProperty;
-
-	OLEAUT32$VariantInit(&varProperty);
-
-	// Retrieve the CR_PROP_DNSNAME property
-	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
-		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
-		CR_PROP_DNSNAME,
-		0,
-		PROPTYPE_STRING,
-		0,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_DNSNAME) failed: 0x%08lx\n", hr);
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
-		//goto fail;
-	}
-	else
-	{
-		//internal_printf( "CR_PROP_DNSNAME varProperty.bstrVal: %S\n", varProperty.bstrVal );
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName = OLEAUT32$SysAllocString(varProperty.bstrVal);
-	}
-
-	OLEAUT32$VariantClear(&varProperty);
-
-	// Retrieve the CR_PROP_SHAREDFOLDER property
-	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
-		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
-		CR_PROP_SHAREDFOLDER,
-		0,
-		PROPTYPE_STRING,
-		0,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_SHAREDFOLDER) failed: 0x%08lx\n", hr);
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
-		//goto fail;
-	}
-	else
-	{
-		//internal_printf( "CR_PROP_SHAREDFOLDER varProperty.bstrVal: %S\n", varProperty.bstrVal );
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder = OLEAUT32$SysAllocString(varProperty.bstrVal);
-	}
-
-	// Retrieve the CR_PROP_CATYPE property
-	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
-		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
-		CR_PROP_CATYPE,
-		0,
-		PROPTYPE_INT,
-		0,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_CATYPE) failed: 0x%08lx\n", hr);
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
-		//goto fail;
-	}
-	else
-	{
-		//internal_printf( "CR_PROP_CATYPE varProperty.intVal: %d\n", varProperty.intVal );
-		switch(varProperty.intVal)
-		{
-			case 0: //ENTERPRISE_ROOT
-			{
-				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_ENTERPRISE_ROOT);
-				break;
-			}
-			case 1: //ENTERPRISE_SUB
-			{
-				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_ENTERPRISE_SUB);
-				break;
-			}
-			case 2: //STANDALONE_ROOT
-			{
-				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_STANDALONE_ROOT);
-				break;
-			}
-			case 3: //STANDALONE_SUB
-			{
-				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_STANDALONE_SUB);
-				break;
-			}
-		}
-	}
-	
-	// Attempt to retrieve the WebEnrollmentServers field for the current configuration
-	//internal_printf( "Attempt to retrieve the Templates for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
-	hr = adcs_com_GetTemplates(pADCS, ulCertificateServicesServerIndex);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetTemplates failed: 0x%08lx\n", hr);
-		goto fail;
-	}
-	
-	hr = S_OK;
-
-fail:
-	
-	OLEAUT32$VariantClear(&varProperty);
-
 	return hr;
 }
 
@@ -541,15 +199,6 @@ HRESULT adcs_com_GetCertificateServices(
 			goto fail;
 		}
 		//internal_printf( "bstrConfigName: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName );
-		
-		// Attempt to retrieve the WebEnrollmentServers field for the current configuration
-		//internal_printf( "Attempt to retrieve the WebEnrollmentServers field for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
-		hr = adcs_com_GetWebEnrollmentServers(pADCS, ulCertificateServicesServerIndex);
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetWebEnrollmentServers failed: 0x%08lx\n", hr);
-			goto fail;
-		}
 
 		// Attempt to retrieve the Certificate Authority information for the current configuration
 		//internal_printf( "Attempt to retrieve the Certificate Authority information for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
@@ -580,6 +229,421 @@ fail:
 
 	
 	SAFE_FREE(bstrCCFieldConfig);
+
+	return hr;
+}
+
+
+HRESULT adcs_com_GetCertificateServicesServer(
+	ADCS* pADCS,
+	ULONG ulCertificateServicesServerIndex
+)
+{
+	HRESULT hr = S_OK;
+	VARIANT varProperty;
+
+	OLEAUT32$VariantInit(&varProperty);
+
+
+	// Attempt to get the DNS name
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_DNSNAME,
+		0,
+		PROPTYPE_STRING,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_DNSNAME) failed: 0x%08lx\n", hr);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		//goto fail;
+	}
+	else
+	{
+		//internal_printf( "CR_PROP_DNSNAME varProperty.bstrVal: %S\n", varProperty.bstrVal );
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName = OLEAUT32$SysAllocString(varProperty.bstrVal);
+	}
+	OLEAUT32$VariantClear(&varProperty);
+
+
+	// Attempt to get the Type
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_CATYPE,
+		0,
+		PROPTYPE_INT,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_CATYPE) failed: 0x%08lx\n", hr);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		//goto fail;
+	}
+	else
+	{
+		//internal_printf( "CR_PROP_CATYPE varProperty.intVal: %d\n", varProperty.intVal );
+		switch(varProperty.intVal)
+		{
+			case 0: //ENTERPRISE_ROOT
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_ENTERPRISE_ROOT);
+				break;
+			}
+			case 1: //ENTERPRISE_SUB
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_ENTERPRISE_SUB);
+				break;
+			}
+			case 2: //STANDALONE_ROOT
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_STANDALONE_ROOT);
+				break;
+			}
+			case 3: //STANDALONE_SUB
+			{
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType = OLEAUT32$SysAllocString(STR_CATYPE_STANDALONE_SUB);
+				break;
+			}
+		}
+	}
+	OLEAUT32$VariantClear(&varProperty);
+
+
+	// Attempt to get the Shared Folder
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_SHAREDFOLDER,
+		0,
+		PROPTYPE_STRING,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_SHAREDFOLDER) failed: 0x%08lx\n", hr);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		//goto fail;
+	}
+	else
+	{
+		//internal_printf( "CR_PROP_SHAREDFOLDER varProperty.bstrVal: %S\n", varProperty.bstrVal );
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder = OLEAUT32$SysAllocString(varProperty.bstrVal);
+	}
+	OLEAUT32$VariantClear(&varProperty);
+
+
+	// Attempt to get the WebEnrollmentServers
+	hr = adcs_com_GetWebEnrollmentServers(pADCS, ulCertificateServicesServerIndex);
+	if (FAILED(hr))
+	{
+		BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetWebEnrollmentServers failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+
+
+	// Attempt to get the Templates
+	hr = adcs_com_GetTemplates(pADCS, ulCertificateServicesServerIndex);
+	if (FAILED(hr))
+	{
+		BeaconPrintf(CALLBACK_ERROR, "adcs_com_GetTemplates failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+	
+	hr = S_OK;
+
+fail:
+	
+	OLEAUT32$VariantClear(&varProperty);
+
+	return hr;
+}
+
+
+HRESULT adcs_com_GetWebEnrollmentServers(
+	ADCS* pADCS,
+	ULONG ulCertificateServicesServerIndex
+)
+{
+	HRESULT hr = S_OK;
+	BSTR 	bstrCCFieldWebEnrollmentServers = NULL;
+	BSTR 	bstrWebEnrollmentServers = NULL;
+	LPWSTR	swzTokenize = NULL;
+	UINT	dwTokenizeLength = 0;
+	LPWSTR	swzToken = NULL;
+	LPWSTR	swzNextToken = NULL;
+	ULONG	dwTokenValue = 0;
+
+
+	bstrCCFieldWebEnrollmentServers = OLEAUT32$SysAllocString(CERTCONFIG_FIELD_WEBERNOLLMENTSERVERS);
+
+	hr = pADCS->pConfig->lpVtbl->GetField(
+			pADCS->pConfig,
+			bstrCCFieldWebEnrollmentServers,
+			&(bstrWebEnrollmentServers)
+	);
+	if (FAILED(hr))
+	{
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount = 0;
+		hr = S_OK;
+		goto fail;
+	}
+
+	// Parse the WebEnrollmentServer array
+	dwTokenizeLength = OLEAUT32$SysStringLen(bstrWebEnrollmentServers);
+	swzTokenize = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*(dwTokenizeLength+1));
+	if (NULL == swzTokenize)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+	MSVCRT$wcscpy(swzTokenize, bstrWebEnrollmentServers);
+
+	// Get the number of entries in the array
+	swzToken = MSVCRT$wcstok_s(swzTokenize, L"\n", &swzNextToken);
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount = MSVCRT$wcstoul(swzToken, NULL, 10);
+	//internal_printf( "ulWebEnrollmentServerCount: %lu\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount );
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers = (WebEnrollmentServer*)KERNEL32$HeapAlloc(
+		KERNEL32$GetProcessHeap(), 
+		HEAP_ZERO_MEMORY, 
+		sizeof(WebEnrollmentServer)*(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount)
+	);
+	if (NULL == pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+
+	// Loop through and parse the entries
+	for(ULONG ulWebEnrollmentServerIndex=0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
+	{
+		// Get the authentication type
+		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+		if (NULL == swzToken)
+		{
+			break;
+		}
+		if (swzToken[0] == L'1')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_ANONYMOUS);
+		}
+		else if (swzToken[0] == L'2')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_KERBEROS);
+		}
+		else if (swzToken[0] == L'4')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_USERNAMEANDPASSWORD);
+		}
+		else if (swzToken[0] == L'8')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_CLIENTCERTIFICATE);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication = OLEAUT32$SysAllocString(STR_AUTHENTICATION_NONE);
+		}
+		
+		// Get the Priority
+		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+		if (NULL == swzToken)
+		{
+			break;
+		}
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the Uri
+		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+		if (NULL == swzToken)
+		{
+			break;
+		}
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the RenewalOnly flag
+		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+		if (NULL == swzToken)
+		{
+			break;
+		}
+		if (swzToken[0] == L'0')
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly = OLEAUT32$SysAllocString(STR_FALSE);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly = OLEAUT32$SysAllocString(STR_TRUE);
+		}
+	}
+
+fail:
+	
+	if(swzTokenize)
+	{
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
+		swzTokenize = NULL;
+	}
+
+	SAFE_FREE(bstrWebEnrollmentServers);
+	SAFE_FREE(bstrCCFieldWebEnrollmentServers);
+
+	return hr;
+}
+
+
+HRESULT adcs_com_GetTemplates(
+	ADCS* pADCS,
+	ULONG ulCertificateServicesServerIndex
+)
+{
+	HRESULT hr = S_OK;
+	BSTR 	bstrCCFieldWebEnrollmentServers = NULL;
+	BSTR 	bstrWebEnrollmentServers = NULL;
+	LPWSTR	swzTokenize = NULL;
+	UINT	dwTokenizeLength = 0;
+	LPWSTR	swzToken = NULL;
+	LPWSTR	swzNextToken = NULL;
+	ULONG	dwTokenValue = 0;
+	VARIANT varProperty;
+	//IX509CertificateRequestPkcs7 * pPkcs = NULL;
+	IX509CertificateRequestPkcs7V2 * pPkcs = NULL;
+
+	//{884E2044-217D-11DA-B2A4-000E7BBB2B09}
+	CLSID	CLSID_CX509CertificateRequestPkcs7 = { 0x884E2044, 0x217D, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
+	//{728AB344-217D-11DA-B2A4-000E7BBB2B09}
+	//IID		IID_IX509CertificateRequestPkcs7 = { 0x728AB344, 0x217D, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
+	//{728ab35c-217d-11da-b2a4-000e7bbb2b09}
+	IID		IID_IX509CertificateRequestPkcs7V2 = { 0x728ab35c, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
+
+	OLEAUT32$VariantInit(&varProperty);
+
+
+	// Retrieve the CR_PROP_TEMPLATES property
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		CR_PROP_TEMPLATES,
+		0,
+		PROPTYPE_STRING,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount = 0;
+		hr = S_OK;
+		goto fail;
+	}
+	//internal_printf( "CR_PROP_TEMPLATES varProperty.bstrVal: %S\n", varProperty.bstrVal );
+	dwTokenizeLength = OLEAUT32$SysStringLen(varProperty.bstrVal);
+	swzTokenize = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*(dwTokenizeLength+1));
+	if (NULL == swzTokenize)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+	MSVCRT$wcscpy(swzTokenize, varProperty.bstrVal);
+
+	// Get the number of entries in the array
+	swzToken = swzTokenize;
+	for (dwTokenValue=0; swzToken[dwTokenValue]; swzToken[dwTokenValue]==L'\n' ? dwTokenValue++ : *swzToken++);
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount = dwTokenValue/2;
+	//internal_printf( "ulTemplateCount: %lu\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount );
+	pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates = (Template*)KERNEL32$HeapAlloc(
+		KERNEL32$GetProcessHeap(), 
+		HEAP_ZERO_MEMORY, 
+		sizeof(Template)*(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount)
+	);
+	if (NULL == pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates)
+	{
+		hr = E_OUTOFMEMORY;
+		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+
+	swzToken = MSVCRT$wcstok_s(swzTokenize, L"\n", &swzNextToken);
+	if (NULL == swzToken)
+	{
+		hr = TYPE_E_UNSUPFORMAT;
+		BeaconPrintf(CALLBACK_ERROR, "Failed to parse templates string\n");
+		goto fail;
+	}
+	
+
+	// Loop through and parse the Template entries
+	for(ULONG ulTemplateIndex=0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
+	{
+		// Get the name
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the OID
+		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID = OLEAUT32$SysAllocString(swzToken);
+
+		// Get the next Name
+		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+
+		// Create an instance of the X509CertificateRequestPkcs7 class with the IX509CertificateRequestPkcs7 interface
+		SAFE_RELEASE(pPkcs);
+		hr = OLE32$CoCreateInstance(
+			&CLSID_CX509CertificateRequestPkcs7,
+			0,
+			CLSCTX_INPROC_SERVER,
+			&IID_IX509CertificateRequestPkcs7V2,
+			(LPVOID *)&(pPkcs)
+			
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_CX509CertificateRequestPkcs7,IID_IX509CertificateRequestPkcs7V2) failed: 0x%08lx\n", hr);
+			//goto fail;
+			hr = S_OK;
+			continue;
+		}
+
+		// Initializes the certificate request by using the template name
+		internal_printf( "InitializeFromTemplateName(%S)\n", 
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID
+		);
+		hr = pPkcs->lpVtbl->InitializeFromTemplateName(
+			pPkcs,
+			ContextUser,
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "InitializeFromTemplateName(%S) failed: 0x%08lx\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName, hr);
+			//goto fail;
+			hr = S_OK;
+			continue;
+		}
+
+		
+
+	} // end loop through and parse the Template entries
+
+	hr = S_OK;
+
+fail:
+	
+	if(swzTokenize)
+	{
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
+		swzTokenize = NULL;
+	}
+
+	OLEAUT32$VariantClear(&varProperty);
+
+	SAFE_RELEASE(pPkcs);
 
 	return hr;
 }
@@ -645,6 +709,7 @@ fail:
 
 	return hr;
 }
+
 
 void adcs_com_Finalize(
 	ADCS* pADCS
