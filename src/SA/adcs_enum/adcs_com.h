@@ -1,5 +1,5 @@
 #pragma once
-
+#define WIN32_WINNT 0x0601
 #include <windows.h>
 #include <certcli.h>
 #include <stdint.h>

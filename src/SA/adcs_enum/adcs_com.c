@@ -55,6 +55,10 @@
 	}
 
 
+
+
+
+
 HRESULT adcs_com_Initialize(ADCS* pADCS)
 {
 	HRESULT	hr = S_OK;
@@ -94,7 +98,6 @@ HRESULT adcs_com_Connect(
 	CLSID	CLSID_CCertRequest = { 0x98AFF3F0, 0x5524, 0x11D0, {0x88, 0x12, 0x00, 0xA0, 0xC9, 0x03, 0xB8, 0x3C} };
 	//{A4772988-4A85-4FA9-824E-B5CF5C16405A}
 	IID		IID_ICertRequest2 = { 0xA4772988, 0x4A85, 0x4FA9, {0x82, 0x4E, 0xB5, 0xCF, 0x5C, 0x16, 0x40, 0x5A} };
-
 
 	// Create an instance of the CertConfig class with the ICertConfig2 interface
 	SAFE_RELEASE(pADCS->pConfig);
@@ -284,7 +287,6 @@ HRESULT adcs_com_GetTemplates(
 
 	OLEAUT32$VariantInit(&varProperty);
 
-
 	// Retrieve the CR_PROP_TEMPLATES property
 	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
 		pADCS->pRequest,
@@ -350,7 +352,7 @@ HRESULT adcs_com_GetTemplates(
 
 		// Get the next Name
 		swzToken = MSVCRT$wcstok(NULL, L"\n");
-	}
+	} // end loop through and parse the entries
 
 fail:
 	
@@ -592,7 +594,7 @@ HRESULT adcs_com_PrintInfo(
 	// Make sure we have results
 	if ( ( NULL == pADCS->lpCertificateServicesServers ) || ( 0 == pADCS->ulCertificateServicesServerCount) )
 	{
-		BeaconPrintf(CALLBACK_ERROR, "No CAs to list");
+		BeaconPrintf(CALLBACK_ERROR, "No Certificate Services Servers to list");
 		hr = ERROR_DS_NO_RESULTS_RETURNED;
 		goto fail;
 	}
@@ -607,8 +609,11 @@ HRESULT adcs_com_PrintInfo(
 		internal_printf("  CA Type: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType);
 		internal_printf("  CA Share Folder: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder);
 		internal_printf("  Web Enrollment Servers: (%lu)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount);
-		if (0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount)
-		{
+		if ( 
+			( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers ) &&
+			(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount)
+		)
+		{ 
 			internal_printf("  ------------------------------------------------------------------------------\n");
 			for( ULONG ulWebEnrollmentServerIndex = 0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
 			{
@@ -620,7 +625,10 @@ HRESULT adcs_com_PrintInfo(
 			}
 		}
 		internal_printf("  Templates: (%lu)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount);
-		if (0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount)
+		if ( 
+			( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates ) &&
+			(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount)
+		)
 		{
 			internal_printf("  ------------------------------------------------------------------------------\n");
 			for( ULONG ulTemplateIndex = 0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
