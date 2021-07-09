@@ -14,12 +14,23 @@ typedef struct _WebEnrollmentServer {
 } WebEnrollmentServer;
 
 typedef struct _Templates {
-	BSTR bstrName;
 	BSTR bstrOID;
+	BSTR bstrName;
+	BSTR bstrFriendlyName;
+	LONG lValidityPeriod;
+	LONG lRenewalPeriod;
+	UINT dwEnrollmentFlags;
+	UINT dwSubjectNameFlags;
+	UINT dwPrivateKeyFlags;
+	ULONG ulUsagesCount;
+	BSTR * lpbstrUsages;
+	BSTR bstrOwner;
+	BSTR bstrOwnerSid;
 } Template;
 
 typedef struct _CertificateServicesServer {
-	BSTR bstrConfigName;
+	BSTR bstrFullName;
+	BSTR bstrCAName;
 	ULONG ulWebEnrollmentServerCount;
 	WebEnrollmentServer * lpWebEnrollmentServers;
 	BSTR bstrCADNSName;
@@ -27,7 +38,6 @@ typedef struct _CertificateServicesServer {
 	BSTR bstrCAType;
 	ULONG ulTemplateCount;
 	Template * lpTemplates;
-	BSTR bstrTemplates;
 } CertificateServicesServer;
 
 typedef struct _ADCS {

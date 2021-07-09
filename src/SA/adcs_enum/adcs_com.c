@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <combaseapi.h>
+#include <sddl.h>
 #include "beacon.h"
 #include "bofdefs.h"
 #include "adcs_com.h"
@@ -183,22 +184,22 @@ HRESULT adcs_com_GetCertificateServices(
 	{
 		LONG lNextIndex = 0;
 		
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName = NULL;
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName = NULL;
 
 		// Retrieve the Config field for the current configuration
 		//internal_printf( "Retrieve the Config field for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
     	hr = pADCS->pConfig->lpVtbl->GetField(
 			pADCS->pConfig,
 			bstrCCFieldConfig, 
-			&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName)
+			&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName)
 		);
 		if (FAILED(hr))
 		{
 			BeaconPrintf(CALLBACK_ERROR, "GetField(%S) failed: 0x%08lx\n", bstrCCFieldConfig, hr);
-			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName);
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName);
 			goto fail;
 		}
-		//internal_printf( "bstrConfigName: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName );
+		//internal_printf( "bstrFullName: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName );
 
 		// Attempt to retrieve the Certificate Authority information for the current configuration
 		//internal_printf( "Attempt to retrieve the Certificate Authority information for the current configuration[%lu]\n", ulCertificateServicesServerIndex);
@@ -245,10 +246,33 @@ HRESULT adcs_com_GetCertificateServicesServer(
 	OLEAUT32$VariantInit(&varProperty);
 
 
+	// Attempt to get the name
+	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
+		pADCS->pRequest,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName,
+		CR_PROP_CANAME,
+		0,
+		PROPTYPE_STRING,
+		0,
+		&varProperty
+	);
+	if (FAILED(hr))
+	{
+		//BeaconPrintf(CALLBACK_ERROR, "GetCAProperty(CR_PROP_CANAME) failed: 0x%08lx\n", hr);
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAName = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		//goto fail;
+	}
+	else
+	{
+		//internal_printf( "CR_PROP_DNSNAME varProperty.bstrVal: %S\n", varProperty.bstrVal );
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAName = OLEAUT32$SysAllocString(varProperty.bstrVal);
+	}
+	OLEAUT32$VariantClear(&varProperty);
+
 	// Attempt to get the DNS name
 	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
 		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName,
 		CR_PROP_DNSNAME,
 		0,
 		PROPTYPE_STRING,
@@ -272,7 +296,7 @@ HRESULT adcs_com_GetCertificateServicesServer(
 	// Attempt to get the Type
 	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
 		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName,
 		CR_PROP_CATYPE,
 		0,
 		PROPTYPE_INT,
@@ -318,7 +342,7 @@ HRESULT adcs_com_GetCertificateServicesServer(
 	// Attempt to get the Shared Folder
 	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
 		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName,
 		CR_PROP_SHAREDFOLDER,
 		0,
 		PROPTYPE_STRING,
@@ -513,23 +537,23 @@ HRESULT adcs_com_GetTemplates(
 	LPWSTR	swzNextToken = NULL;
 	ULONG	dwTokenValue = 0;
 	VARIANT varProperty;
-	//IX509CertificateRequestPkcs7 * pPkcs = NULL;
 	IX509CertificateRequestPkcs7V2 * pPkcs = NULL;
+	IX509CertificateTemplate * pTemplate = NULL;
+	
 
 	//{884E2044-217D-11DA-B2A4-000E7BBB2B09}
 	CLSID	CLSID_CX509CertificateRequestPkcs7 = { 0x884E2044, 0x217D, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
-	//{728AB344-217D-11DA-B2A4-000E7BBB2B09}
-	//IID		IID_IX509CertificateRequestPkcs7 = { 0x728AB344, 0x217D, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 	//{728ab35c-217d-11da-b2a4-000e7bbb2b09}
 	IID		IID_IX509CertificateRequestPkcs7V2 = { 0x728ab35c, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 
-	OLEAUT32$VariantInit(&varProperty);
 
+
+	OLEAUT32$VariantInit(&varProperty);
 
 	// Retrieve the CR_PROP_TEMPLATES property
 	hr = pADCS->pRequest->lpVtbl->GetCAProperty(
 		pADCS->pRequest,
-		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName,
+		pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName,
 		CR_PROP_TEMPLATES,
 		0,
 		PROPTYPE_STRING,
@@ -577,7 +601,6 @@ HRESULT adcs_com_GetTemplates(
 		BeaconPrintf(CALLBACK_ERROR, "Failed to parse templates string\n");
 		goto fail;
 	}
-	
 
 	// Loop through and parse the Template entries
 	for(ULONG ulTemplateIndex=0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
@@ -606,14 +629,11 @@ HRESULT adcs_com_GetTemplates(
 		{
 			BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_CX509CertificateRequestPkcs7,IID_IX509CertificateRequestPkcs7V2) failed: 0x%08lx\n", hr);
 			//goto fail;
-			hr = S_OK;
+			//hr = S_OK;
 			continue;
 		}
 
 		// Initializes the certificate request by using the template name
-		internal_printf( "InitializeFromTemplateName(%S)\n", 
-			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID
-		);
 		hr = pPkcs->lpVtbl->InitializeFromTemplateName(
 			pPkcs,
 			ContextUser,
@@ -621,14 +641,306 @@ HRESULT adcs_com_GetTemplates(
 		);
 		if (FAILED(hr))
 		{
-			BeaconPrintf(CALLBACK_ERROR, "InitializeFromTemplateName(%S) failed: 0x%08lx\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName, hr);
+			BeaconPrintf(CALLBACK_ERROR, "InitializeFromTemplateName(%S) failed: 0x%08lx\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID, hr);
 			//goto fail;
-			hr = S_OK;
+			//hr = S_OK;
 			continue;
 		}
 
-		
+		// Get the template
+		SAFE_RELEASE(pTemplate);
+		hr = pPkcs->lpVtbl->get_Template(
+			pPkcs,
+			&pTemplate
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "get_Template(%S) failed: 0x%08lx\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID, hr);
+			//goto fail;
+			//hr = S_OK;
+			continue;
+		}
 
+		// Get the TemplatePropFriendlyName
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropFriendlyName,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrFriendlyName = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrFriendlyName = OLEAUT32$SysAllocString(varProperty.bstrVal);
+		}
+		OLEAUT32$VariantClear(&varProperty);
+
+		// Get the TemplatePropValidityPeriod
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropValidityPeriod,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			//BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropValidityPeriod) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lValidityPeriod = varProperty.lVal;
+		}
+		OLEAUT32$VariantClear(&varProperty);
+
+		// Get the TemplatePropRenewalPeriod
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropRenewalPeriod,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			//BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropRenewalPeriod) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lRenewalPeriod = varProperty.lVal;
+		}
+		OLEAUT32$VariantClear(&varProperty);
+
+
+		// Get the TemplatePropEnrollmentFlags
+		// See https://docs.microsoft.com/en-us/windows/win32/api/certenroll/ne-certenroll-x509certificatetemplateenrollmentflag
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropEnrollmentFlags,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropEnrollmentFlags) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentFlags = varProperty.intVal;
+		}
+		OLEAUT32$VariantClear(&varProperty);
+
+		// Get the TemplatePropSubjectNameFlags
+		// See https://docs.microsoft.com/en-us/windows/win32/api/certenroll/ne-certenroll-x509certificatetemplatesubjectnameflag
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropSubjectNameFlags,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropSubjectNameFlags) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwSubjectNameFlags = varProperty.intVal;
+		}
+		OLEAUT32$VariantClear(&varProperty);
+
+		// Get the TemplatePropPrivateKeyFlags
+		// See https://docs.microsoft.com/en-us/windows/win32/api/certenroll/ne-certenroll-x509certificatetemplateprivatekeyflag
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropPrivateKeyFlags,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropPrivateKeyFlags) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwPrivateKeyFlags = varProperty.intVal;
+		}
+		OLEAUT32$VariantClear(&varProperty);
+
+
+		// Get the TemplatePropEKUs
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropEKUs,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			//BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropEKUs) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			if ( NULL == varProperty.pdispVal )
+			{
+				BeaconPrintf(CALLBACK_ERROR, "TemplatePropEKUs is NULL\n");
+			}
+			else // parse IObjectIds
+			{
+				IObjectIds * pObjectIds = NULL;
+				IEnumVARIANT *pEnum = NULL;
+				LPUNKNOWN pUnk = NULL;
+				VARIANT var;
+				IDispatch *pDisp = NULL;
+				ULONG lFetch = 0;
+				IObjectId * pObjectId = NULL;
+				ULONG ulUsagesIndex = 0;
+
+				IID IID_IEnumVARIANT = { 0x00020404, 0x0000, 0x0000, {0xc0,0x00, 0x00,0x00,0x00,0x00,0x00,0x46} };
+				//728ab300-217d-11da-b2a4-000e7bbb2b09
+				IID IID_IObjectId = { 0x728ab300, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
+
+				pObjectIds = (IObjectIds*)varProperty.pdispVal;
+
+				hr = pObjectIds->lpVtbl->get_Count(pObjectIds, &(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].ulUsagesCount));
+				if (FAILED(hr))
+				{
+					BeaconPrintf(CALLBACK_ERROR, "get_Count failed: 0x%08lx\n", hr);
+				}
+				else // parse get_Count IObjectIds
+				{
+					pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages = (BSTR*)KERNEL32$HeapAlloc(
+						KERNEL32$GetProcessHeap(), 
+						HEAP_ZERO_MEMORY, 
+						sizeof(BSTR)*(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].ulUsagesCount)
+					);
+					if (NULL == pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages)
+					{
+						hr = E_OUTOFMEMORY;
+						BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
+						goto fail;
+					}
+
+					pObjectIds->lpVtbl->get__NewEnum(pObjectIds, &pUnk);
+					SAFE_RELEASE(pObjectIds);
+
+					pUnk->lpVtbl->QueryInterface(pUnk, &IID_IEnumVARIANT, (void**) &pEnum);
+					SAFE_RELEASE(pUnk);
+
+					OLEAUT32$VariantInit(&var);
+					hr = pEnum->lpVtbl->Next(pEnum, 1, &var, &lFetch);
+					while(SUCCEEDED(hr) && lFetch > 0)
+					{
+						if (lFetch == 1)
+						{
+							pDisp = V_DISPATCH(&var);
+							pDisp->lpVtbl->QueryInterface(pDisp, &IID_IObjectId, (void**)&pObjectId); 
+							SAFE_RELEASE(pDisp);
+
+							hr = pObjectId->lpVtbl->get_FriendlyName(
+								pObjectId, 
+								&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages[ulUsagesIndex])
+							);
+							if (FAILED(hr))
+							{
+								BeaconPrintf(CALLBACK_ERROR, "get_FriendlyName failed: 0x%08lx\n", hr);
+							}
+
+							SAFE_RELEASE(pObjectId);
+							ulUsagesIndex++;
+						}
+
+						OLEAUT32$VariantClear(&var);
+
+						hr = pEnum->lpVtbl->Next(pEnum, 1, &var, &lFetch);
+					} // end loop through IObjectIds via enumerator
+				} // end else parse get_Count IObjectIds
+			}  // end else parse IObjectIds
+		} // end else get the TemplatePropEKUs was successful
+		OLEAUT32$VariantClear(&varProperty);
+
+		// Get the TemplatePropSecurityDescriptor
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropSecurityDescriptor,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropSecurityDescriptor) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			PISECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor = NULL;
+			ULONG ulSecurityDescriptorSize = 0;
+			WCHAR swzName[MAX_PATH];
+			DWORD cchName = MAX_PATH;
+			WCHAR swzDomainName[MAX_PATH];
+			DWORD cchDomainName = MAX_PATH;
+			WCHAR swzFullName[MAX_PATH*2];
+			SID_NAME_USE sidNameUse;
+
+			if (FALSE == ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW(
+				varProperty.bstrVal, 
+				SDDL_REVISION_1, 
+				(PSECURITY_DESCRIPTOR)(&pSecurityDescriptor), 
+				&ulSecurityDescriptorSize
+				)
+			)
+			{
+				hr = KERNEL32$GetLastError();
+				BeaconPrintf(CALLBACK_ERROR, "ConvertStringSecurityDescriptorToSecurityDescriptorW failed: %lu\n", hr);
+			}
+			else
+			{
+				LPWSTR swzStringSid = NULL;
+
+				if (FALSE == ADVAPI32$ConvertSidToStringSidW(
+					(PSID)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Owner),
+					&swzStringSid
+				)
+				)
+				{
+					pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+				}
+				else
+				{
+					pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid = OLEAUT32$SysAllocString(swzStringSid);
+				}
+				if (swzStringSid)
+				{
+					KERNEL32$LocalFree(swzStringSid);
+					swzStringSid = NULL;
+				}
+
+				if (FALSE == ADVAPI32$LookupAccountSidW(
+						NULL,
+						(PSID)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Owner),
+						swzName,
+						&cchName,
+						swzDomainName,
+						&cchDomainName,
+						&sidNameUse
+					)
+				)
+				{
+					pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+				}
+				else
+				{
+					MSVCRT$_snwprintf(swzFullName, MAX_PATH*2, L"%s\\%s", swzDomainName, swzName);
+					pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner = OLEAUT32$SysAllocString(swzFullName);
+				}
+				
+			} // end else ConvertStringSecurityDescriptorToSecurityDescriptorW was successful
+
+			if (pSecurityDescriptor)
+			{
+				KERNEL32$LocalFree(pSecurityDescriptor);
+				pSecurityDescriptor = NULL;
+			}
+		} // end else Get the TemplatePropSecurityDescriptor was successful
 	} // end loop through and parse the Template entries
 
 	hr = S_OK;
@@ -642,6 +954,8 @@ fail:
 	}
 
 	OLEAUT32$VariantClear(&varProperty);
+
+	SAFE_RELEASE(pTemplate);
 
 	SAFE_RELEASE(pPkcs);
 
@@ -668,8 +982,9 @@ HRESULT adcs_com_PrintInfo(
 	internal_printf("================================================================================\n");
 	for( ULONG ulCertificateServicesServerIndex=0; ulCertificateServicesServerIndex<pADCS->ulCertificateServicesServerCount; ulCertificateServicesServerIndex++)
 	{
-		internal_printf(" Config Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName);
-		internal_printf("  CA DNS Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName);
+		internal_printf("  Enterprise CA Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAName);
+		internal_printf("  DNS Hostname: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName);
+		internal_printf("  Full Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName);
 		internal_printf("  CA Type: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType);
 		internal_printf("  CA Share Folder: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder);
 		internal_printf("  Web Enrollment Servers: (%lu)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount);
@@ -698,7 +1013,30 @@ HRESULT adcs_com_PrintInfo(
 			for( ULONG ulTemplateIndex = 0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
 			{
 				internal_printf("   Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName);
+				internal_printf("   Friendly Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrFriendlyName);
 				internal_printf("   OID: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID);
+				internal_printf("   Validity Period: %ld years (%ld seconds)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lValidityPeriod/31536000, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lValidityPeriod);
+				internal_printf("   Renewal Period: %ld days (%ld seconds)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lRenewalPeriod/86400, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lRenewalPeriod);
+				internal_printf("   Enrollment Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentFlags);
+				internal_printf("   Subject Name Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwSubjectNameFlags);
+				internal_printf("   Private Key Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwPrivateKeyFlags);
+				internal_printf("   Usages:\n");
+				if ( 
+					( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages ) &&
+					(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].ulUsagesCount)
+				)
+				{
+					for( ULONG ulUsageIndex = 0; ulUsageIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].ulUsagesCount; ulUsageIndex++)
+					{
+						internal_printf("    %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages[ulUsageIndex]);
+					}
+					KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages);	
+				}
+				else
+				{
+					internal_printf("    %S\n", STR_NOT_AVAILALBE);
+				}
+				internal_printf("   Owner: %S (%S)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid);
 				internal_printf("  ------------------------------------------------------------------------------\n");
 			}
 		}
@@ -722,28 +1060,45 @@ void adcs_com_Finalize(
 	{
 		for( LONG ulCertificateServicesServerIndex=0; ulCertificateServicesServerIndex<pADCS->ulCertificateServicesServerCount; ulCertificateServicesServerIndex++)
 		{
-			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrConfigName);
-			for( ULONG ulWebEnrollmentServerIndex = 0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
+			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrFullName);
+			if ( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers )
 			{
-				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri);
-				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication);
-				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority);
-				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly);
+				for( ULONG ulWebEnrollmentServerIndex = 0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
+				{
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri);
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication);
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority);
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly);
+				}
+				KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers);
 			}
-			KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers);
 			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCADNSName);
 			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAShareFolder);
 			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrCAType);
-			for( ULONG ulTemplateIndex = 0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
+			if ( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates )
 			{
-				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName);
-				SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID);
+				for( ULONG ulTemplateIndex = 0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
+				{
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID);
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName);
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrFriendlyName);
+					if ( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages )
+					{
+						for( ULONG ulUsageIndex = 0; ulUsageIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].ulUsagesCount; ulUsageIndex++)
+						{
+							SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages[ulUsageIndex]);
+						}
+						KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages);	
+					}
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner);
+					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid);
+				}
+				KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates);
 			}
-			KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates);
-			SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].bstrTemplates);
 		}
+		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers);
 	}
-	KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers);
+	
 
 	// un-initialize the COM library
 	OLE32$CoUninitialize();
