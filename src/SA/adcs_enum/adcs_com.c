@@ -8,9 +8,12 @@
 #include <stdlib.h>
 #include <combaseapi.h>
 #include <sddl.h>
+#include <iads.h>
 #include "beacon.h"
 #include "bofdefs.h"
 #include "adcs_com.h"
+
+#define DEFINE_MY_GUID(name,l,w1,w2,b1,b2,b3,b4,b5,b6,b7,b8) const GUID name = { l, w1, w2, { b1, b2, b3, b4, b5, b6, b7, b8 } }
 
 #define STR_NOT_AVAILALBE L"N/A"
 
@@ -56,7 +59,9 @@
 	}
 
 
-
+DEFINE_MY_GUID(CertificateEnrollment,0x0e10c968,0x78fb,0x11d2,0x90,0xd4,0x00,0xc0,0x4f,0x79,0xdc,0x55);
+DEFINE_MY_GUID(CertificateAutoEnrollment,0xa05b8cc2,0x17bc,0x4802,0xa7,0x10,0xe7,0xc1,0x5a,0xb8,0x66,0xa2);
+DEFINE_MY_GUID(CertificateAll,0x00000000,0x0000,0x0000,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00);
 
 
 
@@ -749,6 +754,7 @@ HRESULT adcs_com_GetTemplates(
 		}
 		OLEAUT32$VariantClear(&varProperty);
 
+/*
 		// Get the TemplatePropPrivateKeyFlags
 		// See https://docs.microsoft.com/en-us/windows/win32/api/certenroll/ne-certenroll-x509certificatetemplateprivatekeyflag
 		OLEAUT32$VariantClear(&varProperty);
@@ -767,6 +773,41 @@ HRESULT adcs_com_GetTemplates(
 		}
 		OLEAUT32$VariantClear(&varProperty);
 
+		// Get the TemplatePropGeneralFlags
+		// See https://docs.microsoft.com/en-us/windows/desktop/api/certenroll/ne-certenroll-x509certificatetemplategeneralflag
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropGeneralFlags,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropGeneralFlags) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwGeneralFlags = varProperty.intVal;
+		}
+		OLEAUT32$VariantClear(&varProperty);
+*/
+
+		// Get the TemplatePropRASignatureCount
+		OLEAUT32$VariantClear(&varProperty);
+		hr = pTemplate->lpVtbl->get_Property(
+			pTemplate,
+			TemplatePropRASignatureCount,
+			&varProperty
+		);
+		if (FAILED(hr))
+		{
+			BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropRASignatureCount) failed: 0x%08lx\n", hr);
+		}
+		else
+		{
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwSignatureCount = varProperty.intVal;
+		}
+		OLEAUT32$VariantClear(&varProperty);
 
 		// Get the TemplatePropEKUs
 		OLEAUT32$VariantClear(&varProperty);
@@ -868,18 +909,13 @@ HRESULT adcs_com_GetTemplates(
 		);
 		if (FAILED(hr))
 		{
-			BeaconPrintf(CALLBACK_ERROR, "get_Property(TemplatePropSecurityDescriptor) failed: 0x%08lx\n", hr);
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+			pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
 		}
 		else
 		{
 			PISECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor = NULL;
 			ULONG ulSecurityDescriptorSize = 0;
-			WCHAR swzName[MAX_PATH];
-			DWORD cchName = MAX_PATH;
-			WCHAR swzDomainName[MAX_PATH];
-			DWORD cchDomainName = MAX_PATH;
-			WCHAR swzFullName[MAX_PATH*2];
-			SID_NAME_USE sidNameUse;
 
 			if (FALSE == ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW(
 				varProperty.bstrVal, 
@@ -889,12 +925,19 @@ HRESULT adcs_com_GetTemplates(
 				)
 			)
 			{
-				hr = KERNEL32$GetLastError();
-				BeaconPrintf(CALLBACK_ERROR, "ConvertStringSecurityDescriptorToSecurityDescriptorW failed: %lu\n", hr);
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
+				pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner = OLEAUT32$SysAllocString(STR_NOT_AVAILALBE);
 			}
 			else
 			{
 				LPWSTR swzStringSid = NULL;
+				WCHAR swzName[MAX_PATH];
+				DWORD cchName = MAX_PATH;
+				WCHAR swzDomainName[MAX_PATH];
+				DWORD cchDomainName = MAX_PATH;
+				WCHAR swzFullName[MAX_PATH*2];
+				DWORD cchFullName = MAX_PATH*2;
+				SID_NAME_USE sidNameUse;
 
 				if (FALSE == ADVAPI32$ConvertSidToStringSidW(
 					(PSID)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Owner),
@@ -914,6 +957,10 @@ HRESULT adcs_com_GetTemplates(
 					swzStringSid = NULL;
 				}
 
+				cchName = MAX_PATH;
+				MSVCRT$memset(swzName, 0, cchName*sizeof(WCHAR));
+				cchDomainName = MAX_PATH;
+				MSVCRT$memset(swzDomainName, 0, cchDomainName*sizeof(WCHAR));
 				if (FALSE == ADVAPI32$LookupAccountSidW(
 						NULL,
 						(PSID)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Owner),
@@ -929,10 +976,159 @@ HRESULT adcs_com_GetTemplates(
 				}
 				else
 				{
-					MSVCRT$_snwprintf(swzFullName, MAX_PATH*2, L"%s\\%s", swzDomainName, swzName);
+					cchFullName = MAX_PATH*2;
+					MSVCRT$memset(swzFullName, 0, cchFullName*sizeof(WCHAR));	
+					MSVCRT$_snwprintf(swzFullName, cchFullName, L"%s\\%s", swzDomainName, swzName);
 					pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner = OLEAUT32$SysAllocString(swzFullName);
 				}
-				
+
+				// GetAclInformation(), GetAce()
+				ACL_SIZE_INFORMATION aclSizeInformation;
+				if ( ADVAPI32$GetAclInformation(
+						(PACL)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Dacl),
+						&aclSizeInformation,
+						sizeof(aclSizeInformation),
+						AclSizeInformation
+					)
+				)
+				{
+					//internal_printf("AceCount: %lu\n", aclSizeInformation.AceCount);
+					for(DWORD dwAceIndex=0; dwAceIndex<aclSizeInformation.AceCount; dwAceIndex++)
+					{
+						ACE_HEADER * pAceHeader = NULL;
+						ACCESS_ALLOWED_ACE* pAce = NULL;
+						ACCESS_ALLOWED_OBJECT_ACE* pAceObject = NULL;
+						PSID pPrincipalSid = NULL;
+						BSTR bstrName = NULL;
+						BOOL bDeleteName = TRUE;
+						hr = E_UNEXPECTED;
+
+						if (ADVAPI32$GetAce(
+								(PACL)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Dacl),
+								dwAceIndex,
+								(LPVOID)&pAceHeader
+							)
+						)
+						{
+							pAceObject = (ACCESS_ALLOWED_OBJECT_ACE*)pAceHeader;
+							pAce = (ACCESS_ALLOWED_ACE*)pAceHeader;
+
+							if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType)
+							{
+								pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType));
+							}
+							else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType)
+							{
+								pPrincipalSid = (PSID)(&(pAce->SidStart));
+							}
+							else
+							{
+								continue;
+							}
+
+							cchName = MAX_PATH;
+							MSVCRT$memset(swzName, 0, cchName*sizeof(WCHAR));
+							cchDomainName = MAX_PATH;
+							MSVCRT$memset(swzDomainName, 0, cchDomainName*sizeof(WCHAR));
+							if (FALSE == ADVAPI32$LookupAccountSidW(
+									NULL,
+									pPrincipalSid,
+									swzName,
+									&cchName,
+									swzDomainName,
+									&cchDomainName,
+									&sidNameUse
+								)
+							)
+							{
+								continue;
+							}
+								
+							cchFullName = MAX_PATH*2;
+							MSVCRT$memset(swzFullName, 0, cchFullName*sizeof(WCHAR));	
+							MSVCRT$_snwprintf(swzFullName, cchFullName, L"%s\\%s", swzDomainName, swzName);
+							bstrName = OLEAUT32$SysAllocString(swzFullName);
+							if (NULL==bstrName)
+							{
+								continue;
+							}
+
+							if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
+							{
+								if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
+								{
+									if (
+										IsEqualGUID(&CertificateEnrollment, &pAceObject->ObjectType) ||
+										IsEqualGUID(&CertificateAutoEnrollment, &pAceObject->ObjectType) ||
+										IsEqualGUID(&CertificateAll, &pAceObject->ObjectType)
+										)
+									{
+										hr = _bstr_list_insert( 
+											&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentPrincipalsCount),
+											&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrEnrollmentPrincipals),
+											bstrName
+										);
+									}
+								} // end if ACE_OBJECT_TYPE_PRESENT
+							} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+							
+							// Check if Enrollment permission
+							if (ADS_RIGHT_GENERIC_ALL & pAceObject->Mask)
+							{
+								hr = _bstr_list_insert( 
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentPrincipalsCount),
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrEnrollmentPrincipals),
+									bstrName
+								);
+							} // end if Enrollment permission
+							
+							// Check if WriteOwner permission
+							if ( 
+								(ADS_RIGHT_GENERIC_ALL & pAceObject->Mask) ||
+								(ADS_RIGHT_WRITE_OWNER & pAceObject->Mask)
+							)
+							{
+								hr = _bstr_list_insert( 
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteOwnerPrincipalsCount),
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteOwnerPrincipals),
+									bstrName
+								);
+							} // end if WriteOwner permission
+							
+							// Check if WriteDacl permission
+							if ( 
+								(ADS_RIGHT_GENERIC_ALL & pAceObject->Mask) ||
+								(ADS_RIGHT_WRITE_DAC & pAceObject->Mask)
+							)
+							{
+								hr = _bstr_list_insert( 
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteDaclPrinciaplsCount),
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteDaclPrincipals),
+									bstrName
+								);
+							} // end if WriteDacl permission
+							
+							// Check if WriteProperty permission
+							if ( 
+								(ADS_RIGHT_GENERIC_ALL & pAceObject->Mask) ||
+								(ADS_RIGHT_GENERIC_WRITE & pAceObject->Mask) ||
+								(ADS_RIGHT_DS_WRITE_PROP & pAceObject->Mask)
+							)
+							{
+								hr = _bstr_list_insert( 
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWritePropertyPrincipalsCount),
+									&(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWritePropertyPrincipals),
+									bstrName
+								);
+							} // end if WriteProperty permission
+							
+							if (FAILED(hr))
+							{
+								SAFE_FREE(bstrName);
+							}
+						} // end if GetAce was successful
+					} // end for loop through ACEs (AceCount)
+				} // end else GetAclInformation was successful
 			} // end else ConvertStringSecurityDescriptorToSecurityDescriptorW was successful
 
 			if (pSecurityDescriptor)
@@ -996,10 +1192,10 @@ HRESULT adcs_com_PrintInfo(
 			internal_printf("  ------------------------------------------------------------------------------\n");
 			for( ULONG ulWebEnrollmentServerIndex = 0; ulWebEnrollmentServerIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulWebEnrollmentServerCount; ulWebEnrollmentServerIndex++)
 			{
-				internal_printf("   Uri: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri);
-				internal_printf("   Authentication: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication);
-				internal_printf("   Priority: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority);
-				internal_printf("   RenewalOnly: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly);
+				internal_printf("    Uri: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrUri);
+				internal_printf("    Authentication: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrAuthentication);
+				internal_printf("    Priority: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrPriority);
+				internal_printf("    RenewalOnly: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpWebEnrollmentServers[ulWebEnrollmentServerIndex].bstrRenewalOnly);
 				internal_printf("  ------------------------------------------------------------------------------\n");
 			}
 		}
@@ -1012,15 +1208,17 @@ HRESULT adcs_com_PrintInfo(
 			internal_printf("  ------------------------------------------------------------------------------\n");
 			for( ULONG ulTemplateIndex = 0; ulTemplateIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].ulTemplateCount; ulTemplateIndex++)
 			{
-				internal_printf("   Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName);
-				internal_printf("   Friendly Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrFriendlyName);
-				internal_printf("   OID: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID);
-				internal_printf("   Validity Period: %ld years (%ld seconds)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lValidityPeriod/31536000, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lValidityPeriod);
-				internal_printf("   Renewal Period: %ld days (%ld seconds)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lRenewalPeriod/86400, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lRenewalPeriod);
-				internal_printf("   Enrollment Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentFlags);
-				internal_printf("   Subject Name Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwSubjectNameFlags);
-				internal_printf("   Private Key Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwPrivateKeyFlags);
-				internal_printf("   Usages:\n");
+				internal_printf("    Template Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrName);
+				internal_printf("    Friendly Name: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrFriendlyName);
+				internal_printf("    OID: %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOID);
+				internal_printf("    Validity Period: %ld years (%ld seconds)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lValidityPeriod/31536000, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lValidityPeriod);
+				internal_printf("    Renewal Period: %ld days (%ld seconds)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lRenewalPeriod/86400, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lRenewalPeriod);
+				internal_printf("    Certificate Name Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwSubjectNameFlags);
+				internal_printf("    Enrollment Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentFlags);
+				//internal_printf("    Private Key Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwPrivateKeyFlags);
+				//internal_printf("    General Flags: %08x\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwGeneralFlags);
+				internal_printf("    Authorized Signatures Requred: %u\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwSignatureCount);
+				internal_printf("    Extended Usage:\n");
 				if ( 
 					( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages ) &&
 					(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].ulUsagesCount)
@@ -1028,15 +1226,75 @@ HRESULT adcs_com_PrintInfo(
 				{
 					for( ULONG ulUsageIndex = 0; ulUsageIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].ulUsagesCount; ulUsageIndex++)
 					{
-						internal_printf("    %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages[ulUsageIndex]);
+						internal_printf("      %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages[ulUsageIndex]);
 					}
-					KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrUsages);	
 				}
 				else
 				{
-					internal_printf("    %S\n", STR_NOT_AVAILALBE);
+					internal_printf("      %S\n", STR_NOT_AVAILALBE);
 				}
-				internal_printf("   Owner: %S (%S)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid);
+				internal_printf("    Owner: %S (%S)\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid);
+				internal_printf("    Enrollment Principals:\n");
+				if ( 
+					( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrEnrollmentPrincipals ) &&
+					(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentPrincipalsCount)
+				)
+				{
+					for( ULONG dwEnrollmentPrincipalsIndex = 0; dwEnrollmentPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentPrincipalsCount; dwEnrollmentPrincipalsIndex++)
+					{
+						internal_printf("      %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrEnrollmentPrincipals[dwEnrollmentPrincipalsIndex]);
+					}
+				}
+				else
+				{
+					internal_printf("      %S\n", STR_NOT_AVAILALBE);
+				}
+				internal_printf("    WriteOwner Principals:\n");
+				if ( 
+					( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteOwnerPrincipals ) &&
+					(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteOwnerPrincipalsCount)
+				)
+				{
+					for( ULONG dwWriteOwnerPrincipalsIndex = 0; dwWriteOwnerPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteOwnerPrincipalsCount; dwWriteOwnerPrincipalsIndex++)
+					{
+						internal_printf("      %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteOwnerPrincipals[dwWriteOwnerPrincipalsIndex]);
+					}
+				}
+				else
+				{
+					internal_printf("      %S\n", STR_NOT_AVAILALBE);
+				}
+				internal_printf("    WriteDacl Principals:\n");
+				if ( 
+					( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteDaclPrincipals ) &&
+					(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteDaclPrinciaplsCount)
+				)
+				{
+					for( ULONG dwWriteDaclPrincipalsIndex = 0; dwWriteDaclPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteDaclPrinciaplsCount; dwWriteDaclPrincipalsIndex++)
+					{
+						internal_printf("      %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteDaclPrincipals[dwWriteDaclPrincipalsIndex]);
+					}
+				}
+				else
+				{
+					internal_printf("      %S\n", STR_NOT_AVAILALBE);
+				}
+				internal_printf("    WriteProperty Principals:\n");
+				if ( 
+					( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWritePropertyPrincipals ) &&
+					(0 < pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWritePropertyPrincipalsCount)
+				)
+				{
+					for( ULONG dwWritePropertyPrincipalsIndex = 0; dwWritePropertyPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWritePropertyPrincipalsCount; dwWritePropertyPrincipalsIndex++)
+					{
+						internal_printf("      %S\n", pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWritePropertyPrincipals[dwWritePropertyPrincipalsIndex]);
+					}
+				}
+				else
+				{
+					internal_printf("      %S\n", STR_NOT_AVAILALBE);
+				}
+
 				internal_printf("  ------------------------------------------------------------------------------\n");
 			}
 		}
@@ -1092,6 +1350,38 @@ void adcs_com_Finalize(
 					}
 					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwner);
 					SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].bstrOwnerSid);
+					if ( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrEnrollmentPrincipals )
+					{
+						for( ULONG dwEnrollmentPrincipalsIndex = 0; dwEnrollmentPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwEnrollmentPrincipalsCount; dwEnrollmentPrincipalsIndex++)
+						{
+							SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrEnrollmentPrincipals[dwEnrollmentPrincipalsIndex]);
+						}
+						KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrEnrollmentPrincipals);	
+					}
+					if ( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteOwnerPrincipals )
+					{
+						for( ULONG dwWriteOwnerPrincipalsIndex = 0; dwWriteOwnerPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteOwnerPrincipalsCount; dwWriteOwnerPrincipalsIndex++)
+						{
+							SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteOwnerPrincipals[dwWriteOwnerPrincipalsIndex]);
+						}
+						KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteOwnerPrincipals);	
+					}
+					if ( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteDaclPrincipals )
+					{
+						for( ULONG dwWriteDaclPrincipalsIndex = 0; dwWriteDaclPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWriteDaclPrinciaplsCount; dwWriteDaclPrincipalsIndex++)
+						{
+							SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteDaclPrincipals[dwWriteDaclPrincipalsIndex]);
+						}
+						KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWriteDaclPrincipals);	
+					}
+					if ( NULL != pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWritePropertyPrincipals )
+					{
+						for( ULONG dwWritePropertyPrincipalsIndex = 0; dwWritePropertyPrincipalsIndex<pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].dwWritePropertyPrincipalsCount; dwWritePropertyPrincipalsIndex++)
+						{
+							SAFE_FREE(pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWritePropertyPrincipals[dwWritePropertyPrincipalsIndex]);
+						}
+						KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates[ulTemplateIndex].lpbstrWritePropertyPrincipals);	
+					}
 				}
 				KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pADCS->lpCertificateServicesServers[ulCertificateServicesServerIndex].lpTemplates);
 			}
