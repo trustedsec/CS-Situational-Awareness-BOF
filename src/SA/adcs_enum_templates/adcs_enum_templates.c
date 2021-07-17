@@ -71,13 +71,10 @@ HRESULT _adcs_get_PolicyServerListManager()
 	LONG lPolicyServerUrlCount = 0;
 	IX509PolicyServerUrl * pPolicyServerUrl = NULL;
 		
-	//{91f39029-217f-11da-b2a4-000e7bbb2b09}
 	CLSID	CLSID_IX509PolicyServerListManager = { 0x91f39029, 0x217f, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
-	//{884e204b-217d-11da-b2a4-000e7bbb2b09}
 	IID		IID_IX509PolicyServerListManager = { 0x884e204b, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 
 	SAFE_RELEASE(pPolicyServerListManager);
-	//internal_printf( "OLE32$CoCreateInstance(CLSID_IX509PolicyServerListManager, IID_IX509PolicyServerListManager)\n");
 	hr = OLE32$CoCreateInstance(
 		&CLSID_IX509PolicyServerListManager,
 		0,
@@ -92,7 +89,6 @@ HRESULT _adcs_get_PolicyServerListManager()
 		goto PolicyServerListManager_fail;
 	}
 
-	//internal_printf( "pPolicyServerListManager->lpVtbl->Initialize(ContextUser, PsfLocationGroupPolicy | PsfLocationRegistry)\n");
 	hr = pPolicyServerListManager->lpVtbl->Initialize(
 		pPolicyServerListManager,
 		ContextUser,
@@ -104,7 +100,6 @@ HRESULT _adcs_get_PolicyServerListManager()
 		goto PolicyServerListManager_fail;
 	}
 
-	//internal_printf( "pPolicyServerListManager->lpVtbl->get_Count()\n");
 	hr = pPolicyServerListManager->lpVtbl->get_Count(
 		pPolicyServerListManager,
 		&lPolicyServerUrlCount
@@ -116,11 +111,10 @@ HRESULT _adcs_get_PolicyServerListManager()
 	}
 		
 
-	internal_printf( "Found %ld policy servers\n", lPolicyServerUrlCount);
+	internal_printf( "\n[*] Found %ld policy servers\n", lPolicyServerUrlCount);
 	for(LONG lPolicyServerIndex=0; lPolicyServerIndex<lPolicyServerUrlCount; lPolicyServerIndex++)
 	{
 		SAFE_RELEASE(pPolicyServerUrl);
-		//internal_printf( "pPolicyServerListManager->lpVtbl->get_ItemByIndex()\n");
 		hr = pPolicyServerListManager->lpVtbl->get_ItemByIndex(
 			pPolicyServerListManager,
 			lPolicyServerIndex,
@@ -159,7 +153,6 @@ HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl)
 	BSTR bstrPolicyServerFriendlyName = NULL;
 	BSTR bstrPolicyServerId = NULL;
 
-	//internal_printf( "pPolicyServerUrl->lpVtbl->get_Url()\n");
 	hr = pPolicyServerUrl->lpVtbl->get_Url(
 		pPolicyServerUrl,
 		&bstrPolicyServerUrl
@@ -169,9 +162,7 @@ HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl)
 		BeaconPrintf(CALLBACK_ERROR, "get_Url() failed: 0x%08lx\n", hr);
 		goto PolicyServerUrl_fail;
 	}
-	//internal_printf( "bstrPolicyServerUrl: %S\n", bstrPolicyServerUrl);
 
-	//internal_printf( "pPolicyServerUrl->lpVtbl->GetStringProperty(PsPolicyID)\n");
 	hr = pPolicyServerUrl->lpVtbl->GetStringProperty(
 		pPolicyServerUrl,
 		PsPolicyID,
@@ -182,9 +173,7 @@ HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl)
 		BeaconPrintf(CALLBACK_ERROR, "GetStringProperty(PsPolicyID) failed: 0x%08lx\n", hr);
 		goto PolicyServerUrl_fail;
 	}
-	//internal_printf( "bstrPolicyServerId: %S\n", bstrPolicyServerId);vvvv
 
-	//internal_printf( "pPolicyServerUrl->lpVtbl->GetStringProperty(PsFriendlyName)\n");
 	hr = pPolicyServerUrl->lpVtbl->GetStringProperty(
 		pPolicyServerUrl,
 		PsFriendlyName,
@@ -195,8 +184,7 @@ HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl)
 		BeaconPrintf(CALLBACK_ERROR, "GetStringProperty(PsFriendlyName) failed: 0x%08lx\n", hr);
 		goto PolicyServerUrl_fail;
 	}
-	//internal_printf( "bstrPolicyServerFriendlyName: %S\n", bstrPolicyServerFriendlyName);
-	internal_printf( "Enumerating enrollment policy servers for %S...\n", bstrPolicyServerFriendlyName);
+	internal_printf( "\n[*] Enumerating enrollment policy servers for %S...\n", bstrPolicyServerFriendlyName);
 
 	hr = _adcs_get_EnrollmentPolicyServer(bstrPolicyServerUrl, bstrPolicyServerId);
 	if (FAILED(hr))
@@ -225,13 +213,10 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 	LONG lCertificateTemplatesCount = 0;
 	IX509CertificateTemplate * pCertificateTemplate = NULL;
 
-	//{91f39027-217f-11da-b2a4-000e7bbb2b09}
 	CLSID	CLSID_CX509EnrollmentPolicyActiveDirectory = { 0x91f39027, 0x217f, 0x11DA, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
-	//{13b79026-2181-11da-b2a4-000e7bbb2b09}
 	IID		IID_IX509EnrollmentPolicyServer = { 0x13b79026, 0x2181, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 
 	SAFE_RELEASE(pEnrollmentPolicyServer);
-	//internal_printf( "CoCreateInstance(CLSID_CX509EnrollmentPolicyActiveDirectory, IID_IX509EnrollmentPolicyServer)\n");
 	hr = OLE32$CoCreateInstance(
 		&CLSID_CX509EnrollmentPolicyActiveDirectory,
 		0,
@@ -246,7 +231,6 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		goto EnrollmentPolicyServer_fail;
 	}
 
-	//internal_printf( "pEnrollmentPolicyServer->Initialize(bstrPolicyServerUrl, bstrPolicyServerId, X509AuthKerberos, TRUE, ContextUser)\n");
 	hr = pEnrollmentPolicyServer->lpVtbl->Initialize(
 		pEnrollmentPolicyServer,
 		bstrPolicyServerUrl,
@@ -261,7 +245,6 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		goto EnrollmentPolicyServer_fail;
 	}
 
-	//internal_printf( "pEnrollmentPolicyServer->lpVtbl->LoadPolicy(LoadOptionReload)\n");
 	hr = pEnrollmentPolicyServer->lpVtbl->LoadPolicy(
 		pEnrollmentPolicyServer,
 		LoadOptionReload
@@ -273,7 +256,6 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 	}
 
 	SAFE_RELEASE(pCertificateTemplates);
-	//internal_printf( "GetTemplates()\n");
 	hr = pEnrollmentPolicyServer->lpVtbl->GetTemplates(
 		pEnrollmentPolicyServer,
 		&pCertificateTemplates
@@ -284,7 +266,6 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		goto EnrollmentPolicyServer_fail;
 	}
 
-	//internal_printf( "pCertificateTemplates->lpVtbl->get_Count()\n");
 	hr = pCertificateTemplates->lpVtbl->get_Count(
 		pCertificateTemplates,
 		&lCertificateTemplatesCount
@@ -294,13 +275,11 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplates->lpVtbl->get_Count() failed: 0x%08lx\n", hr);
 		goto EnrollmentPolicyServer_fail;
 	}
-	//internal_printf( "lCertificateTemplatesCount: %ld\n", lCertificateTemplatesCount);
-	internal_printf( "Found %ld templates\n", lCertificateTemplatesCount);
+	internal_printf( "\n[*] Found %ld templates\n", lCertificateTemplatesCount);
 
 	for(LONG lCertificateTemplatesIndex=0; lCertificateTemplatesIndex<lCertificateTemplatesCount; lCertificateTemplatesIndex++)
 	{
 		SAFE_RELEASE(pCertificateTemplate);
-		//internal_printf( "pCertificateTemplates->lpVtbl->get_ItemByIndex()\n");
 		hr = pCertificateTemplates->lpVtbl->get_ItemByIndex(
 			pCertificateTemplates,
 			lCertificateTemplatesIndex,
@@ -339,6 +318,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 
 	OLEAUT32$VariantInit(&varProperty);
 
+	internal_printf( "\n");
 
 	// Get the TemplatePropCommonName
 	OLEAUT32$VariantClear(&varProperty);
@@ -352,8 +332,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplate->lpVtbl->get_Property(TemplatePropCommonName) failed: 0x%08lx\n", hr);
 		goto CertificateTemplate_fail;
 	}
-	internal_printf( "Template Name: %S\n", varProperty.bstrVal);
-
+	internal_printf( "    Template Name: %S\n", varProperty.bstrVal);
 
 	// Get the TemplatePropFriendlyName
 	OLEAUT32$VariantClear(&varProperty);
@@ -367,9 +346,8 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplate->lpVtbl->get_Property(TemplatePropFriendlyName) failed: 0x%08lx\n", hr);
 		goto CertificateTemplate_fail;
 	}
-	internal_printf( "Template Friendly Name: %S\n", varProperty.bstrVal);
+	internal_printf( "    Template Friendly Name: %S\n", varProperty.bstrVal);
 	
-
 	// Get the TemplatePropValidityPeriod
 	OLEAUT32$VariantClear(&varProperty);
 	hr = pCertificateTemplate->lpVtbl->get_Property(
@@ -382,8 +360,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplate->lpVtbl->get_Property(TemplatePropValidityPeriod) failed: 0x%08lx\n", hr);
 		goto CertificateTemplate_fail;
 	}
-	internal_printf( "Validity Period: %ld years (%ld seconds)\n", varProperty.lVal/31536000, varProperty.lVal);
-
+	internal_printf( "    Validity Period: %ld years (%ld seconds)\n", varProperty.lVal/31536000, varProperty.lVal);
 
 	// Get the TemplatePropRenewalPeriod
 	OLEAUT32$VariantClear(&varProperty);
@@ -397,8 +374,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplate->lpVtbl->get_Property(TemplatePropValidityPeriod) failed: 0x%08lx\n", hr);
 		goto CertificateTemplate_fail;
 	}
-	internal_printf( "Renewal Period: %ld days (%ld seconds)\n", varProperty.lVal/86400, varProperty.lVal);
-
+	internal_printf( "    Renewal Period: %ld days (%ld seconds)\n", varProperty.lVal/86400, varProperty.lVal);
 
 	// Get the TemplatePropSubjectNameFlags
 	// See https://docs.microsoft.com/en-us/windows/win32/api/certenroll/ne-certenroll-x509certificatetemplatesubjectnameflag
@@ -413,8 +389,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplate->lpVtbl->get_Property(TemplatePropSubjectNameFlags) failed: 0x%08lx\n", hr);
 		goto CertificateTemplate_fail;
 	}
-	internal_printf( "Certificate Name Flags: %08x\n", varProperty.intVal);
-
+	internal_printf( "    Certificate Name Flags: %08x\n", varProperty.intVal);
 
 	// Get the TemplatePropEnrollmentFlags
 	// See https://docs.microsoft.com/en-us/windows/win32/api/certenroll/ne-certenroll-x509certificatetemplateenrollmentflag
@@ -429,8 +404,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplate->lpVtbl->get_Property(TemplatePropEnrollmentFlags) failed: 0x%08lx\n", hr);
 		goto CertificateTemplate_fail;
 	}
-	internal_printf( "Enrollment Flags: %08x\n", varProperty.intVal);
-
+	internal_printf( "    Enrollment Flags: %08x\n", varProperty.intVal);
 
 	// Get the TemplatePropRASignatureCount
 	OLEAUT32$VariantClear(&varProperty);
@@ -444,7 +418,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		BeaconPrintf(CALLBACK_ERROR, "pCertificateTemplate->lpVtbl->get_Property(TemplatePropRASignatureCount) failed: 0x%08lx\n", hr);
 		goto CertificateTemplate_fail;
 	}
-	internal_printf( "Authorized Signature Required: %08x\n", varProperty.intVal);
+	internal_printf( "    Signatures Required: %08x\n", varProperty.intVal);
 
 
 	// Get the TemplatePropEKUs
@@ -454,7 +428,7 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		TemplatePropEKUs,
 		&varProperty
 	);
-	internal_printf( "Extended Key Usages:");
+	internal_printf( "    Extended Key Usages:\n");
 	hr = _adcs_get_ExtendedKeyUsages(&varProperty);
 	if (FAILED(hr))
 	{
@@ -471,8 +445,8 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 		TemplatePropKeySecurityDescriptor,
 		&varProperty
 	);
-	internal_printf( "TemplatePropKeySecurityDescriptor: %S\n", varProperty.bstrVal);
-	internal_printf( "Permissions:\n");
+	internal_printf( "    TemplatePropKeySecurityDescriptor:\n      %S\n", varProperty.bstrVal);
+	internal_printf( "    Permissions:\n");
 	hr = _adcs_get_Security(varProperty.bstrVal);
 	if (FAILED(hr))
 	{
@@ -502,7 +476,6 @@ HRESULT _adcs_get_ExtendedKeyUsages(VARIANT* lpvarExtendedKeyUsages)
 	ULONG lFetch = 0;
 	IObjectId * pObjectId = NULL;
 	BSTR bstFriendlyName = NULL;
-	ULONG ulUsageCount = 0;
 
 	IID IID_IEnumVARIANT = { 0x00020404, 0x0000, 0x0000, {0xc0,0x00, 0x00,0x00,0x00,0x00,0x00,0x46} };
 	IID IID_IObjectId = { 0x728ab300, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
@@ -510,10 +483,8 @@ HRESULT _adcs_get_ExtendedKeyUsages(VARIANT* lpvarExtendedKeyUsages)
 	if (lpvarExtendedKeyUsages->pdispVal)
 	{
 		pObjectIds = (IObjectIds*)lpvarExtendedKeyUsages->pdispVal;
-	
 		pObjectIds->lpVtbl->get__NewEnum(pObjectIds, &pUnk);
 		SAFE_RELEASE(pObjectIds);
-
 		pUnk->lpVtbl->QueryInterface(pUnk, &IID_IEnumVARIANT, (void**) &pEnum);
 		SAFE_RELEASE(pUnk);
 
@@ -527,53 +498,28 @@ HRESULT _adcs_get_ExtendedKeyUsages(VARIANT* lpvarExtendedKeyUsages)
 				pDisp->lpVtbl->QueryInterface(pDisp, &IID_IObjectId, (void**)&pObjectId); 
 				SAFE_RELEASE(pDisp);
 
-				if (ulUsageCount++)
-				{
-					internal_printf( "," );
-				}
-
 				hr = pObjectId->lpVtbl->get_FriendlyName(
 					pObjectId, 
 					&bstFriendlyName
 				);
-				if (FAILED(hr))
-				{
-					internal_printf( " %S", STR_NOT_AVAILALBE);
-				}
-				else
-				{
-					internal_printf( " %S", bstFriendlyName);
-				}
-				//SAFE_FREE(bstFriendlyName);
+				if (FAILED(hr))	{ internal_printf( "      %S\n", STR_NOT_AVAILALBE); }
+				else { internal_printf( "      %S\n", bstFriendlyName); }
 
 				SAFE_RELEASE(pObjectId);
 			}
-
 			OLEAUT32$VariantClear(&var);
 
 			hr = pEnum->lpVtbl->Next(pEnum, 1, &var, &lFetch);
 		} // end loop through IObjectIds via enumerator
-
-		internal_printf( "\n" );
-
 		SAFE_RELEASE(pObjectId);
 	}
-	else
-	{
-		internal_printf( " %S\n", STR_NOT_AVAILALBE);
-	}
+	else { internal_printf( "      %S\n", STR_NOT_AVAILALBE); }
 
 	hr = S_OK;
 
 ExtendedKeyUsage_fail:
 
 	OLEAUT32$VariantClear(&var);
-	//SAFE_FREE(bstFriendlyName);
-	//SAFE_RELEASE(pDisp);
-	//SAFE_RELEASE(pEnum);
-	//SAFE_RELEASE(pUnk);
-	//SAFE_RELEASE(pObjectId);
-	//SAFE_RELEASE(pObjectIds);
 
 	return hr;
 }
@@ -596,7 +542,7 @@ HRESULT _adcs_get_Security(BSTR bstrDacl)
 
 	if (bstrDacl)
 	{
-		internal_printf( "  %S\n", bstrDacl);
+		internal_printf( "      %S\n", bstrDacl);
 
 		if (FALSE == ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW(
 			bstrDacl, 
@@ -642,7 +588,7 @@ HRESULT _adcs_get_Security(BSTR bstrDacl)
 			goto Security_fail;;
 		}
 
-		internal_printf( "  Owner: %S\\%S (%S)\n", swzDomainName, swzName, swzStringSid);
+		internal_printf( "      Owner: %S\\%S (%S)\n", swzDomainName, swzName, swzStringSid);
 
 		if (swzStringSid)
 		{
@@ -652,7 +598,7 @@ HRESULT _adcs_get_Security(BSTR bstrDacl)
 	}
 	else
 	{
-		internal_printf( "  %S\n", STR_NOT_AVAILALBE);
+		internal_printf( "      %S\n", STR_NOT_AVAILALBE);
 	}
 
 	hr = S_OK;
