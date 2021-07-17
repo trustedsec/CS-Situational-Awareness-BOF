@@ -6,12 +6,6 @@
 #include "certenroll.h"
 #include <stdint.h>
 
-typedef struct _WebEnrollmentServer {
-	BSTR bstrUri;
-	BSTR bstrAuthentication;
-	BSTR bstrPriority;
-	BSTR bstrRenewalOnly;
-} WebEnrollmentServer;
 
 typedef struct _Templates {
 	BSTR bstrOID;
@@ -38,59 +32,20 @@ typedef struct _Templates {
 	BSTR * lpbstrWritePropertyPrincipals;
 } Template;
 
-typedef struct _CertificateServicesServer {
-	BSTR bstrFullName;
-	BSTR bstrCAName;
-	ULONG ulWebEnrollmentServerCount;
-	WebEnrollmentServer * lpWebEnrollmentServers;
-	BSTR bstrCADNSName;
-	BSTR bstrCAShareFolder;
-	BSTR bstrCAType;
-	ULONG ulTemplateCount;
-	Template * lpTemplates;
-} CertificateServicesServer;
 
-typedef struct _ADCS {
-	ICertConfig2 * pConfig;
-	ICertRequest2 * pRequest;
-	ULONG ulCertificateServicesServerCount;
-	CertificateServicesServer * lpCertificateServicesServers;
-} ADCS;
 
-HRESULT adcs_com_Initialize(
-	ADCS* pADCS
-);
+HRESULT _adcs_get_VT_ARRAY_BSTR(VARIANT* lpvarArray);
 
-HRESULT adcs_com_Connect(
-	ADCS* pADCS	
-);
 
-HRESULT adcs_com_GetCertificateServices(
-	ADCS* pADCS
-);
+HRESULT _adcs_get_PolicyServerListManager();
+HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl);
+HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPolicyServerId);
+HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTemplate);
+HRESULT _adcs_get_ExtendedKeyUsages(VARIANT* lpvarExtendedKeyUsages);
+HRESULT _adcs_get_Security(BSTR bstrDacl);
 
-HRESULT adcs_com_GetCertificateServicesServer(
-	ADCS* pADCS,
-	ULONG ulCurrentConfigIndex
-);
+HRESULT adcs_enum_templates();
 
-HRESULT adcs_com_GetWebEnrollmentServers(
-	ADCS* pADCS,
-	ULONG ulCurrentConfigIndex
-);
-
-HRESULT adcs_com_GetTemplates(
-	ADCS* pADCS,
-	ULONG ulCurrentConfigIndex
-);
-
-HRESULT adcs_com_PrintInfo(
-	ADCS* pADCS
-);
-
-void adcs_com_Finalize(
-	ADCS* pADCS
-);
 
 void print_guid(GUID guid) {
     internal_printf(
