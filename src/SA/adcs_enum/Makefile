@@ -1,6 +1,6 @@
 BOFNAME := adcs_enum
 COMINCLUDE := -I ../../common
-LIBINCLUDE := -l oleaut32 -l ole32
+LIBINCLUDE := -l oleaut32 -l ole32 -l certcli -l crypt32
 CC_x64 := x86_64-w64-mingw32-gcc
 CC_x86 := i686-w64-mingw32-gcc
 CC=x86_64-w64-mingw32-clang
@@ -13,7 +13,7 @@ all:
 
 test:
 	$(CC_x64) entry.c $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).x64.exe
-	$(CC_x86) entry.c $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).x86.exe
+#	$(CC_x86) entry.c $(COMINCLUDE) $(LIBINCLUDE) -o $(BOFNAME).x86.exe
 
 scanbuild:
 	$(CC) entry.c -o $(BOFNAME).scanbuild.exe $(COMINCLUDE) $(LIBINCLUDE)
