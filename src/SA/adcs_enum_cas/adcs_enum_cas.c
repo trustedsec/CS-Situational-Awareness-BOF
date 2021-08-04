@@ -39,6 +39,26 @@
 #define STR_TRUE L"True"
 #define STR_FALSE L"False"
 
+#define CHECK_RETURN_FALSE( function, return_value, result) \
+	if (FALSE == return_value) \
+	{ \
+		result = KERNEL32$GetLastError(); \
+		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
+		goto fail; \
+	}
+#define CHECK_RETURN_NULL( function, return_value, result) \
+	if (NULL == return_value) \
+	{ \
+		result = E_INVALIDARG; \
+		BeaconPrintf(CALLBACK_ERROR, "%s failed\n", function); \
+		goto fail; \
+	}
+#define CHECK_RETURN_FAIL( function, result ) \
+	if (FAILED(result)) \
+	{ \
+		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
+		goto fail; \
+	}
 #define SAFE_DESTROY( arraypointer )	\
 	if ( (arraypointer) != NULL )	\
 	{	\
@@ -57,6 +77,24 @@
 		OLEAUT32$SysFreeString(string_ptr);	\
 		(string_ptr) = NULL;	\
 	}
+#define SAFE_LOCAL_FREE( local_ptr ) \
+	if (local_ptr) \
+	{ \
+		KERNEL32$LocalFree(local_ptr); \
+		local_ptr = NULL; \
+	}
+#define SAFE_INT_FREE( int_ptr ) \
+	if (int_ptr) \
+	{ \
+		intFree(int_ptr); \
+		int_ptr = NULL; \
+	}
+#define SAFE_CERTFREECERTIFICATECHAIN( cert_chain_context ) \
+	if(cert_chain_context) \
+	{ \
+		CRYPT32$CertFreeCertificateChain(cert_chain_context); \
+		cert_chain_context = NULL; \
+	}	
 
 
 DEFINE_MY_GUID(CertificateEnrollment,0x0e10c968,0x78fb,0x11d2,0x90,0xd4,0x00,0xc0,0x4f,0x79,0xdc,0x55);
@@ -75,69 +113,30 @@ HRESULT _adcs_get_PolicyServerListManager()
 	IID		IID_IX509PolicyServerListManager = { 0x884e204b, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 
 	SAFE_RELEASE(pPolicyServerListManager);
-	hr = OLE32$CoCreateInstance(
-		&CLSID_IX509PolicyServerListManager,
-		0,
-		CLSCTX_INPROC_SERVER,
-		&IID_IX509PolicyServerListManager,
-		(LPVOID *)&(pPolicyServerListManager)
-		
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_IX509PolicyServerListManager, IID_IX509PolicyServerListManager) failed: 0x%08lx\n", hr);
-		goto PolicyServerListManager_fail;
-	}
+	hr = OLE32$CoCreateInstance(&CLSID_IX509PolicyServerListManager, 0,	CLSCTX_INPROC_SERVER, &IID_IX509PolicyServerListManager, (LPVOID *)&(pPolicyServerListManager));
+	CHECK_RETURN_FAIL("CoCreateInstance(CLSID_IX509PolicyServerListManager)", hr);
 
-	hr = pPolicyServerListManager->lpVtbl->Initialize(
-		pPolicyServerListManager,
-		ContextUser,
-		PsfLocationGroupPolicy | PsfLocationRegistry
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "Initialize(ContextUser, PsfLocationGroupPolicy | PsfLocationRegistry) failed: 0x%08lx\n", hr);
-		goto PolicyServerListManager_fail;
-	}
+	hr = pPolicyServerListManager->lpVtbl->Initialize(pPolicyServerListManager, ContextUser, PsfLocationGroupPolicy | PsfLocationRegistry);
+	CHECK_RETURN_FAIL("pPolicyServerListManager->lpVtbl->Initialize()", hr);
 
-	hr = pPolicyServerListManager->lpVtbl->get_Count(
-		pPolicyServerListManager,
-		&lPolicyServerUrlCount
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "get_Count() failed: 0x%08lx\n", hr);
-		goto PolicyServerListManager_fail;
-	}
+	hr = pPolicyServerListManager->lpVtbl->get_Count(pPolicyServerListManager, &lPolicyServerUrlCount);
+	CHECK_RETURN_FAIL("pPolicyServerListManager->lpVtbl->get_Count()", hr);
 
-	internal_printf( "\n[*] Found %ld policy servers\n", lPolicyServerUrlCount);
+	internal_printf("\n[*] Found %ld policy servers\n", lPolicyServerUrlCount);
 	for(LONG lPolicyServerIndex=0; lPolicyServerIndex<lPolicyServerUrlCount; lPolicyServerIndex++)
 	{
 		SAFE_RELEASE(pPolicyServerUrl);
-		//internal_printf( "pPolicyServerListManager->lpVtbl->get_ItemByIndex()\n");
-		hr = pPolicyServerListManager->lpVtbl->get_ItemByIndex(
-			pPolicyServerListManager,
-			lPolicyServerIndex,
-			&pPolicyServerUrl
-		);
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "get_ItemByIndex() failed: 0x%08lx\n", hr);
-			goto PolicyServerListManager_fail;
-		}
+		hr = pPolicyServerListManager->lpVtbl->get_ItemByIndex(pPolicyServerListManager, lPolicyServerIndex, &pPolicyServerUrl);
+		CHECK_RETURN_FAIL("pPolicyServerListManager->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_PolicyServerUrl(pPolicyServerUrl);
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "_adcs_get_PolicyServerUrl(pPolicyServerUrl) failed: 0x%08lx\n", hr);
-			goto PolicyServerListManager_fail;
-		}
+		CHECK_RETURN_FAIL("_adcs_get_PolicyServerUrl()", hr);
 
 	} // end for loop through IX509PolicyServerUrl
 
 	hr = S_OK;
 
-PolicyServerListManager_fail:
+fail:
 
 	SAFE_RELEASE(pPolicyServerUrl);
 	SAFE_RELEASE(pPolicyServerListManager);
@@ -153,49 +152,22 @@ HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl)
 	BSTR bstrPolicyServerFriendlyName = NULL;
 	BSTR bstrPolicyServerId = NULL;
 
-	hr = pPolicyServerUrl->lpVtbl->get_Url(
-		pPolicyServerUrl,
-		&bstrPolicyServerUrl
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "get_Url() failed: 0x%08lx\n", hr);
-		goto PolicyServerUrl_fail;
-	}
+	hr = pPolicyServerUrl->lpVtbl->get_Url(pPolicyServerUrl, &bstrPolicyServerUrl);
+	CHECK_RETURN_FAIL("pPolicyServerUrl->lpVtbl->get_Url()", hr);
 
-	hr = pPolicyServerUrl->lpVtbl->GetStringProperty(
-		pPolicyServerUrl,
-		PsPolicyID,
-		&bstrPolicyServerId
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "GetStringProperty(PsPolicyID) failed: 0x%08lx\n", hr);
-		goto PolicyServerUrl_fail;
-	}
+	hr = pPolicyServerUrl->lpVtbl->GetStringProperty(pPolicyServerUrl, PsPolicyID, &bstrPolicyServerId);
+	CHECK_RETURN_FAIL("pPolicyServerUrl->lpVtbl->GetStringProperty(PsPolicyID)", hr);
 
-	hr = pPolicyServerUrl->lpVtbl->GetStringProperty(
-		pPolicyServerUrl,
-		PsFriendlyName,
-		&bstrPolicyServerFriendlyName
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "GetStringProperty(PsFriendlyName) failed: 0x%08lx\n", hr);
-		goto PolicyServerUrl_fail;
-	}
-	internal_printf( "\n[*] Enumerating enrollment policy servers for %S...\n", bstrPolicyServerFriendlyName);
+	hr = pPolicyServerUrl->lpVtbl->GetStringProperty(pPolicyServerUrl, PsFriendlyName, &bstrPolicyServerFriendlyName);
+	CHECK_RETURN_FAIL("pPolicyServerUrl->lpVtbl->GetStringProperty(PsFriendlyName)", hr);
+	internal_printf("\n[*] Enumerating enrollment policy servers for %S...\n", bstrPolicyServerFriendlyName);
 
 	hr = _adcs_get_EnrollmentPolicyServer(bstrPolicyServerUrl, bstrPolicyServerId);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "_adcs_get_EnrollmentPolicyServer(bstrPolicyServerUrl, bstrPolicyServerId) failed: 0x%08lx\n", hr);
-		goto PolicyServerUrl_fail;
-	}
+	CHECK_RETURN_FAIL("_adcs_get_EnrollmentPolicyServer()", hr);
 
 	hr = S_OK;
 
-PolicyServerUrl_fail:
+fail:
 
 	SAFE_FREE(bstrPolicyServerUrl);
 	SAFE_FREE(bstrPolicyServerFriendlyName);
@@ -217,91 +189,36 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 	IID		IID_IX509EnrollmentPolicyServer = { 0x13b79026, 0x2181, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 
 	SAFE_RELEASE(pEnrollmentPolicyServer);
-	hr = OLE32$CoCreateInstance(
-		&CLSID_CX509EnrollmentPolicyActiveDirectory,
-		0,
-		CLSCTX_INPROC_SERVER,
-		&IID_IX509EnrollmentPolicyServer,
-		(LPVOID *)&(pEnrollmentPolicyServer)
-		
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoCreateInstance(CLSID_CX509EnrollmentPolicyActiveDirectory, IID_IX509EnrollmentPolicyServer) failed: 0x%08lx\n", hr);
-		goto EnrollmentPolicyServer_fail;
-	}
+	hr = OLE32$CoCreateInstance( &CLSID_CX509EnrollmentPolicyActiveDirectory, 0, CLSCTX_INPROC_SERVER, &IID_IX509EnrollmentPolicyServer, (LPVOID *)&(pEnrollmentPolicyServer));
+	CHECK_RETURN_FAIL("CoCreateInstance()", hr);
 
-	hr = pEnrollmentPolicyServer->lpVtbl->Initialize(
-		pEnrollmentPolicyServer,
-		bstrPolicyServerUrl,
-		bstrPolicyServerId,
-		X509AuthKerberos,
-		TRUE,
-		ContextUser
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pEnrollmentPolicyServer->Initialize(bstrPolicyServerUrl, bstrPolicyServerId, X509AuthKerberos, TRUE, ContextUser) failed: 0x%08lx\n", hr);
-		goto EnrollmentPolicyServer_fail;
-	}
+	hr = pEnrollmentPolicyServer->lpVtbl->Initialize(pEnrollmentPolicyServer, bstrPolicyServerUrl, bstrPolicyServerId, X509AuthKerberos, TRUE, ContextUser);
+	CHECK_RETURN_FAIL("pEnrollmentPolicyServer->lpVtbl->Initialize()", hr);
 
-	hr = pEnrollmentPolicyServer->lpVtbl->LoadPolicy(
-		pEnrollmentPolicyServer,
-		LoadOptionReload
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pEnrollmentPolicyServer->lpVtbl->LoadPolicy(LoadOptionReload) failed: 0x%08lx\n", hr);
-		goto EnrollmentPolicyServer_fail;
-	}
+	hr = pEnrollmentPolicyServer->lpVtbl->LoadPolicy(pEnrollmentPolicyServer, LoadOptionReload);
+	CHECK_RETURN_FAIL("pEnrollmentPolicyServer->lpVtbl->LoadPolicy()", hr);
 
 	SAFE_RELEASE(pCAs);
-	hr = pEnrollmentPolicyServer->lpVtbl->GetCAs(
-		pEnrollmentPolicyServer,
-		&pCAs
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "GetCAs() failed: 0x%08lx\n", hr);
-		goto EnrollmentPolicyServer_fail;
-	}
+	hr = pEnrollmentPolicyServer->lpVtbl->GetCAs(pEnrollmentPolicyServer, &pCAs);
+	CHECK_RETURN_FAIL("pEnrollmentPolicyServer->lpVtbl->GetCAs()", hr);
 
-	hr = pCAs->lpVtbl->get_Count(
-		pCAs,
-		&lCAsCount
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCAs->lpVtbl->get_Count() failed: 0x%08lx\n", hr);
-		goto EnrollmentPolicyServer_fail;
-	}
-	internal_printf( "\n[*] Found %ld CAs\n", lCAsCount);
+	hr = pCAs->lpVtbl->get_Count(pCAs, &lCAsCount);
+	CHECK_RETURN_FAIL("pCAs->lpVtbl->get_Count()", hr);
+	internal_printf("\n[*] Found %ld CAs\n", lCAsCount);
 
 	for(LONG lCAsIndex=0; lCAsIndex<lCAsCount; lCAsIndex++)
 	{
 		SAFE_RELEASE(pCertificateAuthority);
-		hr = pCAs->lpVtbl->get_ItemByIndex(
-			pCAs,
-			lCAsIndex,
-			&pCertificateAuthority
-		);
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "pCAs->lpVtbl->get_ItemByIndex() failed: 0x%08lx\n", hr);
-			goto EnrollmentPolicyServer_fail;
-		}
+		hr = pCAs->lpVtbl->get_ItemByIndex(pCAs, lCAsIndex, &pCertificateAuthority);
+		CHECK_RETURN_FAIL("pCAs->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_CertificationAuthority(pCertificateAuthority);
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "_adcs_get_CertificationAuthority(pCertificateAuthority) failed: 0x%08lx\n", hr);
-			goto EnrollmentPolicyServer_fail;
-		}
+		CHECK_RETURN_FAIL("_adcs_get_CertificationAuthority()", hr);
 	} // end for loop through ICertificationAuthority
 
 	hr = S_OK;
 
-EnrollmentPolicyServer_fail:
+fail:
 
 	SAFE_RELEASE(pCertificateAuthority);
 	SAFE_RELEASE(pCAs);
@@ -318,137 +235,60 @@ HRESULT _adcs_get_CertificationAuthority(ICertificationAuthority * pCertificateA
 
 	OLEAUT32$VariantInit(&varProperty);
 
-	internal_printf( "\n" );
+	OLEAUT32$VariantClear(&varProperty);
+	pCertificateAuthority->lpVtbl->get_Property(pCertificateAuthority, CAPropCommonName, &varProperty);
+	CHECK_RETURN_FAIL("pCertificateAuthority->lpVtbl->get_Property(CAPropCommonName)", hr);
+	internal_printf("\n[*] Listing info about the Enterprise CA '%S'\n", varProperty.bstrVal);
+	internal_printf("    Enterprise CA Name       : %S\n", varProperty.bstrVal);
 
 	OLEAUT32$VariantClear(&varProperty);
-	pCertificateAuthority->lpVtbl->get_Property(
-		pCertificateAuthority,
-		CAPropCommonName,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCertificateAuthority->lpVtbl->get_Property(CAPropCommonName) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-	internal_printf( "    Enterprise CA Name: %S\n", varProperty.bstrVal);
+	pCertificateAuthority->lpVtbl->get_Property(pCertificateAuthority, CAPropDNSName, &varProperty);
+	CHECK_RETURN_FAIL("pCertificateAuthority->lpVtbl->get_Property(CAPropDNSName)", hr);
+	internal_printf("    DNS Hostname             : %S\n", varProperty.bstrVal);
 
 	OLEAUT32$VariantClear(&varProperty);
-	pCertificateAuthority->lpVtbl->get_Property(
-		pCertificateAuthority,
-		CAPropDNSName,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCertificateAuthority->lpVtbl->get_Property(CAPropDNSName) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-	internal_printf( "    DNS Hostname: %S\n", varProperty.bstrVal);
-
-	OLEAUT32$VariantClear(&varProperty);
-	pCertificateAuthority->lpVtbl->get_Property(
-		pCertificateAuthority,
-		CAPropDistinguishedName,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCertificateAuthority->lpVtbl->get_Property(CAPropDistinguishedName) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
+	pCertificateAuthority->lpVtbl->get_Property(pCertificateAuthority, CAPropDistinguishedName,	&varProperty);
+	CHECK_RETURN_FAIL("pCertificateAuthority->lpVtbl->get_Property(CAPropDistinguishedName)", hr);
 	if (varProperty.pdispVal)
 	{
 		BSTR bstrName = NULL;
 		IX500DistinguishedName * pDistinguishedName = (IX500DistinguishedName*)varProperty.pdispVal;
 		hr = pDistinguishedName->lpVtbl->get_Name(pDistinguishedName, &bstrName);
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "pDistinguishedName->lpVtbl->get_Name(pDistinguishedName, &bstrName) failed: 0x%08lx\n", hr);
-			goto CertificationAuthority_fail;
-		}
-		internal_printf( "    Distinguished Name: %S\n", bstrName);
+		CHECK_RETURN_FAIL("pDistinguishedName->lpVtbl->get_Name()", hr);
+		internal_printf("    Distinguished Name       : %S\n", bstrName);
 	}
 
 	OLEAUT32$VariantClear(&varProperty);
-	pCertificateAuthority->lpVtbl->get_Property(
-		pCertificateAuthority,
-		CAPropCertificate,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCertificateAuthority->lpVtbl->get_Property(CAPropCertificate) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-	internal_printf( "    Certificate:\n");
+	pCertificateAuthority->lpVtbl->get_Property(pCertificateAuthority, CAPropCertificate, &varProperty);
+	CHECK_RETURN_FAIL("pCertificateAuthority->lpVtbl->get_Property(CAPropCertificate)", hr);
+	internal_printf("    CA Certificate           :\n");
 	hr = _adcs_get_Certificate(&varProperty);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "_adcs_get_Certificate(&varProperty) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
+	CHECK_RETURN_FAIL("_adcs_get_Certificate()", hr);
 	
 	OLEAUT32$VariantClear(&varProperty);
-	pCertificateAuthority->lpVtbl->get_Property(
-		pCertificateAuthority,
-		CAPropWebServers,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCertificateAuthority->lpVtbl->get_Property(CAPropWebServers) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-	internal_printf( "    Web Servers:\n");
-	hr = _adcs_get_WebServers(&varProperty);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "_adcs_get_WebServers(&varProperty) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-
-	OLEAUT32$VariantClear(&varProperty);
-	hr = pCertificateAuthority->lpVtbl->get_Property(
-		pCertificateAuthority,
-		CAPropCertificateTypes,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCertificateAuthority->lpVtbl->get_Property(CAPropCertificateTypes) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-	internal_printf( "    Templates:\n");
-	hr = _adcs_get_CertificateTypes(&varProperty);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "_adcs_get_CertificateTypes(&varProperty) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-
-	OLEAUT32$VariantClear(&varProperty);
-	hr = pCertificateAuthority->lpVtbl->get_Property(
-		pCertificateAuthority,
-		CAPropSecurity,
-		&varProperty
-	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "pCertificateAuthority->lpVtbl->get_Property(CAPropSecurity) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-	internal_printf( "    Permissions:\n");
+	hr = pCertificateAuthority->lpVtbl->get_Property(pCertificateAuthority, CAPropSecurity, &varProperty);
+	CHECK_RETURN_FAIL("pCertificateAuthority->lpVtbl->get_Property(CAPropSecurity)", hr);
+	internal_printf("    CA Permissions           :\n");
 	hr = _adcs_get_Security(varProperty.bstrVal);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "_adcs_get_Security(varProperty.bstrVal) failed: 0x%08lx\n", hr);
-		goto CertificationAuthority_fail;
-	}
-	
+	CHECK_RETURN_FAIL("_adcs_get_Security()", hr);
+
+	OLEAUT32$VariantClear(&varProperty);
+	pCertificateAuthority->lpVtbl->get_Property(pCertificateAuthority, CAPropWebServers, &varProperty);
+	CHECK_RETURN_FAIL("pCertificateAuthority->lpVtbl->get_Property(CAPropWebServers)", hr);
+	internal_printf("    Web Servers              :\n");
+	hr = _adcs_get_WebServers(&varProperty);
+	CHECK_RETURN_FAIL("_adcs_get_WebServers()", hr);
+
+	OLEAUT32$VariantClear(&varProperty);
+	hr = pCertificateAuthority->lpVtbl->get_Property(pCertificateAuthority, CAPropCertificateTypes, &varProperty);
+	CHECK_RETURN_FAIL("pCertificateAuthority->lpVtbl->get_Property(CAPropCertificateTypes)", hr);
+	internal_printf("    Templates                :\n");
+	hr = _adcs_get_CertificateTypes(&varProperty);
+	CHECK_RETURN_FAIL("_adcs_get_CertificateTypes()", hr);
+
 	hr = S_OK;
 
-CertificationAuthority_fail:
+fail:
 
 	OLEAUT32$VariantClear(&varProperty);
 
@@ -461,45 +301,124 @@ HRESULT _adcs_get_Certificate(VARIANT* lpvarCertifcate)
 	HRESULT hr = S_OK;
 	LPBYTE lpCertificate = NULL;
 	ULONG ulCertificateSize = 0;
+	PCCERT_CONTEXT  pCert = NULL; 
+	BOOL bReturn = TRUE;
+	DWORD dwStrType = CERT_X500_NAME_STR;
+	LPWSTR swzNameString = NULL;
+	DWORD cchNameString = 0;
+	PBYTE lpThumbprint = NULL;
+	DWORD cThumbprint = 0;
+	SYSTEMTIME systemTime;
+	CERT_CHAIN_PARA chainPara;
+	PCCERT_CHAIN_CONTEXT pCertChainContext = NULL;
 
+	// check buffer
+	if (NULL == lpvarCertifcate->parray)
+	{
+		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		goto fail;
+	}
 		
-
-	if (lpvarCertifcate->parray)
+	// Get a certificate context
+	ulCertificateSize = lpvarCertifcate->parray->rgsabound->cElements;
+	hr = OLEAUT32$SafeArrayAccessData( lpvarCertifcate->parray, (void**)(&lpCertificate) );
+	CHECK_RETURN_FAIL("OLEAUT32$SafeArrayAccessData", hr);
+	pCert = CRYPT32$CertCreateCertificateContext( 1, lpCertificate, ulCertificateSize );
+	hr = OLEAUT32$SafeArrayUnaccessData( lpvarCertifcate->parray );
+	CHECK_RETURN_FAIL("OLEAUT32$SafeArrayUnaccessData", hr);
+	CHECK_RETURN_NULL("CertCreateCertificateContext()", pCert, hr);
+	
+	// subject name
+	cchNameString = CRYPT32$CertGetNameStringW( pCert, CERT_NAME_RDN_TYPE, 0, &dwStrType, swzNameString, cchNameString );
+	swzNameString = intAlloc(cchNameString*sizeof(WCHAR));
+	CHECK_RETURN_NULL("intAlloc()", swzNameString, hr);
+	if (1 == CRYPT32$CertGetNameStringW( pCert, CERT_NAME_RDN_TYPE, 0, &dwStrType, swzNameString, cchNameString ))
 	{
-		ulCertificateSize = lpvarCertifcate->parray->rgsabound->cElements-1;
-		internal_printf( "      ulCertificateSize: %lu\n", ulCertificateSize);
+		hr = E_UNEXPECTED;
+		BeaconPrintf(CALLBACK_ERROR, "CertGetNameStringW failed: 0x%08lx\n", hr);
+		goto fail;
+	}
+	internal_printf("      Subject Name           : %S\n", swzNameString);
+	SAFE_INT_FREE(swzNameString);
 
-		hr = OLEAUT32$SafeArrayAccessData( lpvarCertifcate->parray, (void**)(&lpCertificate) );
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayAccessData( lpvarCertifcate->parray, &lpvarCertifcate ) failed: 0x%08lx\n", hr);
-			goto Certificate_fail;
-		}
+	// thumbprint
+	CRYPT32$CertGetCertificateContextProperty( pCert, CERT_SHA1_HASH_PROP_ID, lpThumbprint, &cThumbprint );
+	lpThumbprint = intAlloc(cThumbprint);
+	CHECK_RETURN_NULL("intAlloc()", lpThumbprint, hr);
+	bReturn = CRYPT32$CertGetCertificateContextProperty( pCert, CERT_SHA1_HASH_PROP_ID, lpThumbprint, &cThumbprint );
+	CHECK_RETURN_FALSE("CertGetCertificateContextProperty(CERT_SHA1_HASH_PROP_ID)", bReturn, hr);
+	internal_printf("      Thumbprint             : ");
+	for(DWORD i=0; i<cThumbprint; i++)
+	{
+		internal_printf("%02x", lpThumbprint[i]);
+	}
+	internal_printf("\n");
+	SAFE_INT_FREE(lpThumbprint);
 
-		internal_printf( "      lpCertificate: %p", lpCertificate);
-		for(ULONG i=0; i<ulCertificateSize; i++)
+	// serial number
+	internal_printf("      Serial Number          : ");
+	for(DWORD i=0; i<pCert->pCertInfo->SerialNumber.cbData; i++)
+	{
+		internal_printf("%02x", pCert->pCertInfo->SerialNumber.pbData[i]);
+	}
+	internal_printf("\n");
+
+	// start date
+	MSVCRT$memset(&systemTime, 0, sizeof(SYSTEMTIME));
+	KERNEL32$FileTimeToSystemTime(&(pCert->pCertInfo->NotBefore), &systemTime);
+	internal_printf("      Start Date             : %hu/%hu/%hu %02hu:%02hu:%02hu\n", systemTime.wMonth, systemTime.wDay, systemTime.wYear, systemTime.wHour, systemTime.wMinute, systemTime.wSecond);
+
+	// end date
+	MSVCRT$memset(&systemTime, 0, sizeof(SYSTEMTIME));
+	KERNEL32$FileTimeToSystemTime(&(pCert->pCertInfo->NotAfter), &systemTime);
+	internal_printf("      End Date               : %hu/%hu/%hu %02hu:%02hu:%02hu\n", systemTime.wMonth, systemTime.wDay, systemTime.wYear, systemTime.wHour, systemTime.wMinute, systemTime.wSecond);
+
+	// chain
+	chainPara.cbSize = sizeof(CERT_CHAIN_PARA);
+	chainPara.RequestedUsage.dwType = USAGE_MATCH_TYPE_AND;
+	chainPara.RequestedUsage.Usage.cUsageIdentifier = 0;
+	chainPara.RequestedUsage.Usage.rgpszUsageIdentifier = NULL;
+	bReturn = CRYPT32$CertGetCertificateChain( NULL, pCert, NULL, NULL, &chainPara, 0, NULL, &pCertChainContext );
+	CHECK_RETURN_FALSE("CertGetCertificateChain()", bReturn, hr);
+	internal_printf("      Chain                  :");
+	for(DWORD i=0; i<pCertChainContext->cChain; i++)
+	{
+		for(DWORD j=0; j<pCertChainContext->rgpChain[i]->cElement; j++)
 		{
-			if(0==i%30)
-				internal_printf("\n        ");
-			internal_printf( "%02x ", lpCertificate[i]);
-		}
+			PCCERT_CONTEXT pChainCertContext = pCertChainContext->rgpChain[i]->rgpElement[j]->pCertContext;
+
+			// subject name
+			cchNameString = CRYPT32$CertGetNameStringW( pChainCertContext, CERT_NAME_RDN_TYPE, 0, &dwStrType, swzNameString, cchNameString );
+			swzNameString = intAlloc(cchNameString*sizeof(WCHAR));
+			CHECK_RETURN_NULL("intAlloc()", swzNameString, hr);
+			if (1 == CRYPT32$CertGetNameStringW( pChainCertContext, CERT_NAME_RDN_TYPE, 0, &dwStrType, swzNameString, cchNameString ))
+			{
+				hr = E_UNEXPECTED;
+				BeaconPrintf(CALLBACK_ERROR, "CertGetNameStringW failed: 0x%08lx\n", hr);
+				goto fail;
+			}
+			if (j!=0) { internal_printf(" >>"); }
+			internal_printf(" %S", swzNameString);
+			SAFE_INT_FREE(swzNameString);
+		} // end for loop through PCERT_CHAIN_ELEMENT
 		internal_printf("\n");
-
-		hr = OLEAUT32$SafeArrayUnaccessData( lpvarCertifcate->parray );
-		if (FAILED(hr))
-		{
-			BeaconPrintf(CALLBACK_ERROR, "OLEAUT32$SafeArrayUnaccessData( lpvarCertifcate->parray ) failed: 0x%08lx\n", hr);
-			goto Certificate_fail;
-		}
-	}
-	else
-	{
-		internal_printf( "      %S\n", STR_NOT_AVAILALBE);
-	}
+	} // end for loop through PCERT_SIMPLE_CHAIN
 
 	hr = S_OK;
 
-Certificate_fail:
+fail:
+
+	SAFE_CERTFREECERTIFICATECHAIN(pCertChainContext);
+
+	SAFE_INT_FREE(swzNameString);
+
+	SAFE_INT_FREE(lpThumbprint);
+
+	if (pCert)
+	{
+		CRYPT32$CertFreeCertificateContext(pCert);
+		pCert = NULL;
+	}
 
 	return hr;
 }
@@ -512,68 +431,54 @@ HRESULT _adcs_get_WebServers(VARIANT* lpvarWebServers)
 	BSTR bstrWebServer = NULL;
 	LPWSTR swzTokenize = NULL;
 
-	if (lpvarWebServers->parray)
+	if ( NULL == lpvarWebServers->parray)
 	{
-		hr = OLEAUT32$SafeArrayGetElement(lpvarWebServers->parray, &lItemIdx, &bstrWebServer);
-		while(SUCCEEDED(hr))
-		{
-			ULONG dwWebServerCount = 0;
-			LPWSTR swzToken = NULL;
-			LPWSTR swzNextToken = NULL;
-			UINT dwTokenizeLength = OLEAUT32$SysStringLen(bstrWebServer);
-			swzTokenize = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(WCHAR)*(dwTokenizeLength+1));
-			if (NULL == swzTokenize)
-			{
-				hr = E_OUTOFMEMORY;
-				BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx\n", hr);
-				goto WebServers_fail;
-			}
-			MSVCRT$wcscpy(swzTokenize, bstrWebServer);
-
-			// Get the number of entries in the array
-			swzToken = MSVCRT$wcstok_s(swzTokenize, L"\n", &swzNextToken);
-			dwWebServerCount = MSVCRT$wcstoul(swzToken, NULL, 10);
-			for(ULONG ulWebEnrollmentServerIndex=0; ulWebEnrollmentServerIndex<dwWebServerCount; ulWebEnrollmentServerIndex++)
-			{
-				// Get the authentication type
-				swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
-				if (NULL == swzToken) {	break; }
-				// Get the Priority
-				swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
-				if (NULL == swzToken) {	break; }
-				// Get the Uri
-				swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
-				if (NULL == swzToken) {	break; }
-				internal_printf( "      %S\n", swzToken);
-				// Get the RenewalOnly flag
-				swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
-				if (NULL == swzToken) {	break; }
-			}
-
-			if(swzTokenize)
-			{
-				KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
-				swzTokenize = NULL;
-			}
-
-			++lItemIdx;
-			hr = OLEAUT32$SafeArrayGetElement(lpvarWebServers->parray, &lItemIdx, &bstrWebServer);	
-		}
+		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		goto fail;
 	}
-	else
+	
+	hr = OLEAUT32$SafeArrayGetElement(lpvarWebServers->parray, &lItemIdx, &bstrWebServer);
+	while(SUCCEEDED(hr))
 	{
-		internal_printf( "      %S\n", STR_NOT_AVAILALBE);
+		ULONG dwWebServerCount = 0;
+		LPWSTR swzToken = NULL;
+		LPWSTR swzNextToken = NULL;
+		UINT dwTokenizeLength = OLEAUT32$SysStringLen(bstrWebServer);
+		swzTokenize = (LPWSTR)intAlloc(sizeof(WCHAR)*(dwTokenizeLength+1));
+		CHECK_RETURN_NULL("intAlloc()", swzTokenize, hr);
+		MSVCRT$wcscpy(swzTokenize, bstrWebServer);
+
+		// Get the number of entries in the array
+		swzToken = MSVCRT$wcstok_s(swzTokenize, L"\n", &swzNextToken);
+		dwWebServerCount = MSVCRT$wcstoul(swzToken, NULL, 10);
+		for(ULONG ulWebEnrollmentServerIndex=0; ulWebEnrollmentServerIndex<dwWebServerCount; ulWebEnrollmentServerIndex++)
+		{
+			// Get the authentication type
+			swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+			if (NULL == swzToken) {	break; }
+			// Get the Priority
+			swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+			if (NULL == swzToken) {	break; }
+			// Get the Uri
+			swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+			if (NULL == swzToken) {	break; }
+			internal_printf("      %S\n", swzToken);
+			// Get the RenewalOnly flag
+			swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
+			if (NULL == swzToken) {	break; }
+		}
+
+		SAFE_INT_FREE(swzTokenize);
+
+		++lItemIdx;
+		hr = OLEAUT32$SafeArrayGetElement(lpvarWebServers->parray, &lItemIdx, &bstrWebServer);	
 	}
 
 	hr = S_OK;
 
-WebServers_fail:
+fail:
 
-	if(swzTokenize)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, swzTokenize);
-		swzTokenize = NULL;
-	}
+	SAFE_INT_FREE(swzTokenize);
 
 	return hr;
 }
@@ -582,94 +487,116 @@ WebServers_fail:
 HRESULT _adcs_get_Security(BSTR bstrDacl)
 {
 	HRESULT hr = S_OK;
-
-	PISECURITY_DESCRIPTOR_RELATIVE pSecurityDescriptor = NULL;
-	ULONG ulSecurityDescriptorSize = 0;
+	BOOL bReturn = TRUE;
+	PSID pOwner = NULL;
+	BOOL bOwnerDefaulted = TRUE;
 	LPWSTR swzStringSid = NULL;
 	WCHAR swzName[MAX_PATH];
 	DWORD cchName = MAX_PATH;
 	WCHAR swzDomainName[MAX_PATH];
 	DWORD cchDomainName = MAX_PATH;
-	WCHAR swzFullName[MAX_PATH*2];
-	DWORD cchFullName = MAX_PATH*2;
+	BOOL bDaclPresent = TRUE;
+	PACL pDacl = NULL;
+	BOOL bDaclDefaulted = TRUE;
+	ACL_SIZE_INFORMATION aclSizeInformation;
 	SID_NAME_USE sidNameUse;
+	PSECURITY_DESCRIPTOR pSD = NULL;
+	ULONG ulSDSize = 0;
 
-	if (bstrDacl)
+	// Get the security descriptor
+	if (NULL == bstrDacl)
 	{
-		internal_printf( "      %S\n", bstrDacl);
-
-		if (FALSE == ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW(
-			bstrDacl, 
-			SDDL_REVISION_1, 
-			(PSECURITY_DESCRIPTOR)(&pSecurityDescriptor), 
-			&ulSecurityDescriptorSize
-			)
-		)
-		{
-			hr = KERNEL32$GetLastError();
-			BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW() failed: 0x%08lx\n", hr);
-			goto Security_fail;
-		}
-
-		if (FALSE == ADVAPI32$ConvertSidToStringSidW(
-			(PSID)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Owner),
-			&swzStringSid
-		)
-		)
-		{
-			hr = KERNEL32$GetLastError();
-			BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$ConvertSidToStringSidW() failed: 0x%08lx\n", hr);
-			goto Security_fail;
-		}
-		
-		cchName = MAX_PATH;
-		MSVCRT$memset(swzName, 0, cchName*sizeof(WCHAR));
-		cchDomainName = MAX_PATH;
-		MSVCRT$memset(swzDomainName, 0, cchDomainName*sizeof(WCHAR));
-		if (FALSE == ADVAPI32$LookupAccountSidW(
-				NULL,
-				(PSID)((LPBYTE)pSecurityDescriptor + pSecurityDescriptor->Owner),
-				swzName,
-				&cchName,
-				swzDomainName,
-				&cchDomainName,
-				&sidNameUse
-			)
-		)
-		{
-			hr = KERNEL32$GetLastError();
-			BeaconPrintf(CALLBACK_ERROR, "ADVAPI32$LookupAccountSidW() failed: 0x%08lx\n", hr);
-			goto Security_fail;;
-		}
-
-		internal_printf( "      Owner: %S\\%S (%S)\n", swzDomainName, swzName, swzStringSid);
-
-		if (swzStringSid)
-		{
-			KERNEL32$LocalFree(swzStringSid);
-			swzStringSid = NULL;
-		}
+		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		goto fail;
 	}
-	else
+	bReturn = ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW(bstrDacl, SDDL_REVISION_1, (PSECURITY_DESCRIPTOR)(&pSD), &ulSDSize);
+	CHECK_RETURN_FALSE("ConvertStringSecurityDescriptorToSecurityDescriptorW()", bReturn, hr);
+
+	// Get the owner
+	bReturn = ADVAPI32$GetSecurityDescriptorOwner(pSD, &pOwner, &bOwnerDefaulted);
+	CHECK_RETURN_FALSE("GetSecurityDescriptorOwner()", bReturn, hr);
+	internal_printf("      Owner                  : ");
+	cchName = MAX_PATH;
+	MSVCRT$memset(swzName, 0, cchName*sizeof(WCHAR));
+	cchDomainName = MAX_PATH;
+	MSVCRT$memset(swzDomainName, 0, cchDomainName*sizeof(WCHAR));
+	if (ADVAPI32$LookupAccountSidW(	NULL, pOwner, swzName, &cchName, swzDomainName, &cchDomainName, &sidNameUse )) { internal_printf("%S\\%S", swzDomainName, swzName); }
+	else { internal_printf("N/A"); }
+
+	// Get the owner's SID
+	if (ADVAPI32$ConvertSidToStringSidW(pOwner, &swzStringSid)) { internal_printf("\n                               %S\n", swzStringSid); }
+	else { internal_printf("\n                               N/A\n"); }
+	SAFE_LOCAL_FREE(swzStringSid);
+
+	// Get the DACL
+	bReturn = ADVAPI32$GetSecurityDescriptorDacl(pSD, &bDaclPresent, &pDacl, &bDaclDefaulted);
+	CHECK_RETURN_FALSE("GetSecurityDescriptorDacl()", bReturn, hr);
+	internal_printf("      Access Rights          :\n");
+	if (FALSE == bDaclPresent) { internal_printf("          N/A\n"); goto fail; }
+
+	// Loop through the ACEs in the ACL
+	if ( ADVAPI32$GetAclInformation( pDacl, &aclSizeInformation, sizeof(aclSizeInformation), AclSizeInformation ) )
 	{
-		internal_printf( "      %S\n", STR_NOT_AVAILALBE);
-	}
+		for(DWORD dwAceIndex=0; dwAceIndex<aclSizeInformation.AceCount; dwAceIndex++)
+		{
+			ACE_HEADER * pAceHeader = NULL;
+			ACCESS_ALLOWED_ACE* pAce = NULL;
+			ACCESS_ALLOWED_OBJECT_ACE* pAceObject = NULL;
+			PSID pPrincipalSid = NULL;
+			hr = E_UNEXPECTED;
+
+			if ( ADVAPI32$GetAce( pDacl, dwAceIndex, (LPVOID)&pAceHeader ) )
+			{
+				pAceObject = (ACCESS_ALLOWED_OBJECT_ACE*)pAceHeader;
+				pAce = (ACCESS_ALLOWED_ACE*)pAceHeader;
+
+				if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType)); }
+				else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAce->SidStart)); }
+				else { continue; }
+
+				// Get the principal
+				cchName = MAX_PATH;
+				MSVCRT$memset(swzName, 0, cchName*sizeof(WCHAR));
+				cchDomainName = MAX_PATH;
+				MSVCRT$memset(swzDomainName, 0, cchDomainName*sizeof(WCHAR));
+				if (FALSE == ADVAPI32$LookupAccountSidW( NULL, pPrincipalSid, swzName, &cchName, swzDomainName,	&cchDomainName,	&sidNameUse	)) { continue; }
+				
+				internal_printf("        Principal            : %S\\%S\n", swzDomainName, swzName);
+				internal_printf("          Access mask        : %08X\n", pAceObject->Mask);
+				internal_printf("          Flags              : %08X\n", pAceObject->Flags);
+					
+				// Get the extended rights
+				if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
+				{
+					if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
+					{
+						OLECHAR szGuid[MAX_PATH];
+						if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
+						{
+							internal_printf("          Extended right     : %S\n", szGuid);
+						}
+						if (
+							IsEqualGUID(&CertificateEnrollment, &pAceObject->ObjectType) ||
+							IsEqualGUID(&CertificateAutoEnrollment, &pAceObject->ObjectType) ||
+							IsEqualGUID(&CertificateAll, &pAceObject->ObjectType)
+							)
+						{
+							internal_printf("                               Enrollment Rights\n");
+						}
+					} // end if ACE_OBJECT_TYPE_PRESENT
+				} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+			} // end if GetAce was successful
+		} // end for loop through ACEs (AceCount)
+
+		hr = S_OK;
+	} // end else GetAclInformation was successful
 
 	hr = S_OK;
 
-Security_fail:
+fail:
 
-	if (swzStringSid)
-	{
-		KERNEL32$LocalFree(swzStringSid);
-		swzStringSid = NULL;
-	}
-
-	if (pSecurityDescriptor)
-	{
-		KERNEL32$LocalFree(pSecurityDescriptor);
-		pSecurityDescriptor = NULL;
-	}
+	SAFE_LOCAL_FREE(swzStringSid);
+	SAFE_LOCAL_FREE(pSD);
 
 	return hr;
 }
@@ -681,67 +608,25 @@ HRESULT _adcs_get_CertificateTypes(VARIANT* lpvarArray)
 	LONG lItemIdx = 0;
 	BSTR bstrItem = NULL;
 
-	if (lpvarArray->parray)
+	if (NULL == lpvarArray->parray)
 	{
-		hr = OLEAUT32$SafeArrayGetElement(lpvarArray->parray, &lItemIdx, &bstrItem);
-		while(SUCCEEDED(hr))
-		{
-			if (bstrItem) { internal_printf( "      %S\n", bstrItem); }
-			else { internal_printf( "      %S\n", STR_NOT_AVAILALBE); }
-
-			++lItemIdx;
-			hr = OLEAUT32$SafeArrayGetElement(lpvarArray->parray, &lItemIdx, &bstrItem);	
-		}
+		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		goto fail;
 	}
-	else
+	
+	hr = OLEAUT32$SafeArrayGetElement(lpvarArray->parray, &lItemIdx, &bstrItem);
+	while(SUCCEEDED(hr))
 	{
-		internal_printf( "      %S\n", STR_NOT_AVAILALBE);
-	}
+		if (bstrItem) { internal_printf("      %S\n", bstrItem); }
+		else { internal_printf("      %S\n", STR_NOT_AVAILALBE); }
 
-	hr = S_OK;
-
-CertificateTypes_fail:
-
-	return hr;
-}
-
-
-HRESULT _adcs_get_VT_ARRAY_BSTR(VARIANT* lpvarArray)
-{
-	HRESULT hr = S_OK;
-	LONG lItemIdx = 0;
-	BSTR bstrItem = NULL;
-
-	if (lpvarArray->parray)
-	{
-		hr = OLEAUT32$SafeArrayGetElement(lpvarArray->parray, &lItemIdx, &bstrItem);
-		while(SUCCEEDED(hr))
-		{
-			if (bstrItem)
-			{
-				internal_printf( "%S\n", bstrItem);	
-			}
-			else
-			{
-				internal_printf( "%S\n", STR_NOT_AVAILALBE);	
-			}
-			
-
-			++lItemIdx;
-			hr = OLEAUT32$SafeArrayGetElement(lpvarArray->parray, &lItemIdx, &bstrItem);	
-		}
-		//SAFE_FREE(bstrItem);
-	}
-	else
-	{
-		internal_printf( "*ARRAY is EMPTY*\n");
+		++lItemIdx;
+		hr = OLEAUT32$SafeArrayGetElement(lpvarArray->parray, &lItemIdx, &bstrItem);	
 	}
 
 	hr = S_OK;
 
-VT_ARRAY_BSTR_fail:
-
-	//SAFE_FREE(bstrItem);
+fail:
 
 	return hr;
 }
@@ -752,24 +637,16 @@ HRESULT adcs_enum_cas()
 	HRESULT hr = S_OK;
 
 	hr = OLE32$CoInitializeEx( NULL, COINIT_APARTMENTTHREADED );
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeEx failed: 0x%08lx\n", hr);
-		goto enum_fail;
-	}
+	CHECK_RETURN_FAIL("CoInitializeEx", hr);
 	
 	hr = _adcs_get_PolicyServerListManager();
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "_adcs_get_PolicyServerListManager() failed: 0x%08lx\n", hr);
-		goto enum_fail;
-	}
+	CHECK_RETURN_FAIL("_adcs_get_PolicyServerListManager", hr);
 
 	hr = S_OK;
 	
-enum_fail:	
+fail:	
 	
 	OLE32$CoUninitialize();
 
-	return hr;	
+	return hr;
 }

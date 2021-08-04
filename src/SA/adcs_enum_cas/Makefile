@@ -1,6 +1,6 @@
 BOFNAME := adcs_enum_cas
 COMINCLUDE := -I ../../common
-LIBINCLUDE := -l oleaut32 -l ole32
+LIBINCLUDE := -l oleaut32 -l ole32 -l crypt32
 CC_x64 := x86_64-w64-mingw32-gcc
 CC_x86 := i686-w64-mingw32-gcc
 CC=x86_64-w64-mingw32-clang

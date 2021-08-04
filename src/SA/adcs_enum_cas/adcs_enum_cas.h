@@ -6,11 +6,6 @@
 #include <stdint.h>
 
 
-
-
-HRESULT _adcs_get_VT_ARRAY_BSTR(VARIANT* lpvarArray);
-
-
 HRESULT _adcs_get_PolicyServerListManager();
 HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl);
 HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPolicyServerId);

@@ -109,7 +109,6 @@ WINBASEAPI int __cdecl MSVCRT$vsnprintf(char * __restrict__ d,size_t n,const cha
 WINBASEAPI int __cdecl MSVCRT$_snwprintf(wchar_t * __restrict__ _Dest,size_t _Count,const wchar_t * __restrict__ _Format,...);
 WINBASEAPI errno_t __cdecl MSVCRT$wcscpy_s(wchar_t *_Dst, rsize_t _DstSize, const wchar_t *_Src);
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
-WINBASEAPI int __cdecl MSVCRT$sprintf (char *__stream, const char *__format, ...);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcscmp(const wchar_t *_lhs,const wchar_t *_rhs);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcstok(wchar_t * __restrict__ _Str,const wchar_t * __restrict__ _Delim);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcstok_s(wchar_t *_Str,const wchar_t *_Delim,wchar_t **_Context);
@@ -228,6 +227,7 @@ WINADVAPI LONG WINAPI ADVAPI32$RegDeleteValueA(HKEY hKey,LPCSTR lpValueName);
 WINADVAPI LONG WINAPI ADVAPI32$RegQueryValueExW(HKEY hKey,LPCWSTR lpValueName,LPDWORD lpReserved,LPDWORD lpType,LPBYTE lpData,LPDWORD lpcbData);
 WINADVAPI LONG WINAPI ADVAPI32$RegSaveKeyExA(HKEY hKey,LPCSTR lpFile,LPSECURITY_ATTRIBUTES lpSecurityAttributes,DWORD Flags);
 WINADVAPI WINBOOL WINAPI ADVAPI32$GetFileSecurityW (LPCWSTR lpFileName, SECURITY_INFORMATION RequestedInformation, PSECURITY_DESCRIPTOR pSecurityDescriptor, DWORD nLength, LPDWORD lpnLengthNeeded);
+WINADVAPI WINBOOL WINAPI ADVAPI32$GetSecurityDescriptorOwner (PSECURITY_DESCRIPTOR pSecurityDescriptor, PSID *pOwner, LPBOOL lpbOwnerDefaulted);
 WINADVAPI WINBOOL WINAPI ADVAPI32$GetSecurityDescriptorDacl (PSECURITY_DESCRIPTOR pSecurityDescriptor, LPBOOL lpbDaclPresent, PACL *pDacl, LPBOOL lpbDaclDefaulted);
 WINADVAPI WINBOOL WINAPI ADVAPI32$GetAclInformation (PACL pAcl, LPVOID pAclInformation, DWORD nAclInformationLength, ACL_INFORMATION_CLASS dwAclInformationClass);
 WINADVAPI WINBOOL WINAPI ADVAPI32$GetAce (PACL pAcl, DWORD dwAceIndex, LPVOID *pAce);
@@ -255,10 +255,13 @@ WINBASEAPI WINBOOL IMAGEAPI IMAGEHLP$ImageGetCertificateData(HANDLE FileHandle,D
 //cyprt32
 WINIMPM WINBOOL WINAPI CRYPT32$CryptVerifyMessageSignature (PCRYPT_VERIFY_MESSAGE_PARA pVerifyPara, DWORD dwSignerIndex, const BYTE *pbSignedBlob, DWORD cbSignedBlob, BYTE *pbDecoded, DWORD *pcbDecoded, PCCERT_CONTEXT *ppSignerCert);
 WINIMPM DWORD WINAPI CRYPT32$CertGetNameStringW (PCCERT_CONTEXT pCertContext, DWORD dwType, DWORD dwFlags, void *pvTypePara, LPWSTR pszNameString, DWORD cchNameString);
+WINIMPM PCCERT_CONTEXT WINAPI CRYPT32$CertCreateCertificateContext (DWORD dwCertEncodingType, const BYTE *pbCertEncoded, DWORD cbCertEncoded);
 WINIMPM WINBOOL WINAPI CRYPT32$CertFreeCertificateContext (PCCERT_CONTEXT pCertContext);
 WINIMPM WINBOOL WINAPI CRYPT32$CertGetCertificateContextProperty (PCCERT_CONTEXT pCertContext, DWORD dwPropId, void *pvData, DWORD *pcbData);
 WINIMPM WINBOOL WINAPI CRYPT32$CertGetCertificateChain (HCERTCHAINENGINE hChainEngine, PCCERT_CONTEXT pCertContext, LPFILETIME pTime, HCERTSTORE hAdditionalStore, PCERT_CHAIN_PARA pChainPara, DWORD dwFlags, LPVOID pvReserved, PCCERT_CHAIN_CONTEXT *ppChainContext);
 WINIMPM VOID WINAPI CRYPT32$CertFreeCertificateChain (PCCERT_CHAIN_CONTEXT pChainContext);
+WINIMPM PCCRYPT_OID_INFO WINAPI CRYPT32$CryptFindOIDInfo (DWORD dwKeyType, void *pvKey, DWORD dwGroupId);
+
 
 //WS2_32
 DECLSPEC_IMPORT LPCWSTR WINAPI WS2_32$InetNtopW(INT Family, LPCVOID pAddr, LPWSTR pStringBuf, size_t StringBufSIze);
@@ -275,6 +278,7 @@ DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoInitializeSecurity (PSECURITY_DESCRIPTOR 
 DECLSPEC_IMPORT HRESULT WINAPI OLE32$CoCreateInstance (REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
 DECLSPEC_IMPORT HRESULT WINAPI OLE32$CLSIDFromString (LPCOLESTR lpsz, LPCLSID pclsid);
 DECLSPEC_IMPORT HRESULT WINAPI OLE32$IIDFromString (LPCOLESTR lpsz, LPIID lpiid);
+DECLSPEC_IMPORT int     WINAPI OLE32$StringFromGUID2 (REFGUID rguid, LPOLESTR lpsz, int cchMax);
 DECLSPEC_IMPORT	HRESULT WINAPI OLE32$CoSetProxyBlanket(IUnknown* pProxy, DWORD dwAuthnSvc, DWORD dwAuthzSvc, OLECHAR* pServerPrincName, DWORD dwAuthnLevel, DWORD dwImpLevel, RPC_AUTH_IDENTITY_HANDLE pAuthInfo, DWORD dwCapabilities);
 DECLSPEC_IMPORT LPVOID	WINAPI OLE32$CoTaskMemAlloc(SIZE_T cb);
 DECLSPEC_IMPORT void	WINAPI OLE32$CoTaskMemFree(LPVOID pv);
@@ -586,11 +590,12 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define ADVAPI32$RegDeleteValueA RegDeleteValueA
 #define ADVAPI32$RegQueryValueExW RegQueryValueExW
 #define ADVAPI32$RegSaveKeyExA RegSaveKeyExA
-#define ADVAPI32$GetFileSecurityW  GetFileSecurityW 
-#define ADVAPI32$GetSecurityDescriptorDacl  GetSecurityDescriptorDacl 
-#define ADVAPI32$GetAclInformation  GetAclInformation
-#define ADVAPI32$GetAce  GetAce 
-#define ADVAPI32$LookupAccountSidW  LookupAccountSidW 
+#define ADVAPI32$GetFileSecurityW GetFileSecurityW 
+#define ADVAPI32$GetSecurityDescriptorOwner GetSecurityDescriptorOwner
+#define ADVAPI32$GetSecurityDescriptorDacl GetSecurityDescriptorDacl 
+#define ADVAPI32$GetAclInformation GetAclInformation
+#define ADVAPI32$GetAce GetAce 
+#define ADVAPI32$LookupAccountSidW LookupAccountSidW 
 #define ADVAPI32$ConvertSidToStringSidW ConvertSidToStringSidW
 #define ADVAPI32$MapGenericMask  MapGenericMask 
 #define ADVAPI32$OpenProcessToken  OpenProcessToken 
@@ -609,9 +614,11 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define CRYPT32$CryptVerifyMessageSignature  CryptVerifyMessageSignature 
 #define CRYPT32$CertGetNameStringW  CertGetNameStringW 
 #define CRYPT32$CertGetCertificateContextProperty CertGetCertificateContextProperty
+#define CRYPT32$CertCreateCertificateContext  CertCreateCertificateContext
 #define CRYPT32$CertFreeCertificateContext  CertFreeCertificateContext 
 #define CRYPT32$CertGetCertificateChain CertGetCertificateChain
 #define CRYPT32$CertFreeCertificateChain CertFreeCertificateChain
+#define CRYPT32$CryptFindOIDInfo CryptFindOIDInfo
 #define WS2_32$InetNtopW InetNtopW
 #define WS2_32$inet_pton inet_pton
 #define DNSAPI$DnsFree DnsFree
@@ -622,6 +629,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define OLE32$CoCreateInstance  CoCreateInstance 
 #define OLE32$CLSIDFromString  CLSIDFromString 
 #define OLE32$IIDFromString  IIDFromString 
+#define OLE32$StringFromGUID2 StringFromGUID2
 #define OLE32$CoSetProxyBlanket CoSetProxyBlanket
 #define OLE32$CoTaskMemAlloc CoTaskMemAlloc
 #define OLE32$CoTaskMemFree CoTaskMemFree
@@ -658,6 +666,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define CERTCLI$CAGetCACertificate CAGetCACertificate
 #define CERTCLI$CAGetCAExpiration CAGetCAExpiration
 #define CERTCLI$CAGetCASecurity CAGetCASecurity
+//#define CERTCLI$CAGetAccessRights CAGetAccessRights
 #define CERTCLI$CAEnumCertTypesForCA CAEnumCertTypesForCA
 #define CERTCLI$CAEnumCertTypes CAEnumCertTypes
 #define CERTCLI$CAEnumNextCertType CAEnumNextCertType
@@ -671,7 +680,8 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define CERTCLI$CAGetCertTypeFlagsEx CAGetCertTypeFlagsEx
 #define CERTCLI$CAGetCertTypeExpiration CAGetCertTypeExpiration
 #define CERTCLI$CACertTypeGetSecurity CACertTypeGetSecurity
-#define CERTCLI$CAGetCertTypeAccessRights CAGetCertTypeAccessRights
+//#define CERTCLI$CAGetCertTypeAccessRights CAGetCertTypeAccessRights
+
 
 
 

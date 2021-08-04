@@ -12,6 +12,8 @@ HRESULT adcs_enum_ca(HCAINFO hCAInfo);
 
 HRESULT adcs_enum_cert(PCCERT_CONTEXT pCert);
 
-HRESULT adcs_enum_cert_permissions(PSECURITY_DESCRIPTOR pSD);
+HRESULT adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD);
 
 HRESULT adcs_enum_cert_type(HCERTTYPE hCertType);
+
+HRESULT adcs_enum_cert_type_permissions(PSECURITY_DESCRIPTOR pSD);
