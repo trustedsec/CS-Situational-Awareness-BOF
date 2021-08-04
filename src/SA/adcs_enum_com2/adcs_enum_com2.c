@@ -11,7 +11,7 @@
 #include <iads.h>
 #include "beacon.h"
 #include "bofdefs.h"
-#include "adcs_enum_cas.h"
+#include "adcs_enum_com2.h"
 
 #define DEFINE_MY_GUID(name,l,w1,w2,b1,b2,b3,b4,b5,b6,b7,b8) const GUID name = { l, w1, w2, { b1, b2, b3, b4, b5, b6, b7, b8 } }
 
@@ -651,6 +651,7 @@ fail:
 	return hr;
 }
 
+
 HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTemplate)
 {
 	HRESULT hr = S_OK;
@@ -938,7 +939,7 @@ fail:
 }
 
 
-HRESULT adcs_enum_cas()
+HRESULT adcs_enum_com2()
 {
 	HRESULT hr = S_OK;
 

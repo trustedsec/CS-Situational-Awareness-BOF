@@ -3,7 +3,7 @@
 #include "beacon.h"
 #include "bofdefs.h"
 #include "base.c"
-#include "adcs_enum_cas.c"
+#include "adcs_enum_com2.c"
 
 
 #ifdef BOF
@@ -25,11 +25,11 @@ VOID go(
 
 	BeaconDataParse(&parser, Buffer, Length);
 	
-	hr = adcs_enum_cas();
+	hr = adcs_enum_com2();
 
 	if (S_OK != hr)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_enum_cas failed: 0x%08lx\n", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_enum_com2 failed: 0x%08lx\n", hr);
 	}
 
 	printoutput(TRUE);
@@ -39,11 +39,11 @@ int main(int argc, char ** argv)
 {
 	HRESULT hr = S_OK;
 
-	hr = adcs_enum_cas();
+	hr = adcs_enum_com2();
 
 	if (S_OK != hr)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "adcs_enum_cas failed: 0x%08lx\n", hr);
+		BeaconPrintf(CALLBACK_ERROR, "adcs_enum_com2 failed: 0x%08lx\n", hr);
 	}
 	return 0;
 }

@@ -18,5 +18,5 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 HRESULT _adcs_get_CertificateTemplateExtendedKeyUsages(VARIANT* lpvarExtendedKeyUsages);
 HRESULT _adcs_get_CertificateTemplateSecurity(BSTR bstrDacl);
 
-HRESULT adcs_enum_cas();
+HRESULT adcs_enum_com2();
 
