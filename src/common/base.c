@@ -91,6 +91,34 @@ void printoutput(BOOL done)
 
 #endif
 
+FARPROC DynamicLoad(LPCSTR szBOFfunc)
+{
+    FARPROC fp = NULL;
+    LPSTR szLibrary = NULL;
+    LPSTR szFunction = NULL;
+    CHAR * pchDivide = NULL;
+    HMODULE hLibrary = NULL;
+
+    szLibrary = (LPSTR)intAlloc(MSVCRT$strlen(szBOFfunc)+1);
+    if(szLibrary)
+    {
+        MSVCRT$strcpy(szLibrary,szBOFfunc);
+        pchDivide = MSVCRT$strchr(szLibrary, '$');
+        pchDivide[0] = '\0';
+        pchDivide++;
+        szFunction = pchDivide;
+        hLibrary = KERNEL32$LoadLibraryA(szLibrary);
+        if (hLibrary)
+        {
+            fp = KERNEL32$GetProcAddress(hLibrary,szFunction);
+        }
+        intFree(szLibrary);
+    }
+
+    return fp;
+}
+
+
 char* Utf16ToUtf8(const wchar_t* input)
 {
     int ret = Kernel32$WideCharToMultiByte(

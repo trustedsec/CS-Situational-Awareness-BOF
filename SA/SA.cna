@@ -1161,3 +1161,71 @@ beacon_command_register(
 	Searches are done in *<part>* manner, so partial matches will hit
 	If you specify a proc name then only processes matching that partial hit will be searched"
 );
+
+
+alias adcs_enum{
+	local('$args');
+
+	$args = $null;
+	beacon_inline_execute($1, readbof($1, "adcs_enum"), "go", $args);
+}
+
+beacon_command_register(
+	"adcs_enum",
+	"Enumerates CAs and templates in the AD",
+	"
+Command: adcs_enum
+Summary: This command enumerates the certificate authorities and certificate 
+         types (templates) in the Acitive Directory Certificate Services using
+         undocumented Win32 functions. It displays basic information as well 
+         as the CA cert, flags, permissions, and similar information for the 
+         templates.
+Usage:   adcs_enum
+"
+);
+
+
+alias adcs_enum_com{
+	local('$args');
+
+	$args = $null;
+	beacon_inline_execute($1, readbof($1, "adcs_enum_com"), "go", $args);
+}
+
+beacon_command_register(
+	"adcs_enum_com",
+	"Enumerates CAs and templates in the AD",
+	"
+Command: adcs_enum_com
+Summary: This command enumerates the certificate authorities and certificate 
+         types (templates) in the Acitive Directory Certificate Services using 
+         the ICertConfig, ICertRequest, and IX509CertificateTemplate COM 
+         objects. It displays basic information as well as the CA cert, flags, 
+         permissions, and similar information for the templates.
+Usage:   adcs_enum_com
+"
+);
+
+
+alias adcs_enum_com2{
+	local('$args');
+
+	$args = $null;
+	beacon_inline_execute($1, readbof($1, "adcs_enum_com2"), "go", $args);
+}
+
+beacon_command_register(
+	"adcs_enum_com2",
+	"Enumerates CAs and templates in the AD",
+	"
+Command: adcs_enum_com2
+Summary: This command enumerates the certificate authorities and certificate 
+         types (templates) in the Acitive Directory Certificate Services using 
+         the IX509PolicyServerListManager, IX509PolicyServerUrl, 
+         IX509EnrollmentPolicyServer, ICertificationAuthority, and 
+         IX509CertificateTemplate COM objects. It displays basic information as
+         well as the CA cert, flags, permissions, and similar information for
+         the templates.
+Usage:   adcs_enum_com2
+"
+);

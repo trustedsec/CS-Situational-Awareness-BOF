@@ -1,5 +1,5 @@
 #pragma once
-#pragma intrinsic(memcpy,strcpy,strcmp,strlen)
+#pragma intrinsic(memcmp, memcpy,strcpy,strcmp,strlen)
 #include <windows.h>
 #include <process.h>
 #include <winternl.h>
@@ -101,6 +101,7 @@ DECLSPEC_IMPORT ULONG WINAPI IPHLPAPI$GetIpNetTable(PMIB_IPNETTABLE IpNetTable,P
 //MSVCRT
 WINBASEAPI void *__cdecl MSVCRT$calloc(size_t _NumOfElements, size_t _SizeOfElements);
 WINBASEAPI void *__cdecl MSVCRT$memcpy(void * __restrict__ _Dst,const void * __restrict__ _Src,size_t _MaxCount);
+WINBASEAPI int __cdecl MSVCRT$memcmp(const void *_Buf1,const void *_Buf2,size_t _Size);
 WINBASEAPI void *__cdecl MSVCRT$realloc(void *_Memory, size_t _NewSize);
 WINBASEAPI void __cdecl MSVCRT$free(void *_Memory);
 WINBASEAPI void __cdecl MSVCRT$memset(void *dest, int c, size_t count);
@@ -310,6 +311,7 @@ DECLSPEC_IMPORT HRESULT	WINAPI OLEAUT32$SafeArrayUnaccessData(SAFEARRAY *psa);
 
 
 //CERTCLI
+/*
 DECLSPEC_IMPORT HRESULT WINAPI CERTCLI$CAEnumFirstCA(IN LPCWSTR wszScope, IN DWORD dwFlags, OUT LPVOID * phCAInfo);
 DECLSPEC_IMPORT HRESULT WINAPI CERTCLI$CAEnumNextCA(IN LPVOID hPrevCA, OUT LPVOID * phCAInfo);
 DECLSPEC_IMPORT HRESULT WINAPI CERTCLI$CACloseCA(IN LPVOID hCA);
@@ -337,7 +339,7 @@ DECLSPEC_IMPORT HRESULT WINAPI CERTCLI$CAGetCertTypeExpiration(IN LPVOID hCertTy
 DECLSPEC_IMPORT HRESULT WINAPI CERTCLI$CACertTypeGetSecurity(IN LPVOID hCertType, OUT PSECURITY_DESCRIPTOR * ppSD);
 DECLSPEC_IMPORT HRESULT WINAPI CERTCLI$CAGetCertTypeAccessRights(IN LPVOID hCertType, IN DWORD dwContext, OUT DWORD *pdwAccessRights);
 DECLSPEC_IMPORT HRESULT WINAPI CERTCLI$caTranslateFileTimePeriodToPeriodUnits(IN FILETIME const *pftGMT, IN BOOL Flags, OUT DWORD *pcPeriodUnits, OUT LPVOID*prgPeriodUnits);
-
+*/
 
 
 
@@ -480,6 +482,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define IPHLPAPI$GetIpNetTable GetIpNetTable
 #define MSVCRT$calloc calloc
 #define MSVCRT$memcpy memcpy
+#define MSVCRT$memcmp memcmp
 #define MSVCRT$realloc realloc
 #define MSVCRT$free free
 #define MSVCRT$memset memset
@@ -654,7 +657,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 
 
 
-
+/*
 #define CERTCLI$CAEnumFirstCA CAEnumFirstCA
 #define CERTCLI$CAEnumNextCA CAEnumNextCA
 #define CERTCLI$CACloseCA CACloseCA
@@ -666,7 +669,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define CERTCLI$CAGetCACertificate CAGetCACertificate
 #define CERTCLI$CAGetCAExpiration CAGetCAExpiration
 #define CERTCLI$CAGetCASecurity CAGetCASecurity
-//#define CERTCLI$CAGetAccessRights CAGetAccessRights
+#define CERTCLI$CAGetAccessRights CAGetAccessRights
 #define CERTCLI$CAEnumCertTypesForCA CAEnumCertTypesForCA
 #define CERTCLI$CAEnumCertTypes CAEnumCertTypes
 #define CERTCLI$CAEnumNextCertType CAEnumNextCertType
@@ -680,9 +683,9 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define CERTCLI$CAGetCertTypeFlagsEx CAGetCertTypeFlagsEx
 #define CERTCLI$CAGetCertTypeExpiration CAGetCertTypeExpiration
 #define CERTCLI$CACertTypeGetSecurity CACertTypeGetSecurity
-//#define CERTCLI$CAGetCertTypeAccessRights CAGetCertTypeAccessRights
-
-
+#define CERTCLI$CAGetCertTypeAccessRights CAGetCertTypeAccessRights
+#define CERTCLI$caTranslateFileTimePeriodToPeriodUnits caTranslateFileTimePeriodToPeriodUnits
+*/
 
 
 
