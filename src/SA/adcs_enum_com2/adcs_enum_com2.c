@@ -14,90 +14,6 @@
 #include "adcs_enum_com2.h"
 
 
-typedef HRESULT WINAPI (*CAEnumFirstCA_t)(IN LPCWSTR wszScope, IN DWORD dwFlags, OUT LPVOID * phCAInfo);
-typedef HRESULT WINAPI (*CAEnumNextCA_t)(IN LPVOID hPrevCA, OUT LPVOID * phCAInfo);
-typedef HRESULT WINAPI (*CACloseCA_t)(IN LPVOID hCA);
-typedef DWORD WINAPI (*CACountCAs_t)(IN LPVOID hCAInfo);
-typedef LPCWSTR WINAPI (*CAGetDN_t)(IN LPVOID hCAInfo);
-typedef HRESULT WINAPI (*CAGetCAProperty_t)(IN LPVOID hCAInfo, IN LPCWSTR wszPropertyName, OUT PZPWSTR *pawszPropertyValue);
-typedef HRESULT WINAPI (*CAFreeCAProperty_t)(IN LPVOID hCAInfo, IN PZPWSTR awszPropertyValue);
-typedef HRESULT WINAPI (*CAGetCAFlags_t)(IN LPVOID hCAInfo, OUT DWORD  *pdwFlags);
-typedef HRESULT WINAPI (*CAGetCACertificate_t)(IN LPVOID hCAInfo, OUT PCCERT_CONTEXT *ppCert);
-typedef HRESULT WINAPI (*CAGetCAExpiration_t)(IN LPVOID hCAInfo, OUT DWORD * pdwExpiration, OUT DWORD * pdwUnits);
-typedef HRESULT WINAPI (*CAGetCASecurity_t)(IN LPVOID hCAInfo, OUT PSECURITY_DESCRIPTOR * ppSD);
-typedef HRESULT WINAPI (*CAGetAccessRights_t)(IN LPVOID hCAInfo, IN DWORD dwContext, OUT DWORD *pdwAccessRights);
-typedef HRESULT WINAPI (*CAEnumCertTypesForCA_t)(IN LPVOID hCAInfo, IN DWORD dwFlags, OUT LPVOID * phCertType);
-typedef HRESULT WINAPI (*CAEnumCertTypes_t)(IN DWORD dwFlags, OUT LPVOID * phCertType);
-typedef HRESULT WINAPI (*CAEnumNextCertType_t)(IN LPVOID hPrevCertType, OUT LPVOID * phCertType);
-typedef DWORD WINAPI (*CACountCertTypes_t)(IN LPVOID hCertType);
-typedef HRESULT WINAPI (*CACloseCertType_t)(IN LPVOID hCertType);
-typedef HRESULT WINAPI (*CAGetCertTypeProperty_t)(IN LPVOID hCertType, IN LPCWSTR wszPropertyName, OUT PZPWSTR *pawszPropertyValue);
-typedef HRESULT WINAPI (*CAGetCertTypePropertyEx_t)(IN LPVOID hCertType, IN LPCWSTR wszPropertyName, OUT LPVOID *pPropertyValue);
-typedef HRESULT WINAPI (*CAFreeCertTypeProperty_t)(IN LPVOID hCertType, IN PZPWSTR awszPropertyValue);
-typedef HRESULT WINAPI (*CAGetCertTypeExtensionsEx_t)(IN LPVOID hCertType, IN DWORD dwFlags, IN LPVOID pParam, OUT PCERT_EXTENSIONS * ppCertExtensions);
-typedef HRESULT WINAPI (*CAFreeCertTypeExtensions_t)(IN LPVOID hCertType, IN PCERT_EXTENSIONS pCertExtensions);
-typedef HRESULT WINAPI (*CAGetCertTypeFlagsEx_t)(IN LPVOID hCertType, IN DWORD dwOption, OUT DWORD * pdwFlags);
-typedef HRESULT WINAPI (*CAGetCertTypeExpiration_t)(IN LPVOID hCertType, OUT OPTIONAL FILETIME * pftExpiration, OUT OPTIONAL FILETIME * pftOverlap);
-typedef HRESULT WINAPI (*CACertTypeGetSecurity_t)(IN LPVOID hCertType, OUT PSECURITY_DESCRIPTOR * ppSD);
-typedef HRESULT WINAPI (*caTranslateFileTimePeriodToPeriodUnits_t)(IN FILETIME const *pftGMT, IN BOOL Flags, OUT DWORD *pcPeriodUnits, OUT LPVOID*prgPeriodUnits);
-typedef HRESULT WINAPI (*CAGetCertTypeAccessRights_t)(IN LPVOID hCertType, IN DWORD dwContext, OUT DWORD *pdwAccessRights);
-
-#define CERTCLI$CAEnumFirstCA ((CAEnumFirstCA_t)DynamicLoad("CERTCLI$CAEnumFirstCA"))
-#define CERTCLI$CAEnumNextCA ((CAEnumNextCA_t)DynamicLoad("CERTCLI$CAEnumNextCA"))
-#define CERTCLI$CACloseCA ((CACloseCA_t)DynamicLoad("CERTCLI$CACloseCA"))
-#define CERTCLI$CACountCAs ((CACountCAs_t)DynamicLoad("CERTCLI$CACountCAs"))
-#define CERTCLI$CAGetDN ((CAGetDN_t)DynamicLoad("CERTCLI$CAGetDN"))
-#define CERTCLI$CAGetCAProperty ((CAGetCAProperty_t)DynamicLoad("CERTCLI$CAGetCAProperty"))
-#define CERTCLI$CAFreeCAProperty ((CAFreeCAProperty_t)DynamicLoad("CERTCLI$CAFreeCAProperty"))
-#define CERTCLI$CAGetCAFlags ((CAGetCAFlags_t)DynamicLoad("CERTCLI$CAGetCAFlags"))
-#define CERTCLI$CAGetCACertificate ((CAGetCACertificate_t)DynamicLoad("CERTCLI$CAGetCACertificate"))
-#define CERTCLI$CAGetCAExpiration ((CAGetCAExpiration_t)DynamicLoad("CERTCLI$CAGetCAExpiration"))
-#define CERTCLI$CAGetCASecurity ((CAGetCASecurity_t)DynamicLoad("CERTCLI$CAGetCASecurity"))
-#define CERTCLI$CAGetAccessRights ((CAGetAccessRights_t)DynamicLoad("CERTCLI$CAGetAccessRights"))
-#define CERTCLI$CAEnumCertTypesForCA ((CAEnumCertTypesForCA_t)DynamicLoad("CERTCLI$CAEnumCertTypesForCA"))
-#define CERTCLI$CAEnumCertTypes ((CAEnumCertTypes_t)DynamicLoad("CERTCLI$CAEnumCertTypes"))
-#define CERTCLI$CAEnumNextCertType ((CAEnumNextCertType_t)DynamicLoad("CERTCLI$CAEnumNextCertType"))
-#define CERTCLI$CACountCertTypes ((CACountCertTypes_t)DynamicLoad("CERTCLI$CACountCertTypes"))
-#define CERTCLI$CACloseCertType ((CACloseCertType_t)DynamicLoad("CERTCLI$CACloseCertType"))
-#define CERTCLI$CAGetCertTypeProperty ((CAGetCertTypeProperty_t)DynamicLoad("CERTCLI$CAGetCertTypeProperty"))
-#define CERTCLI$CAGetCertTypePropertyEx ((CAGetCertTypePropertyEx_t)DynamicLoad("CERTCLI$CAGetCertTypePropertyEx"))
-#define CERTCLI$CAFreeCertTypeProperty ((CAFreeCertTypeProperty_t)DynamicLoad("CERTCLI$CAFreeCertTypeProperty"))
-#define CERTCLI$CAGetCertTypeExtensionsEx ((CAGetCertTypeExtensionsEx_t)DynamicLoad("CERTCLI$CAGetCertTypeExtensionsEx"))
-#define CERTCLI$CAFreeCertTypeExtensions ((CAFreeCertTypeExtensions_t)DynamicLoad("CERTCLI$CAFreeCertTypeExtensions"))
-#define CERTCLI$CAGetCertTypeFlagsEx ((CAGetCertTypeFlagsEx_t)DynamicLoad("CERTCLI$CAGetCertTypeFlagsEx"))
-#define CERTCLI$CAGetCertTypeExpiration ((CAGetCertTypeExpiration_t)DynamicLoad("CERTCLI$CAGetCertTypeExpiration"))
-#define CERTCLI$CACertTypeGetSecurity ((CACertTypeGetSecurity_t)DynamicLoad("CERTCLI$CACertTypeGetSecurity"))
-#define CERTCLI$caTranslateFileTimePeriodToPeriodUnits ((caTranslateFileTimePeriodToPeriodUnits_t)DynamicLoad("CERTCLI$caTranslateFileTimePeriodToPeriodUnits"))
-#define CERTCLI$CAGetCertTypeAccessRights ((CAGetCertTypeAccessRights_t)DynamicLoad("CERTCLI$CAGetCertTypeAccessRights"))
-
-
-
-#define DEFINE_MY_GUID(name,l,w1,w2,b1,b2,b3,b4,b5,b6,b7,b8) const GUID name = { l, w1, w2, { b1, b2, b3, b4, b5, b6, b7, b8 } }
-
-#define STR_NOT_AVAILALBE L"N/A"
-
-#define CERTCONFIG_FIELD_CONFIG L"Config"
-#define CERTCONFIG_FIELD_WEBERNOLLMENTSERVERS L"WebEnrollmentServers"
-
-#define PROPTYPE_INT 1
-#define PROPTYPE_DATE 2
-#define PROPTYPE_BINARY 3
-#define PROPTYPE_STRING 4
-
-#define STR_CATYPE_ENTERPRISE_ROOT L"Enterprise Root"
-#define STR_CATYPE_ENTERPRISE_SUB L"Enterprise Sub"
-#define STR_CATYPE_STANDALONE_ROOT L"Standalone Root"
-#define STR_CATYPE_STANDALONE_SUB L"Standalone Sub"
-
-#define STR_AUTHENTICATION_NONE L"None"
-#define STR_AUTHENTICATION_ANONYMOUS L"Anonymous"
-#define STR_AUTHENTICATION_KERBEROS L"Kerberos"
-#define STR_AUTHENTICATION_USERNAMEANDPASSWORD L"UserNameAndPassword"
-#define STR_AUTHENTICATION_CLIENTCERTIFICATE L"ClientCertificate"
-
-#define STR_TRUE L"True"
-#define STR_FALSE L"False"
-
 #define CHECK_RETURN_FALSE( function, return_value, result) \
 	if (FALSE == return_value) \
 	{ \
@@ -156,10 +72,32 @@ typedef HRESULT WINAPI (*CAGetCertTypeAccessRights_t)(IN LPVOID hCertType, IN DW
 	}	
 
 
+#define DEFINE_MY_GUID(name,l,w1,w2,b1,b2,b3,b4,b5,b6,b7,b8) const GUID name = { l, w1, w2, { b1, b2, b3, b4, b5, b6, b7, b8 } }
 DEFINE_MY_GUID(CertificateEnrollment,0x0e10c968,0x78fb,0x11d2,0x90,0xd4,0x00,0xc0,0x4f,0x79,0xdc,0x55);
 DEFINE_MY_GUID(CertificateAutoEnrollment,0xa05b8cc2,0x17bc,0x4802,0xa7,0x10,0xe7,0xc1,0x5a,0xb8,0x66,0xa2);
 DEFINE_MY_GUID(CertificateAll,0x00000000,0x0000,0x0000,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00);
 
+
+HRESULT adcs_enum_com2()
+{
+	HRESULT hr = S_OK;
+
+	hr = OLE32$CoInitializeEx( NULL, COINIT_APARTMENTTHREADED );
+	CHECK_RETURN_FAIL("CoInitializeEx", hr);
+	
+	hr = _adcs_get_PolicyServerListManager();
+	CHECK_RETURN_FAIL("_adcs_get_PolicyServerListManager", hr);
+
+	hr = S_OK;
+
+	//internal_printf("\n adcs_enum_com2 SUCCESS.\n");
+	
+fail:	
+	
+	OLE32$CoUninitialize();
+
+	return hr;
+} // end adcs_enum_com2
 
 HRESULT _adcs_get_PolicyServerListManager()
 {
@@ -195,13 +133,15 @@ HRESULT _adcs_get_PolicyServerListManager()
 
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_PolicyServerListManager SUCCESS.\n");
+
 fail:
 
 	SAFE_RELEASE(pPolicyServerUrl);
 	SAFE_RELEASE(pPolicyServerListManager);
 
 	return hr;
-}
+} // end _adcs_get_PolicyServerListManager
 
 
 HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl)
@@ -226,6 +166,8 @@ HRESULT _adcs_get_PolicyServerUrl(IX509PolicyServerUrl * pPolicyServerUrl)
 
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_PolicyServerUrl SUCCESS.\n");
+
 fail:
 
 	SAFE_FREE(bstrPolicyServerUrl);
@@ -233,7 +175,7 @@ fail:
 	SAFE_FREE(bstrPolicyServerId);
 
 	return hr;
-}
+} // end _adcs_get_PolicyServerUrl
 
 
 HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPolicyServerId)
@@ -295,7 +237,10 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		hr = _adcs_get_CertificateTemplate(pCertificateTemplate);
 		CHECK_RETURN_FAIL("_adcs_get_CertificateTemplate()", hr);
 	} // end for loop through ITemplates
+	
 	hr = S_OK;
+
+	//internal_printf("\n _adcs_get_EnrollmentPolicyServer SUCCESS.\n");
 
 fail:
 
@@ -304,7 +249,7 @@ fail:
 	SAFE_RELEASE(pEnrollmentPolicyServer);
 
 	return hr;
-}
+} // end _adcs_get_EnrollmentPolicyServer
 
 
 HRESULT _adcs_get_CertificationAuthority(ICertificationAuthority * pCertificateAuthority)
@@ -366,12 +311,14 @@ HRESULT _adcs_get_CertificationAuthority(ICertificationAuthority * pCertificateA
 
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_CertificationAuthority SUCCESS.\n");
+
 fail:
 
 	OLEAUT32$VariantClear(&varProperty);
 
 	return hr;
-}
+} // end _adcs_get_CertificationAuthority
 
 
 HRESULT _adcs_get_CertificationAuthorityCertificate(VARIANT* lpvarCertifcate)
@@ -393,7 +340,7 @@ HRESULT _adcs_get_CertificationAuthorityCertificate(VARIANT* lpvarCertifcate)
 	// check buffer
 	if (NULL == lpvarCertifcate->parray)
 	{
-		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		internal_printf("      N/A\n");
 		goto fail;
 	}
 		
@@ -484,6 +431,8 @@ HRESULT _adcs_get_CertificationAuthorityCertificate(VARIANT* lpvarCertifcate)
 
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_CertificationAuthorityCertificate SUCCESS.\n");
+
 fail:
 
 	SAFE_CERTFREECERTIFICATECHAIN(pCertChainContext);
@@ -499,7 +448,7 @@ fail:
 	}
 
 	return hr;
-}
+} // end _adcs_get_CertificationAuthorityCertificate
 
 
 HRESULT _adcs_get_CertificationAuthorityWebServers(VARIANT* lpvarWebServers)
@@ -511,7 +460,7 @@ HRESULT _adcs_get_CertificationAuthorityWebServers(VARIANT* lpvarWebServers)
 
 	if ( NULL == lpvarWebServers->parray)
 	{
-		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		internal_printf("      N/A\n");
 		goto fail;
 	}
 	
@@ -554,12 +503,14 @@ HRESULT _adcs_get_CertificationAuthorityWebServers(VARIANT* lpvarWebServers)
 
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_CertificationAuthorityWebServers SUCCESS.\n");
+
 fail:
 
 	SAFE_INT_FREE(swzTokenize);
 
 	return hr;
-}
+} // end _adcs_get_CertificationAuthorityWebServers
 
 
 HRESULT _adcs_get_CertificationAuthoritySecurity(BSTR bstrDacl)
@@ -584,7 +535,7 @@ HRESULT _adcs_get_CertificationAuthoritySecurity(BSTR bstrDacl)
 	// Get the security descriptor
 	if (NULL == bstrDacl)
 	{
-		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		internal_printf("      N/A\n");
 		goto fail;
 	}
 	bReturn = ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW(bstrDacl, SDDL_REVISION_1, (PSECURITY_DESCRIPTOR)(&pSD), &ulSDSize);
@@ -665,11 +616,11 @@ HRESULT _adcs_get_CertificationAuthoritySecurity(BSTR bstrDacl)
 				} // end if ADS_RIGHT_DS_CONTROL_ACCESS
 			} // end if GetAce was successful
 		} // end for loop through ACEs (AceCount)
-
-		hr = S_OK;
 	} // end else GetAclInformation was successful
 
 	hr = S_OK;
+
+	//internal_printf("\n _adcs_get_CertificationAuthoritySecurity SUCCESS.\n");
 
 fail:
 
@@ -677,7 +628,7 @@ fail:
 	SAFE_LOCAL_FREE(pSD);
 
 	return hr;
-}
+} // end _adcs_get_CertificationAuthoritySecurity
 
 
 HRESULT _adcs_get_CertificationAuthorityCertificateTypes(VARIANT* lpvarArray)
@@ -688,7 +639,7 @@ HRESULT _adcs_get_CertificationAuthorityCertificateTypes(VARIANT* lpvarArray)
 
 	if (NULL == lpvarArray->parray)
 	{
-		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		internal_printf("      N/A\n");
 		goto fail;
 	}
 	
@@ -696,7 +647,7 @@ HRESULT _adcs_get_CertificationAuthorityCertificateTypes(VARIANT* lpvarArray)
 	while(SUCCEEDED(hr))
 	{
 		if (bstrItem) { internal_printf("      %S\n", bstrItem); }
-		else { internal_printf("      %S\n", STR_NOT_AVAILALBE); }
+		else { internal_printf("      N/A\n"); }
 
 		++lItemIdx;
 		hr = OLEAUT32$SafeArrayGetElement(lpvarArray->parray, &lItemIdx, &bstrItem);	
@@ -704,10 +655,12 @@ HRESULT _adcs_get_CertificationAuthorityCertificateTypes(VARIANT* lpvarArray)
 
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_CertificationAuthorityCertificateTypes SUCCESS.\n");
+
 fail:
 
 	return hr;
-}
+} // end _adcs_get_CertificationAuthorityCertificateTypes
 
 
 HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTemplate)
@@ -810,12 +763,14 @@ HRESULT _adcs_get_CertificateTemplate(IX509CertificateTemplate * pCertificateTem
 	
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_CertificateTemplate SUCCESS.\n");
+
 fail:
 
 	OLEAUT32$VariantClear(&varProperty);
 
 	return hr;
-}
+} // end _adcs_get_CertificateTemplate
 
 
 HRESULT _adcs_get_CertificateTemplateExtendedKeyUsages(VARIANT* lpvarExtendedKeyUsages)
@@ -835,7 +790,7 @@ HRESULT _adcs_get_CertificateTemplateExtendedKeyUsages(VARIANT* lpvarExtendedKey
 	
 	if (NULL == lpvarExtendedKeyUsages->pdispVal)
 	{
-		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		internal_printf("      N/A\n");
 		goto fail;
 	}
 	pObjectIds = (IObjectIds*)lpvarExtendedKeyUsages->pdispVal;
@@ -858,7 +813,7 @@ HRESULT _adcs_get_CertificateTemplateExtendedKeyUsages(VARIANT* lpvarExtendedKey
 				pObjectId, 
 				&bstFriendlyName
 			);
-			if (FAILED(hr))	{ internal_printf("      %S\n", STR_NOT_AVAILALBE); }
+			if (FAILED(hr))	{ internal_printf("      N/A\n"); }
 			else { internal_printf("      %S\n", bstFriendlyName); }
 
 			SAFE_RELEASE(pObjectId);
@@ -871,12 +826,14 @@ HRESULT _adcs_get_CertificateTemplateExtendedKeyUsages(VARIANT* lpvarExtendedKey
 
 	hr = S_OK;
 
+	//internal_printf("\n _adcs_get_CertificateTemplateExtendedKeyUsages SUCCESS.\n");
+
 fail:
 
 	OLEAUT32$VariantClear(&var);
 
 	return hr;
-}
+} // end _adcs_get_CertificateTemplateExtendedKeyUsages
 
 
 HRESULT _adcs_get_CertificateTemplateSecurity(BSTR bstrDacl)
@@ -901,7 +858,7 @@ HRESULT _adcs_get_CertificateTemplateSecurity(BSTR bstrDacl)
 	// Get the security descriptor
 	if (NULL == bstrDacl)
 	{
-		internal_printf("      %S\n", STR_NOT_AVAILALBE);
+		internal_printf("      N/A\n");
 		goto fail;
 	}
 	bReturn = ADVAPI32$ConvertStringSecurityDescriptorToSecurityDescriptorW(bstrDacl, SDDL_REVISION_1, (PSECURITY_DESCRIPTOR)(&pSD), &ulSDSize);
@@ -982,11 +939,11 @@ HRESULT _adcs_get_CertificateTemplateSecurity(BSTR bstrDacl)
 				} // end if ADS_RIGHT_DS_CONTROL_ACCESS
 			} // end if GetAce was successful
 		} // end for loop through ACEs (AceCount)
-
-		hr = S_OK;
 	} // end else GetAclInformation was successful
 
 	hr = S_OK;
+
+	//internal_printf("\n _adcs_get_CertificateTemplateSecurity SUCCESS.\n");
 
 fail:
 
@@ -994,24 +951,5 @@ fail:
 	SAFE_LOCAL_FREE(pSD);
 
 	return hr;
-}
+} // end _adcs_get_CertificateTemplateSecurity
 
-
-HRESULT adcs_enum_com2()
-{
-	HRESULT hr = S_OK;
-
-	hr = OLE32$CoInitializeEx( NULL, COINIT_APARTMENTTHREADED );
-	CHECK_RETURN_FAIL("CoInitializeEx", hr);
-	
-	hr = _adcs_get_PolicyServerListManager();
-	CHECK_RETURN_FAIL("_adcs_get_PolicyServerListManager", hr);
-
-	hr = S_OK;
-	
-fail:	
-	
-	OLE32$CoUninitialize();
-
-	return hr;
-}

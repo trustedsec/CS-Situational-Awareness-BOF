@@ -88,9 +88,16 @@ void printoutput(BOOL done)
 #define internal_printf printf
 #define printoutput 
 #define bofstart 
-
 #endif
 
+
+//
+// DynamicLoad
+// Retrieves a function pointer given the BOF library-function name
+// szBOFfunc            - The library and function name in BOF format, e.g., 
+//                          KERNEL32$GetLastError
+// Returns a FARPROC function pointer if successful, or NULL if lookup fails
+//
 FARPROC DynamicLoad(LPCSTR szBOFfunc)
 {
     FARPROC fp = NULL;
@@ -113,6 +120,11 @@ FARPROC DynamicLoad(LPCSTR szBOFfunc)
             fp = KERNEL32$GetProcAddress(hLibrary,szFunction);
         }
         intFree(szLibrary);
+    }
+
+    if (NULL == fp)
+    {
+        BeaconPrintf(CALLBACK_ERROR, "*** DynamicLoad(%s) FAILED!\n", szBOFfunc);
     }
 
     return fp;

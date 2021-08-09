@@ -30,7 +30,7 @@ VOID go(
 		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx\n", hr);
 	}
 
-	internal_printf("SUCCESS\n");
+	internal_printf("\nadcs_enum SUCCESS.\n");
 
 	printoutput(TRUE);
 };
@@ -47,7 +47,7 @@ int main(int argc, char ** argv)
 		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx\n", hr);
 	}
 
-	internal_printf("SUCCESS\n");
+	internal_printf("\nadcs_enum SUCCESS.\n");
 
 	return 0;
 }

@@ -1,9 +1,6 @@
 #pragma once
 #define WIN32_WINNT 0x0601
 #include <windows.h>
-#include <certcli.h>
-#include "certca.h"
-#include <stdint.h>
 
 
 typedef HRESULT WINAPI (*CAEnumFirstCA_t)(IN LPCWSTR wszScope, IN DWORD dwFlags, OUT LPVOID * phCAInfo);
@@ -63,11 +60,14 @@ typedef HRESULT WINAPI (*CAGetCertTypeAccessRights_t)(IN LPVOID hCertType, IN DW
 #define CERTCLI$CAGetCertTypeAccessRights ((CAGetCertTypeAccessRights_t)DynamicLoad("CERTCLI$CAGetCertTypeAccessRights"))
 
 
-HRESULT _adcs_enum_ca(HCAINFO hCAInfo);
-HRESULT _adcs_enum_cert(PCCERT_CONTEXT pCert);
-HRESULT _adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD);
-HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType);
-HRESULT _adcs_enum_cert_type_permissions(PSECURITY_DESCRIPTOR pSD);
+HRESULT _adcs_get_CertConfig();
+HRESULT _adcs_get_CertRequest(BSTR bstrConfig);
+HRESULT _adcs_get_Certificate(BSTR bstrCertificate);
+HRESULT _adcs_get_WebEnrollmentServers(BSTR bstrWebEnrollmentServers);
+HRESULT _adcs_get_Templates(BSTR bstrTemplates);
+HRESULT _adcs_get_Template(BSTR bstrOID);
+HRESULT _adcs_get_TemplateExtendedKeyUsages(VARIANT* lpvarExtendedKeyUsages);
+HRESULT _adcs_get_TemplateSecurity(BSTR bstrDacl);
 
-HRESULT adcs_enum();
+HRESULT adcs_enum_com();
 
