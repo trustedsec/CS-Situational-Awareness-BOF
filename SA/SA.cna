@@ -1172,7 +1172,7 @@ alias adcs_enum{
 
 beacon_command_register(
 	"adcs_enum",
-	"Enumerates CAs and templates in the AD",
+	"Enumerates CAs and templates in the AD using Win32 functions",
 	"
 Command: adcs_enum
 Summary: This command enumerates the certificate authorities and certificate 
@@ -1194,7 +1194,7 @@ alias adcs_enum_com{
 
 beacon_command_register(
 	"adcs_enum_com",
-	"Enumerates CAs and templates in the AD",
+	"Enumerates CAs and templates in the AD using ICertConfig COM object",
 	"
 Command: adcs_enum_com
 Summary: This command enumerates the certificate authorities and certificate 
@@ -1216,7 +1216,7 @@ alias adcs_enum_com2{
 
 beacon_command_register(
 	"adcs_enum_com2",
-	"Enumerates CAs and templates in the AD",
+	"Enumerates CAs and templates in the AD using IX509PolicyServerListManager COM object",
 	"
 Command: adcs_enum_com2
 Summary: This command enumerates the certificate authorities and certificate 

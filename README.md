@@ -17,7 +17,10 @@ Realistically, this could be compressed into a helper script, but those steps we
 |command|Usage|notes|
 |-------|-----|-----|
 |arp|arp| Lists ARP table|
-| adv_audit_policies | adv_audit_policies | Retrieves advanced security audit policies |
+|adcs_enum | adcs_enum | Enumerates CAs and templates in the AD using Win32 functions |
+|adcs_enum_com | adcs_enum_com | Enumerates CAs and templates in the AD using ICertConfig COM object |
+|adcs_enum_com2 | adcs_enum_com2 | Enumerates CAs and templates in the AD using IX509PolicyServerListManager COM object |
+|adv_audit_policies | adv_audit_policies | Retrieves advanced security audit policies |
 |cacls|cacls [filepath]|lists user permissions for the specified file, wildcards supported|
 |dir|dir [directory] [/s]|List files in a directory. Supports wildcards (e.g. "C:\Windows\S*") the CobaltStrike `ls` command|
 |driversigs|driversigs| enumerate installed services Imagepaths to check the signing cert against known edr/av vendors|
