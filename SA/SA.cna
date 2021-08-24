@@ -245,6 +245,41 @@ beacon_command_register(
 	"internally perform a dns query", 
 	"Synopsis: nslookup <lookup value> <lookup server> <TYPE> \n\nPerform a DNS Query:\n<lookup value> is the ip or hostname you want to query\n<lookup server> is the server you want to query (use 0 or exclude for system default)\n<TYPE> record type to query");
 
+alias nslookup_bulk {
+	local('$args $barch $inputfile $server $type');
+	if(size(@_) < 2)
+	{
+		berror($1, beacon_command_detail("nslookup_bulk"));
+		return;
+	}
+	$barch  = barch($1);
+	$inputfile = $2;
+	$server = iff(-istrue $3, $3, "");
+	$type = iff(-istrue $4, iff(uc($4) in %recordmapping, %recordmapping[uc($4)], %recordmapping["A"]) , %recordmapping["A"]);
+	btask($1, $server);
+	if($server eq "127.0.0.1"){
+		berror($1, "Localhost dns query's have a potential to crash, refusing");
+		return;
+	}
+	if($barch eq "x86"){
+	btask($1, "x86 beacons do not support custom dns nameservers, overriding to default")
+	$server = ""
+	}
+	$handle = openf($inputfile);
+
+	while $host (readln($handle))
+	{
+		$args = bof_pack($1, "zzs", $host, $server, $type);
+		beacon_inline_execute($1, readbof($1, "nslookup"), "go", $args);
+	}
+	
+}
+
+beacon_command_register(
+	"nslookup_bulk", 
+	"internally perform dns queries based on input file list", 
+	"Synopsis: nslookup_bulk <input file> <lookup server> <TYPE> \n\nPerform a DNS Query:\n<input file> is the newline seperated list of ips or hostnames you want to query\n<lookup server> is the server you want to query (use 0 or exclude for system default)\n<TYPE> record type to query");
+
 alias netview {
 	local('$args $domain');
 
