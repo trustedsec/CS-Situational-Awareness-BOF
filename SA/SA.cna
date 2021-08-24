@@ -266,6 +266,11 @@ alias nslookup_bulk {
 	$server = ""
 	}
 	$handle = openf($inputfile);
+	if (checkError($error))
+	{
+		berror($1, "Cannot open input file");
+		return;
+	}
 
 	while $host (readln($handle))
 	{
