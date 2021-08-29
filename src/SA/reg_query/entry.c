@@ -26,7 +26,7 @@ void free_enums(){
     intFree(ERegTypes);
 }
 
-//HKEY compare didn't work in BOF for some reson
+//HKEY compare didn't work in BOF for some reason
 void set_hive_name(DWORD h)
 {
     if(h == 2)

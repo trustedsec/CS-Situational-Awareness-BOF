@@ -40,7 +40,7 @@ DWORD validate_driver(wchar_t * file_path)
 {
 	DWORD dwStatus = ERROR_SUCCESS;
 	wchar_t mypath[512] = {0};
-	wchar_t *  drivers[8]; // make sure you update this if you cange the list below
+	wchar_t *  drivers[8]; // make sure you update this if you change the list below
 	PCCERT_CONTEXT certificate_context = NULL;
 	LPWIN_CERTIFICATE certificate = NULL;
 	LPWIN_CERTIFICATE certificate_header = NULL;

@@ -15,7 +15,7 @@ BOOL ListModules(DWORD PID, const char * modSearchString)
 	{
 		if(SHLWAPI$StrStrIA(modinfo.szExePath, modSearchString))
 		{
-			//May be benificial to print off all hits even within a single process
+			//May be beneficial to print off all hits even within a single process
 			internal_printf("%s\n", modinfo.szExePath);
 			retVal = TRUE;
 			//break;

@@ -70,6 +70,6 @@ The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df
 Thank you to all of the contributors listed under contributors.  Each have contributed something meaningful to this repository and dealt with me and my review processes.  I appreciate each and every one of them for teaching me and helping to make this BOF repository the best it can be!
 
 ##### compiler used
-Precompiled BOF's are provided in this project and are compiled using a recent version of Mingw-w64 typcially installed from brew.
+Precompiled BOF's are provided in this project and are compiled using a recent version of Mingw-w64 typically installed from brew.
 
 

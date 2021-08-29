@@ -1691,7 +1691,7 @@ CAGetCertTypeExtensions(
 //                          CT_EXTENSION_ISSUANCE_POLICY  (Version 2 template only)
 //                          CT_EXTENSION_OCSP_REV_NO_CHECK (Version 2 template only)
 //
-//                        0 means all avaiable extension for this CertType.
+//                        0 means all available extension for this CertType.
 //
 // pParam               - optional LDAP Handle
 // ppCertExtensions     - Pointer to a PCERT_EXTENSIONS to receive the result
