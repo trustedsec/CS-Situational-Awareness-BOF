@@ -11,7 +11,7 @@
 #define TICKSTO1970         0x019db1ded53e8000LL
 #define TICKSTO1980         0x01a8e79fe1d58000LL
 #define TICKSPERSEC        10000000
-#ifdef _WIN64 //can't use builtin function for extended divition on x86
+#ifdef _WIN64 //can't use builtin function for extended division on x86
 DWORD GetTimeInSeconds(VOID)
 {
     LARGE_INTEGER Time;
