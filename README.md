@@ -59,6 +59,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netsession|netsession [opt:computer] | Enumerates all sessions on the specified computer or the local one|
 |resources|resources| Prints memory usage and available disk space on the primary hard drive|
 |uptime|uptime| Prints system boot time and how long it's been since then|
+|vssenum|vssenum [hostname] [opt:sharename]| Enumerates shadow copies on some server 2012+ machines|
 
 Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote systems and has the ability to recursively enumerate a whole key.
 
