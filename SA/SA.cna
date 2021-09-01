@@ -1229,3 +1229,36 @@ Summary: This command enumerates the certificate authorities and certificate
 Usage:   adcs_enum_com2
 "
 );
+
+alias vssenum{
+	local('$hostname $sharename $args');
+	if (size(@_) < 2)
+	{
+		berror($1, "Invalid number of arguments");
+		berror($1, beacon_command_detail("vssenum"));
+		return;
+	}
+
+	$hostname = $2;
+	$sharename = iff(-istrue $3, $3, "C$");
+	$args = bof_pack($1, "ZZ", $hostname, $sharename);
+	blog($1, $hostname);
+	beacon_inline_execute($1, readbof($1, "vssenum"), "go", $args);
+
+}
+
+
+
+beacon_command_register(
+	"vssenum",
+	"Enumerate snapshots on a remote machine",
+"Command: vssenum
+If the target machine has volume snapshots this command will list there timestamps
+This command will likely only work on windows server 2012 + with specific configurations
+see https://techcommunity.microsoft.com/t5/storage-at-microsoft/vss-for-smb-file-shares/ba-p/425726 for more info
+
+Usage: vssenum [hostname] (opt: sharename)
+
+sharename defaults to C$ if not specified"
+);
+
