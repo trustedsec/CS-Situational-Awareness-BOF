@@ -13,7 +13,7 @@ void print_ip_from_int(unsigned int addr)
 
         p1 = (addr & 0x000000FF);
         p2 = (addr & 0x0000FF00) >> 8;
-        p3 = (addr & 0x00FF0000) >> 24;
+        p3 = (addr & 0x00FF0000) >> 16;
         p4 = (addr & 0xFF000000) >> 24;
 
 		MSVCRT$sprintf(ipStr,"%d.%d.%d.%d", p1,p2,p3,p4);
