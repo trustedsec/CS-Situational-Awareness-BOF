@@ -908,7 +908,10 @@ HRESULT _adcs_get_CertificateTemplateExtendedKeyUsages(VARIANT* lpvarExtendedKey
 				&bstFriendlyName
 			);
 			if (FAILED(hr))	{ internal_printf("      N/A\n"); }
-			else { internal_printf("      %S\n", bstFriendlyName); }
+			else { 
+				internal_printf("      %S\n", bstFriendlyName); 
+				SAFE_FREE(bstFriendlyName);
+			}
 
 			SAFE_RELEASE(pObjectId);
 		}
