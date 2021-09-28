@@ -37,6 +37,11 @@ void EnumSnapshots(wchar_t * hostname, wchar_t * sharename)
 	}
 	snapshotsLen = 16;
 	snapshots = intAlloc(snapshotsLen);
+	if (NULL == snapshots)
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Unable to allocate memory for snapshots");
+		goto end;
+	}	
 	//Get sizes required
 	ret = NTDLL$NtFsControlFile(
 		hFile,
@@ -61,6 +66,11 @@ void EnumSnapshots(wchar_t * hostname, wchar_t * sharename)
 	intFree(snapshots); snapshots = NULL;
 	snapshotsLen = 12 + VolumeBytes;
 	snapshots = intAlloc(snapshotsLen);
+	if (NULL == snapshots)
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Unable to allocate memory for snapshots");
+		goto end;
+	}
 	ret = NTDLL$NtFsControlFile(
 		hFile,
 		NULL,
