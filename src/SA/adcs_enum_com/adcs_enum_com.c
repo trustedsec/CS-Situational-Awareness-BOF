@@ -308,8 +308,6 @@ HRESULT _adcs_get_CertRequest(BSTR bstrConfig)
 	CHECK_RETURN_FAIL("pCertRequest->lpVtbl->GetCAProperty(CR_PROP_DNSNAME)", hr);
 	internal_printf("    DNS Hostname             : %S\n", varProperty.bstrVal);
 	OLEAUT32$VariantClear(&varProperty);
-	OLEAUT32$VariantInit(&varProperty);  //initialize varProperty in case call to GetCACertificate fails to avoid double-free
-
 	internal_printf("    FullName                 : %S\n", bstrConfig);
 
 	hr = pCertRequest->lpVtbl->GetCACertificate(pCertRequest, FALSE, bstrConfig, CR_OUT_BINARY,	&bstrCertificate );
