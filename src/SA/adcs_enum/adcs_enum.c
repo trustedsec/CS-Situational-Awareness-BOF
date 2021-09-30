@@ -614,6 +614,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 	else if (ENUM_PERIOD_YEARS == prgPeriodUnits->enumPeriod) { internal_printf("years"); }
 	internal_printf("\n");
 	cPeriodUnits = 0;
+	SAFE_LOCAL_FREE (prgPeriodUnits);
 	prgPeriodUnits = NULL;
 	hr = CERTCLI$caTranslateFileTimePeriodToPeriodUnits( &ftOverlap, TRUE, &cPeriodUnits, (LPVOID*)(&prgPeriodUnits) );
 	CHECK_RETURN_FAIL(L"caTranslateFileTimePeriodToPeriodUnits()", hr);
@@ -626,7 +627,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 	else if (ENUM_PERIOD_MONTHS == prgPeriodUnits->enumPeriod) { internal_printf("months"); }
 	else if (ENUM_PERIOD_YEARS == prgPeriodUnits->enumPeriod) { internal_printf("years"); }
 	internal_printf("\n");
-
+	SAFE_LOCAL_FREE (prgPeriodUnits);
 	// Name Flags
 	hr = CERTCLI$CAGetCertTypeFlagsEx( hCertType, CERTTYPE_SUBJECT_NAME_FLAG, &dwPropertyValue );
 	CHECK_RETURN_FAIL(L"CAGetCertTypeFlagsEx(CERTTYPE_SUBJECT_NAME_FLAG)", hr);

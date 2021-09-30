@@ -65,6 +65,11 @@ void arp()
 	DWORD last_if_index = 0;
 	IPHLPAPI$GetIpNetTable(NULL, &ipNetTableBufLen, TRUE);
 	ipNetTableInfo = intAlloc(ipNetTableBufLen);
+	if (NULL == ipNetTableInfo)
+	{
+		BeaconPrintf(CALLBACK_ERROR, "Could not alloc memory for ipNetTableInfo");
+		goto END;
+	}
 	ret = IPHLPAPI$GetIpNetTable(ipNetTableInfo, &ipNetTableBufLen, TRUE);
 	if ((ret != NO_ERROR) && (ret != ERROR_NO_DATA))
 	{
