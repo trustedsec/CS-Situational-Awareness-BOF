@@ -16,7 +16,7 @@ DWORD RecursiveFindFile(LPWSTR swzDirectory, LPWSTR swzFileName, LPWSTR** lpswzR
 	WCHAR swzQuery[MAX_PATH];
 
 	intZeroMemory(&findFileData, sizeof(findFileData));
-	intZeroMemory(swzQuery, sizeof(MAX_PATH*sizeof(WCHAR));
+	intZeroMemory(swzQuery, MAX_PATH * sizeof(WCHAR));
 
 	// create the find query
 	MSVCRT$_snwprintf(swzQuery, MAX_PATH, L"%s\\*", swzDirectory);

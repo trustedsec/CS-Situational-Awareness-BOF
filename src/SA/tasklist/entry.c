@@ -73,6 +73,7 @@ HRESULT task_list(
 			ppbstrResults[dwCurrentRowIndex][RESULTS_COMMANDLINE_COL]
 		);
 	}
+	hr = S_OK;
 
 fail:
 
