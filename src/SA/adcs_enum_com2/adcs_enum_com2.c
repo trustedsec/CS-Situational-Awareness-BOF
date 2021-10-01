@@ -882,6 +882,8 @@ HRESULT _adcs_get_CertificateTemplateExtendedKeyUsages(VARIANT* lpvarExtendedKey
 	IID IID_IEnumVARIANT = { 0x00020404, 0x0000, 0x0000, {0xc0,0x00, 0x00,0x00,0x00,0x00,0x00,0x46} };
 	IID IID_IObjectId = { 0x728ab300, 0x217d, 0x11da, {0XB2, 0XA4, 0x00, 0x0E, 0x7B, 0xBB, 0x2B, 0x09} };
 	
+	OLEAUT32$VariantInit(&var);
+	
 	if (NULL == lpvarExtendedKeyUsages->pdispVal)
 	{
 		internal_printf("      N/A\n");
