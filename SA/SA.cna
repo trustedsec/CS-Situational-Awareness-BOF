@@ -1262,3 +1262,28 @@ Usage: vssenum [hostname] (opt: sharename)
 sharename defaults to C$ if not specified"
 );
 
+alias get_password_policy
+{
+	local('$server $args');
+
+	if(size(@_) < 2)
+	{
+		berror($1, "Invalid number of arguments, must specify target server / DC");
+		berror($1, beacon_command_detail("get_password_policy"));
+		return;
+	}
+	$server = $2;
+	$args = bof_pack($1, "Z", $server);
+	beacon_inline_execute($1, readbof($1, "get_password_policy"), "go", $args);
+}
+
+beacon_command_register(
+	"get_password_policy",
+	"gets a server or DC's configured password policy",
+	"Command: get_password_policy
+Basically re-implements net accounts excluding calling out Computer role
+If you target a DC with this it will be domain policies, otherwise its the policy for that local server
+target \"\" for the local computer
+
+Usage: get_password_policy [hostname]"
+);
