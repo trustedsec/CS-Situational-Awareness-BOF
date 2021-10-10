@@ -535,6 +535,7 @@ HRESULT Wmi_ParseAllResults(
 	        {
 		        hr = WBEM_E_OUT_OF_MEMORY;
 		        BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapReAlloc failed: 0x%08lx", hr);
+		        OLEAUT32$VariantClear(&varProperty);
 		        goto fail;
 	        }
 	        // If this isn't the first column, prepend a comma
