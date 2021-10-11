@@ -117,6 +117,13 @@ DWORD validate_driver(wchar_t * file_path)
 	{
 		// Determine the length for the ImageGetCertificateData call.
 		certificate_header = (LPWIN_CERTIFICATE)intAlloc(sizeof(WIN_CERTIFICATE));
+		if (NULL == certificate_header)
+        	{
+			dwStatus = ERROR_OUTOFMEMORY;
+			internal_printf("WARNING: certificate_header allocation failed (%lu)", dwStatus);
+			goto clear;
+        	}
+
 		if(!IMAGEHLP$ImageGetCertificateHeader(file_handle, i, certificate_header))
 		{ 		
 			dwStatus = KERNEL32$GetLastError();
@@ -127,6 +134,12 @@ DWORD validate_driver(wchar_t * file_path)
 		// Get the buffer for the certificate.
 		certificate_length = certificate_header->dwLength;
 		certificate = (LPWIN_CERTIFICATE)intAlloc(certificate_length);
+	        if (NULL == certificate)
+        	{
+			dwStatus = ERROR_OUTOFMEMORY;
+			internal_printf("WARNING: certificate allocation failed (%lu)", dwStatus);
+			goto clear;
+	        }
 		if(!IMAGEHLP$ImageGetCertificateData(file_handle, i, certificate, &certificate_length))
 		{ 		
 			dwStatus = KERNEL32$GetLastError();
@@ -257,7 +270,6 @@ DWORD enumerate_loaded_drivers()
 	for (unsigned long i = 0; i < services_returned; i++)
 	{
 		// Set the registry path
-		length = MAX_PATH * 2;
 		MSVCRT$memset(driver_path, 0, (MAX_PATH * 2));
 		MSVCRT$memset(registry_path, 0, (MAX_PATH * 2));
 		MSVCRT$wcsncat(registry_path,  L"SYSTEM\\CurrentControlSet\\Services\\", MAX_PATH);
