@@ -321,7 +321,7 @@ alias netuse {
 		if ("REQUIREPRIVACY" in @keys) {
 			$privacy = "TRUE"
 		}
-		if ("MOUNT_IPC" in @keys) {
+		if ("IPC" in @keys) {
 			$ipc = "TRUE"
 		}
 	}	
@@ -357,8 +357,8 @@ Usage:   netuse (devicename) (sharename) (password) (/USER:username) (/DELETE) (
 		 username	   Optional. The username to use for the remote connection.
 		 DELETE		 Optional. Delete the connection.
 		 PERSIST		Optional. Persist the connection.
-		 REQUIREPRIVACY  Optional. Enable SMBv3 Encryption.
-		 MOUNT_IPC		Optional. NULL value for device name to mount IPC$
+		 REQUIREPRIVACY      Optional. Enable SMBv3 Encryption.
+		 IPC		Optional. Use when mounting/unmounting IPC$
 "
 );
 

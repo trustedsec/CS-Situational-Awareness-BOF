@@ -161,11 +161,11 @@ fail:
 }
 
 
-DWORD Net_use_delete(LPWSTR pswzDeviceName, BOOL bPersist)
+DWORD Net_use_delete(LPWSTR pswzDeviceName, BOOL bPersist, LPWSTR pswzShareName, BOOL bIpc)
 {
 	DWORD	dwResult	= NO_ERROR;
 	DWORD	dwFlags		= 0;
-
+	
 	// Basic argument checks
 	if ((NULL == pswzDeviceName) || (1 > MSVCRT$wcslen(pswzDeviceName)) || (5 < MSVCRT$wcslen(pswzDeviceName)))
 	{
@@ -173,6 +173,12 @@ DWORD Net_use_delete(LPWSTR pswzDeviceName, BOOL bPersist)
 		BeaconPrintf(CALLBACK_ERROR, "Invalid arguments for Net_use_delete\n");
 		goto fail;
 	}
+
+	if (TRUE == bIpc)
+	{
+		pswzDeviceName = pswzShareName;
+	}
+
 	
 	// Check if the cancelation should persist
 	if (TRUE == bPersist)
@@ -500,9 +506,13 @@ DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, 
 		{
 			bPersist = TRUE;
 		}
+		if ( (NULL != pswzIpc) && (0 == MSVCRT$_wcsicmp(pswzIpc, STR_TRUE)) )
+		{
+			bIpc = TRUE;
+		}
 
 		// delete connect
-		dwResult = Net_use_delete(pswzDeviceName, bPersist);
+		dwResult = Net_use_delete(pswzDeviceName, bPersist, pswzShareName, bIpc);
 	}
 	else
 	{
