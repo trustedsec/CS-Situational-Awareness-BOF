@@ -9,6 +9,7 @@
 #define STR_FALSE					L"FALSE"
 #define BIG_BUFFER_SIZE				16384
 #define SMALL_BUFFER_SIZE			64
+#define CONNECT_ENCRYPTED			32768
 
 #define SAFE_ALLOC(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
 #define SAFE_FREE(addr) \
@@ -19,11 +20,22 @@
 		}
 
 
-DWORD Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, LPWSTR pswzUsername, BOOL bPersist)
+DWORD Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, LPWSTR pswzUsername, BOOL bPersist, BOOL bPrivacy, BOOL bIpc)
 {
 	DWORD			dwResult	= ERROR_SUCCESS;
 	LPNETRESOURCEW	lpnrLocal	= NULL;
-	DWORD			dwFlags		= CONNECT_TEMPORARY;
+	DWORD			dwFlags		= NULL; //CONNECT_TEMPORARY;
+
+	// check if RequirePrivacy flag is true or false
+	if (!bPrivacy)
+	{
+		dwFlags = CONNECT_TEMPORARY;
+	}
+	else
+	{
+		dwFlags = CONNECT_TEMPORARY | CONNECT_ENCRYPTED;
+	}
+
 
 	// Basic argument checks
 	if ((NULL == pswzDeviceName) || (1 > MSVCRT$wcslen(pswzDeviceName)) || (5 < MSVCRT$wcslen(pswzDeviceName)) )
@@ -60,7 +72,15 @@ DWORD Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPasswo
 	{
 		lpnrLocal->dwType = RESOURCETYPE_DISK;
 	}
-	lpnrLocal->lpLocalName = pswzDeviceName;
+	// check if mounting IPC$
+	if (!bIpc)
+	{
+		lpnrLocal->lpLocalName = pswzDeviceName;
+	}
+	else
+	{
+		lpnrLocal->lpLocalName = NULL;
+	}
 	lpnrLocal->lpRemoteName = pswzShareName;
 	lpnrLocal->lpProvider = NULL;
 
@@ -141,11 +161,11 @@ fail:
 }
 
 
-DWORD Net_use_delete(LPWSTR pswzDeviceName, BOOL bPersist)
+DWORD Net_use_delete(LPWSTR pswzDeviceName, BOOL bPersist, LPWSTR pswzShareName, BOOL bIpc)
 {
 	DWORD	dwResult	= NO_ERROR;
 	DWORD	dwFlags		= 0;
-
+	
 	// Basic argument checks
 	if ((NULL == pswzDeviceName) || (1 > MSVCRT$wcslen(pswzDeviceName)) || (5 < MSVCRT$wcslen(pswzDeviceName)))
 	{
@@ -153,6 +173,12 @@ DWORD Net_use_delete(LPWSTR pswzDeviceName, BOOL bPersist)
 		BeaconPrintf(CALLBACK_ERROR, "Invalid arguments for Net_use_delete\n");
 		goto fail;
 	}
+
+	if (TRUE == bIpc)
+	{
+		pswzDeviceName = pswzShareName;
+	}
+
 	
 	// Check if the cancelation should persist
 	if (TRUE == bPersist)
@@ -425,10 +451,12 @@ fail:
 
 
 // Function to perform a basic mimic of the net use command 
-DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, LPWSTR pswzUsername, LPWSTR pswzDelete, LPWSTR pswzPersist)
+DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, LPWSTR pswzUsername, LPWSTR pswzDelete, LPWSTR pswzPersist, LPWSTR pswzPrivacy, PWSTR pswzIpc)
 {
 	DWORD	dwResult	= ERROR_SUCCESS;
 	BOOL	bPersist	= FALSE;
+	BOOL	bPrivacy	= FALSE;
+	BOOL	bIpc		= FALSE;
 
 	// Check what type of net use operation (list, add, delete) based on arguments
 	if (
@@ -453,9 +481,19 @@ DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, 
 		{
 			bPersist = TRUE;
 		}
+		// Check if privacy flag is set
+		if ( (NULL != pswzPrivacy) && (0 == MSVCRT$_wcsicmp(pswzPrivacy, STR_TRUE)) )
+		{
+			bPrivacy = TRUE;
+		}
+		// Check if mount_ipc flag is set
+		if ( (NULL != pswzIpc) && (0 == MSVCRT$_wcsicmp(pswzIpc, STR_TRUE)) )
+		{
+			bIpc = TRUE;
+		}
 
 		// add connection
-		dwResult = Net_use_add(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, bPersist);
+		dwResult = Net_use_add(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, bPersist, bPrivacy, bIpc);
 	}
 	else if (
 		( (NULL != pswzDeviceName) && (1 < MSVCRT$wcslen(pswzDeviceName)) )
@@ -468,9 +506,13 @@ DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, 
 		{
 			bPersist = TRUE;
 		}
+		if ( (NULL != pswzIpc) && (0 == MSVCRT$_wcsicmp(pswzIpc, STR_TRUE)) )
+		{
+			bIpc = TRUE;
+		}
 
 		// delete connect
-		dwResult = Net_use_delete(pswzDeviceName, bPersist);
+		dwResult = Net_use_delete(pswzDeviceName, bPersist, pswzShareName, bIpc);
 	}
 	else
 	{
@@ -498,6 +540,8 @@ VOID go(
 	LPWSTR	pswzUsername	= NULL;
 	LPWSTR	pswzDelete		= NULL;
 	LPWSTR	pswzPersist		= NULL;
+	LPWSTR  pswzPrivacy		= NULL;
+	LPWSTR  pswzIpc			= NULL;
 
 	BeaconDataParse(&parser, Buffer, Length);
 	pswzDeviceName	= (LPWSTR)BeaconDataExtract(&parser, NULL);
@@ -506,13 +550,16 @@ VOID go(
 	pswzUsername	= (LPWSTR)BeaconDataExtract(&parser, NULL);
 	pswzDelete		= (LPWSTR)BeaconDataExtract(&parser, NULL);
 	pswzPersist		= (LPWSTR)BeaconDataExtract(&parser, NULL);
+	pswzPrivacy		= (LPWSTR)BeaconDataExtract(&parser, NULL);
+	pswzIpc			= (LPWSTR)BeaconDataExtract(&parser, NULL);
+
 
 	if(!bofstart())
 	{
 		return;
 	}
 
-	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
+	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist, pswzPrivacy, pswzIpc);
 
 	if (ERROR_SUCCESS != dwResult)
 	{

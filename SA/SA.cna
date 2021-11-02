@@ -297,6 +297,8 @@ alias netuse {
 	$password = "";
 	$delete = "FALSE";
 	$persist = "FALSE";
+	$privacy = "FALSE";
+	$ipc = "FALSE";
 	
 	if ("1" in @keys) {
 		$device = %params["1"];
@@ -316,6 +318,12 @@ alias netuse {
 		if ("PERSIST" in @keys) {
 			$persist = "TRUE"
 		}
+		if ("REQUIREPRIVACY" in @keys) {
+			$privacy = "TRUE"
+		}
+		if ("IPC" in @keys) {
+			$ipc = "TRUE"
+		}
 	}	
 	
 	if ($share ne ""){
@@ -326,7 +334,7 @@ alias netuse {
 		} 
 	}
 
-	$args = bof_pack($1, "ZZZZZZ", $device, $share, $password, $user, $delete, $persist);
+	$args = bof_pack($1, "ZZZZZZZZ", $device, $share, $password, $user, $delete, $persist, $privacy, $ipc);
 	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
 }
 
@@ -349,6 +357,8 @@ Usage:   netuse (devicename) (sharename) (password) (/USER:username) (/DELETE) (
 		 username	   Optional. The username to use for the remote connection.
 		 DELETE		 Optional. Delete the connection.
 		 PERSIST		Optional. Persist the connection.
+		 REQUIREPRIVACY      Optional. Enable SMBv3 Encryption.
+		 IPC		Optional. Use when mounting/unmounting IPC$
 "
 );
 
