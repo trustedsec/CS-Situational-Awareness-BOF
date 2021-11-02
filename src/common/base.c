@@ -23,6 +23,31 @@ int bofstart()
     return 1;
 }
 
+void * BeaconDataExtractOrNull(datap* parser, int* size)
+{
+    char * result = BeaconDataExtract(parser, size);
+    return result[0] == '\0' ? NULL : result;
+}
+
+void print_windows_error(char * premsg, DWORD errnum)
+{
+    LPSTR msg = NULL;
+    if(KERNEL32$FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, errnum,
+    0, (LPSTR)&msg, 0, NULL))
+    {
+        BeaconPrintf(CALLBACK_ERROR, "%s : %s", (premsg) ? premsg : "", msg);
+    }
+    else{
+        BeaconPrintf(CALLBACK_ERROR, "failed to format error message: %lu", errnum);
+    }
+    if(msg)
+    {
+        KERNEL32$LocalFree(msg);
+    }
+    return;
+
+}
+
 void internal_printf(const char* format, ...){
     int buffersize = 0;
     int transfersize = 0;

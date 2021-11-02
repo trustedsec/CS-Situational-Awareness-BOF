@@ -36,6 +36,9 @@ Realistically, this could be compressed into a helper script, but those steps we
 |listpipes|listpipes| Lists named pipes|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
 |netuser|netuser [username] [opt: domain]| Pulls info about specific user.  Pulls from domain if a domainname is specified|
+|netuse_add|netuse_add [sharename] [opt:username] [opt:password] [opt:/DEVICE:devicename] [opt:/PERSIST] [opt:/REQUIREPRIVACY]|bind a new connection to a remote machine|
+|netuse_delete|netuse_delete [device\|\|sharename] [opt:/PERSIST] [opt:/FORCE]|delete the bound device / sharename]|
+|netuse_list|netuse_list [opt:target]|list all bound share resources or info about target local resource|
 |netview|netview| Gets a list of reachable servers in the current domain|
 |netGroupList|netGroupList [opt: domain]|Lists Groups from the default (or specified) domain|
 |netGroupListMembers|netGroupListMembers [groupname] [opt: domain]| Lists group members from the default (or specified) domain|
