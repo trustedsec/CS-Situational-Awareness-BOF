@@ -67,7 +67,7 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
     if(status != 0 || pdns == NULL)
     {
 		internal_printf("Query for domain name failed\n");
-		status = Kernel32$FormatMessageA(
+		status = KERNEL32$FormatMessageA(
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL,
 			status,

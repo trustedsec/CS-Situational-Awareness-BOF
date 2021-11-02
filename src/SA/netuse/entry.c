@@ -10,6 +10,9 @@
 #define BIG_BUFFER_SIZE				16384
 #define SMALL_BUFFER_SIZE			64
 #define CONNECT_ENCRYPTED			32768
+#define CMD_ADD 1
+#define CMD_LIST 2
+#define CMD_DELETE 3
 
 #define SAFE_ALLOC(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
 #define SAFE_FREE(addr) \
@@ -20,35 +23,16 @@
 		}
 
 
-DWORD Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, LPWSTR pswzUsername, BOOL bPersist, BOOL bPrivacy, BOOL bIpc)
+void Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, LPWSTR pswzUsername, BOOL bPersist, BOOL bPrivacy)
 {
 	DWORD			dwResult	= ERROR_SUCCESS;
 	LPNETRESOURCEW	lpnrLocal	= NULL;
-	DWORD			dwFlags		= NULL; //CONNECT_TEMPORARY;
+	DWORD			dwFlags		= (bPersist) ? CONNECT_UPDATE_PROFILE : CONNECT_TEMPORARY; //CONNECT_TEMPORARY;
 
 	// check if RequirePrivacy flag is true or false
-	if (!bPrivacy)
+	if (bPrivacy)
 	{
-		dwFlags = CONNECT_TEMPORARY;
-	}
-	else
-	{
-		dwFlags = CONNECT_TEMPORARY | CONNECT_ENCRYPTED;
-	}
-
-
-	// Basic argument checks
-	if ((NULL == pswzDeviceName) || (1 > MSVCRT$wcslen(pswzDeviceName)) || (5 < MSVCRT$wcslen(pswzDeviceName)) )
-	{
-		dwResult = ERROR_BAD_ARGUMENTS;
-		BeaconPrintf(CALLBACK_ERROR, "Invalid arguments for Net_use_add\n");
-		goto fail;
-	}
-	if ((NULL == pswzShareName) || ( 5 > MSVCRT$wcslen(pswzShareName)))
-	{
-		dwResult = ERROR_BAD_ARGUMENTS;
-		BeaconPrintf(CALLBACK_ERROR, "Invalid arguments for Net_use_add\n");
-		goto fail;		
+		dwFlags |= CONNECT_ENCRYPTED;
 	}
 
 	// Allocate resources
@@ -59,36 +43,13 @@ DWORD Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPasswo
 		BeaconPrintf(CALLBACK_ERROR, "SAFE_ALLOC failed: 0x%08lx\n", dwResult);
 		goto fail;
 	}
-
-	// Initialize the resource
-	intZeroMemory(lpnrLocal, BIG_BUFFER_SIZE);
+	
 
 	// Fill in the resource
-	if (2 < MSVCRT$wcslen(pswzDeviceName))
-	{
-		lpnrLocal->dwType = RESOURCETYPE_PRINT;
-	}
-	else
-	{
-		lpnrLocal->dwType = RESOURCETYPE_DISK;
-	}
-	// check if mounting IPC$
-	if (!bIpc)
-	{
-		lpnrLocal->lpLocalName = pswzDeviceName;
-	}
-	else
-	{
-		lpnrLocal->lpLocalName = NULL;
-	}
+	lpnrLocal->dwType = RESOURCETYPE_DISK;
+	lpnrLocal->lpLocalName = pswzDeviceName;
 	lpnrLocal->lpRemoteName = pswzShareName;
 	lpnrLocal->lpProvider = NULL;
-
-	// Check if the connection should persist
-	if (TRUE == bPersist)
-	{
-		dwFlags = CONNECT_UPDATE_PROFILE;
-	}
 
 	// Add connection
 	dwResult = MPR$WNetAddConnection2W(
@@ -100,56 +61,13 @@ DWORD Net_use_add(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPasswo
 	if (NO_ERROR == dwResult)
 	{
 		internal_printf("The command completed successfully.\n");
-	}
-	else if (ERROR_ACCESS_DENIED == dwResult)
+	}else
 	{
-		BeaconPrintf(CALLBACK_ERROR, "The caller does not have access to the network resource.\n");
-		goto fail;
-	}
-	else if (ERROR_ALREADY_ASSIGNED == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "The device is already connected to a network resource.\n");
-		goto fail;
-	}
-	else if (ERROR_BAD_DEVICE == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "The device name is not valid.\n");
-		goto fail;
-	}
-	else if (ERROR_BAD_NET_NAME == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "The network name cannot be found.\n");
-		goto fail;
-	}
-	else if (ERROR_BAD_USERNAME == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "The user name is not valid.\n");
-		goto fail;
-	}
-	else if (ERROR_INVALID_PASSWORD == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "The password is not valid.\n");
-		goto fail;
-	}
-	else if (ERROR_LOGON_FAILURE == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "Logon failure because of an unknown user name or a bad password.\n");
-		goto fail;
-	}
-	else if (ERROR_NO_NET_OR_BAD_PATH == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "No network provider accepted the given network path.\n");
-		goto fail;
-	}
-	else if (ERROR_NO_NETWORK == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "The network is unavailable.\n");
-		goto fail;
-	}
-	else
-	{
-		BeaconPrintf(CALLBACK_ERROR, "MPR$WNetCancelConnection2W failed: 0x%08lx\n", dwResult);
-		goto fail;
+		print_windows_error("Unable to map share", dwResult);
+		if(dwResult == ERROR_INVALID_PARAMETER)
+		{
+			BeaconPrintf(CALLBACK_ERROR, "If you set /REQUIREPRIVACY it is likely this flag is not supported on this computer");
+		}
 	}
 
 
@@ -157,73 +75,33 @@ fail:
 	// Free the memory
 	SAFE_FREE(lpnrLocal);
 
-	return dwResult;
 }
 
 
-DWORD Net_use_delete(LPWSTR pswzDeviceName, BOOL bPersist, LPWSTR pswzShareName, BOOL bIpc)
+void Net_use_delete(LPWSTR target, BOOL bPersist, BOOL force)
 {
 	DWORD	dwResult	= NO_ERROR;
-	DWORD	dwFlags		= 0;
+	DWORD	dwFlags		= (bPersist) ? CONNECT_UPDATE_PROFILE : 0;
 	
-	// Basic argument checks
-	if ((NULL == pswzDeviceName) || (1 > MSVCRT$wcslen(pswzDeviceName)) || (5 < MSVCRT$wcslen(pswzDeviceName)))
-	{
-		dwResult = ERROR_BAD_ARGUMENTS;
-		BeaconPrintf(CALLBACK_ERROR, "Invalid arguments for Net_use_delete\n");
-		goto fail;
-	}
-
-	if (TRUE == bIpc)
-	{
-		pswzDeviceName = pswzShareName;
-	}
-
-	
-	// Check if the cancelation should persist
-	if (TRUE == bPersist)
-	{
-		dwFlags = CONNECT_UPDATE_PROFILE;
-	}
 
 	// Delete the connection
 	dwResult = MPR$WNetCancelConnection2W(
-		pswzDeviceName,
+		target,
 		dwFlags,
-		FALSE
+		force
 	);
 	if (NO_ERROR == dwResult)
 	{
-		internal_printf("%S was deleted successfully.\n", pswzDeviceName);
+		internal_printf("%ls was deleted successfully.\n", target);
 	}
-	else if (ERROR_DEVICE_IN_USE == dwResult)
+	else 
 	{
-		BeaconPrintf(CALLBACK_ERROR, "%S is in use by an active process and cannot be disconnected.\n", pswzDeviceName);
-		goto fail;
+		print_windows_error("Unable to delete share", dwResult);
 	}
-	else if (ERROR_OPEN_FILES == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "There are open files on %S so it cannot be disconnected.\n", pswzDeviceName);
-		goto fail;
-	}
-	else if (ERROR_NOT_CONNECTED == dwResult)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "%S is not a redirected device, or the system is not currently connected to the device.\n", pswzDeviceName);
-		goto fail;
-	}
-	else
-	{
-		BeaconPrintf(CALLBACK_ERROR, "MPR$WNetCancelConnection2W failed: 0x%08lx\n", dwResult);
-		goto fail;
-	}
-
-fail:
-
-	return dwResult;
 }
 
 
-DWORD Net_use_list(LPWSTR pswzDeviceName)
+void Net_use_list(LPWSTR pswzDeviceName)
 {
 	DWORD			dwResult = NO_ERROR;
 	HANDLE			hEnum = NULL;
@@ -284,7 +162,7 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 		if (dwResult == NO_ERROR)
 		{
 			// If we are listing all connected devices, then display the header
-			if ( (NULL == pswzDeviceName) || (0 == MSVCRT$wcslen(pswzDeviceName)) )
+			if ( (NULL == pswzDeviceName) )
 			{
 				internal_printf(NET_USE_LIST_FMT_STRING, L"Status", L"Local", L"Remote", L"Network");
 				internal_printf("-------------------------------------------------------------------------------------------------\n");
@@ -389,7 +267,7 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 				);
 
 				// If we are listing all connected devices, then add to the list
-				if ( ( NULL == pswzDeviceName) || (0 == MSVCRT$wcslen(pswzDeviceName)) )
+				if ( ( NULL == pswzDeviceName) )
 				{
 					internal_printf(
 						NET_USE_LIST_FMT_STRING, 
@@ -402,7 +280,7 @@ DWORD Net_use_list(LPWSTR pswzDeviceName)
 				else // else we are looking for a specific device
 				{
 					// Is this the one we are looking for, if not continue
-					if (0 != MSVCRT$_wcsicmp(pwszLocalName, pswzDeviceName))
+					if (0 != MSVCRT$_wcsicmp(pwszLocalName, pswzDeviceName) && 0 != MSVCRT$_wcsicmp(pwszRemoteName, pswzDeviceName))
 					{
 						continue;
 					}
@@ -445,84 +323,6 @@ fail:
 		hEnum = NULL;
 	}
 
-	return dwResult;
-}
-
-
-
-// Function to perform a basic mimic of the net use command 
-DWORD Net_use(LPWSTR pswzDeviceName, LPWSTR pswzShareName, LPWSTR pswzPassword, LPWSTR pswzUsername, LPWSTR pswzDelete, LPWSTR pswzPersist, LPWSTR pswzPrivacy, PWSTR pswzIpc)
-{
-	DWORD	dwResult	= ERROR_SUCCESS;
-	BOOL	bPersist	= FALSE;
-	BOOL	bPrivacy	= FALSE;
-	BOOL	bIpc		= FALSE;
-
-	// Check what type of net use operation (list, add, delete) based on arguments
-	if (
-		( (NULL == pswzShareName) || (0 == MSVCRT$wcslen(pswzShareName)) ) 
-		&& 
-		( (NULL == pswzDelete) || (0 == MSVCRT$wcslen(pswzDelete)) || (0 == MSVCRT$_wcsicmp(pswzDelete, STR_FALSE)) )
-		)
-	{
-		// list connections
-		dwResult = Net_use_list(pswzDeviceName);
-	}
-	else if (
-		( (NULL != pswzDeviceName) && (1 < MSVCRT$wcslen(pswzDeviceName)) )
-		&&
-		( (NULL != pswzShareName) && (1 < MSVCRT$wcslen(pswzShareName)) )
-		&&
-		( (NULL == pswzDelete) || (0 == MSVCRT$wcslen(pswzDelete)) || (0 == MSVCRT$_wcsicmp(pswzDelete, STR_FALSE)) )
-		)
-	{
-		// Check if persist flag is set
-		if ( (NULL != pswzPersist) && (0 == MSVCRT$_wcsicmp(pswzPersist, STR_TRUE)) )
-		{
-			bPersist = TRUE;
-		}
-		// Check if privacy flag is set
-		if ( (NULL != pswzPrivacy) && (0 == MSVCRT$_wcsicmp(pswzPrivacy, STR_TRUE)) )
-		{
-			bPrivacy = TRUE;
-		}
-		// Check if mount_ipc flag is set
-		if ( (NULL != pswzIpc) && (0 == MSVCRT$_wcsicmp(pswzIpc, STR_TRUE)) )
-		{
-			bIpc = TRUE;
-		}
-
-		// add connection
-		dwResult = Net_use_add(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, bPersist, bPrivacy, bIpc);
-	}
-	else if (
-		( (NULL != pswzDeviceName) && (1 < MSVCRT$wcslen(pswzDeviceName)) )
-		&&
-		( (NULL != pswzDelete) && (0 == MSVCRT$_wcsicmp(pswzDelete, STR_TRUE)) )
-		)
-	{
-		// Check if persist flag is set
-		if ((NULL != pswzPersist) && (0 == MSVCRT$_wcsicmp(pswzPersist, STR_TRUE)))
-		{
-			bPersist = TRUE;
-		}
-		if ( (NULL != pswzIpc) && (0 == MSVCRT$_wcsicmp(pswzIpc, STR_TRUE)) )
-		{
-			bIpc = TRUE;
-		}
-
-		// delete connect
-		dwResult = Net_use_delete(pswzDeviceName, bPersist, pswzShareName, bIpc);
-	}
-	else
-	{
-		dwResult = ERROR_BAD_ARGUMENTS;
-		BeaconPrintf(CALLBACK_ERROR, "Invalid arguments for Net_use\n");
-		goto fail;
-	}
-
-fail:
-	return dwResult;
 }
 
 #ifdef BOF
@@ -542,180 +342,51 @@ VOID go(
 	LPWSTR	pswzPersist		= NULL;
 	LPWSTR  pswzPrivacy		= NULL;
 	LPWSTR  pswzIpc			= NULL;
-
-	BeaconDataParse(&parser, Buffer, Length);
-	pswzDeviceName	= (LPWSTR)BeaconDataExtract(&parser, NULL);
-	pswzShareName	= (LPWSTR)BeaconDataExtract(&parser, NULL);
-	pswzPassword	= (LPWSTR)BeaconDataExtract(&parser, NULL);
-	pswzUsername	= (LPWSTR)BeaconDataExtract(&parser, NULL);
-	pswzDelete		= (LPWSTR)BeaconDataExtract(&parser, NULL);
-	pswzPersist		= (LPWSTR)BeaconDataExtract(&parser, NULL);
-	pswzPrivacy		= (LPWSTR)BeaconDataExtract(&parser, NULL);
-	pswzIpc			= (LPWSTR)BeaconDataExtract(&parser, NULL);
-
+	short cmd = 0, persist = 0, requirePrivacy = 0, force = 0;
 
 	if(!bofstart())
 	{
 		return;
 	}
 
-	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist, pswzPrivacy, pswzIpc);
-
-	if (ERROR_SUCCESS != dwResult)
+	BeaconDataParse(&parser, Buffer, Length);
+	cmd = BeaconDataShort(&parser);
+	switch(cmd)
 	{
-		BeaconPrintf(CALLBACK_ERROR, "net_use failed: 0x%08lx\n", dwResult);
+		case CMD_ADD:
+			pswzShareName = (wchar_t *)BeaconDataExtract(&parser, NULL);
+			pswzUsername = BeaconDataExtractOrNull(&parser, NULL);
+			pswzPassword = BeaconDataExtractOrNull(&parser, NULL);
+			pswzDeviceName = BeaconDataExtractOrNull(&parser, NULL);
+			persist = BeaconDataShort(&parser);
+			requirePrivacy = BeaconDataShort(&parser);
+			Net_use_add(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, persist, requirePrivacy);
+			break;
+
+		case CMD_LIST:
+			pswzDeviceName = BeaconDataExtractOrNull(&parser, NULL);
+			Net_use_list(pswzDeviceName);
+			break;
+
+		case CMD_DELETE:
+			pswzDeviceName = BeaconDataExtractOrNull(&parser, NULL);
+			persist = BeaconDataShort(&parser);
+			force = BeaconDataShort(&parser);
+			Net_use_delete(pswzDeviceName, persist, force);
+			break;
+
+		default:
+			BeaconPrintf(CALLBACK_ERROR, "Shouldn't be able to get to the default switchcase, invalid argument parse");
+			return;
 	}
 
+	//dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist, pswzPrivacy, pswzIpc);
+
+	end:
 	printoutput(TRUE);
 
 	bofstop();
 };
 #else
-int main()
-{
-	DWORD	dwResult		= ERROR_SUCCESS;
-
-	LPWSTR	pswzDeviceName	= NULL;
-	LPWSTR	pswzShareName	= NULL;
-	LPWSTR	pswzPassword	= NULL;
-	LPWSTR	pswzUsername	= NULL;
-	LPWSTR	pswzDelete		= NULL;
-	LPWSTR	pswzPersist		= NULL;
-	
-	pswzDeviceName	= L"";
-	pswzShareName	= L"";
-	pswzPassword	= L"";
-	pswzUsername	= L"";
-	pswzDelete		= STR_FALSE;
-	pswzPersist		= STR_FALSE;
-
-	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "Test: List all devices\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
-	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
-
-    dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
-	if (ERROR_SUCCESS != dwResult)
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n FAILED (%08lx) \n========================================\n", dwResult);
-	}
-	else
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n SUCCESS \n========================================\n");
-	}
-	
-	pswzDeviceName	= L"Q:";
-	pswzShareName	= L"\\\\192.168.85.131\\share";
-	pswzPassword	= L"trustedsec";
-	pswzUsername	= L"root";
-	pswzDelete		= STR_FALSE;
-	pswzPersist		= STR_FALSE;
-
-	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "Test: Add network resource\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
-	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
-
-	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
-	if (ERROR_SUCCESS != dwResult)
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n FAILED (%08lx) \n========================================\n", dwResult);
-	}
-	else
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n SUCCESS \n========================================\n");
-	}
-
-
-	pswzDeviceName	= L"Q:";
-	pswzShareName	= NULL;
-	pswzPassword	= NULL;
-	pswzUsername	= NULL;
-	pswzDelete		= NULL;
-	pswzPersist		= NULL;
-
-	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "Test: List details of specifc device\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
-	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
-
-	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
-	if (ERROR_SUCCESS != dwResult)
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n FAILED (%08lx) \n========================================\n", dwResult);
-	}
-	else
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n SUCCESS \n========================================\n");
-	}
-
-	pswzDeviceName	= L"Q:";
-	pswzShareName	= NULL;
-	pswzPassword	= NULL;
-	pswzUsername	= NULL;
-	pswzDelete		= STR_TRUE;
-	pswzPersist		= STR_TRUE;
-
-	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "Test: Delete specific device\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
-	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
-
-	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
-	if (ERROR_SUCCESS != dwResult)
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n FAILED (%08lx) \n========================================\n", dwResult);
-	}
-	else
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n SUCCESS \n========================================\n");
-	}
-
-	pswzDeviceName = NULL;
-	pswzShareName = NULL;
-	pswzPassword = NULL;
-	pswzUsername = NULL;
-	pswzDelete = NULL;
-	pswzPersist = NULL;
-
-	BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "Test: List all devices\n");
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDeviceName: \"%S\"\n", pswzDeviceName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzShareName:  \"%S\"\n", pswzShareName);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPassword:   \"%S\"\n", pswzPassword);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzUsername:   \"%S\"\n", pswzUsername);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzDelete:     \"%S\"\n", pswzDelete);
-	BeaconPrintf(CALLBACK_OUTPUT, "pswzPersist:    \"%S\"\n", pswzPersist);
-	BeaconPrintf(CALLBACK_OUTPUT, "========================================\n");
-
-	dwResult = Net_use(pswzDeviceName, pswzShareName, pswzPassword, pswzUsername, pswzDelete, pswzPersist);
-	if (ERROR_SUCCESS != dwResult)
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n FAILED (%08lx) \n========================================\n", dwResult);
-	}
-	else
-	{
-		BeaconPrintf(CALLBACK_OUTPUT, "\n========================================\n SUCCESS \n========================================\n");
-	}
-}
+ // NOT IMPLEMENTED
 #endif

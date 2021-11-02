@@ -256,7 +256,9 @@ alias netview {
 beacon_command_register(
 	"netview",
 	"lists local workstations and servers",
-	"Synopsis: netview <optional netbios domain name>"
+	"Synopsis: netview <optional netbios domain name>
+	
+hint: use netview_list if you want to map shares of a remote machine"
 );
 
 alias listdns {
@@ -284,81 +286,149 @@ beacon_command_register(
 	"Synopsis: listmods <opt: pid> "
 );
 
+alias netuse_add {
+	local('$args $device $share $user $password $persist $requireencrypt %params');
 
-alias netuse {
-	local('$params $keys $args $device $share $user $password');
-
+	if(size(@_) < 4)
+	{
+		berror($1, beacon_command_detail("netuse_add"));
+		return;
+	}
+	$share = $2;
+	$user = $3;
+	$password = $4;
+	$persist = 0;
+	$requireencrypt = 0;
 	%params = ops(@_);
 	@keys = keys(%params);
-	
 	$device = "";
-	$share = "";
-	$user = "";
-	$password = "";
-	$delete = "FALSE";
-	$persist = "FALSE";
-	$privacy = "FALSE";
-	$ipc = "FALSE";
-	
-	if ("1" in @keys) {
-		$device = %params["1"];
-		
-		if ("2" in @keys) {
-			$share = %params["2"];
-			if ("3" in @keys) {
-				$password = %params["3"];
-			}
-			if ("USER" in @keys) {
-				$user = %params["USER"];
-			}
-		}
-		if ("DELETE" in @keys) {
-			$delete = "TRUE"
-		}
-		if ("PERSIST" in @keys) {
-			$persist = "TRUE"
-		}
-		if ("REQUIREPRIVACY" in @keys) {
-			$privacy = "TRUE"
-		}
-		if ("IPC" in @keys) {
-			$ipc = "TRUE"
-		}
-	}	
-	
-	if ($share ne ""){
-		if ($share !ismatch '\\\\.*\\.*'){
-			berror($1, beacon_command_detail("netuse"));
-			berror($1, "Invalid computer\\share name");
-			return;
-		} 
-	}
+	if("PERSIST" in @keys) { $persist = 1; }
+	if("REQUIREPRIVACY" in @keys) {$requireencrypt = 1; }
+	if("DEVICE" in @keys) { $device = %params["DEVICE"] . ":"; }
 
-	$args = bof_pack($1, "ZZZZZZZZ", $device, $share, $password, $user, $delete, $persist, $privacy, $ipc);
+	$args = bof_pack($1, "sZZZZss", 1, $share, $user, $password, $device, $persist, $requireencrypt);
+	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
+
+
+}
+
+beacon_command_register(
+	"netuse_add",
+	"Connect to a shared resource",
+	"
+Command: netuse_add
+Summary: This command connects a computer to a shared resource.
+Usage:   netuse_add (sharename) [opt:username] [opt:password] [opt:/DEVICE:devicename] [opt:/PERSIST] [opt:/REQUIREPRIVACY]
+		 sharename	  Required. The network name of the shared resource to 
+						connect to.
+		username	   Required. The username to use for the remote connection, uses process auth if not provided.
+		password	   Required. The password to use for the remote connection, default password for <username> used if not provided.
+		/DEVICE:<devname>	 Optional. The device name on the local system to list, 
+		  bind the connection to.  Does not bind a device if not given
+		  ex. /DEVICE:Y
+		/PERSIST		Optional flag. Persist the connection.
+		/REQUIREPRIVACY      Optional. require SMBv3 Encryption, fail if not supported.
+Example:
+	Bind IPC$ of a remote computer using current user context
+		netuse_add \\\\somedc.somedomain.local\\IPC$ \"\" \"\"
+
+	Map a Share without creating a specific device mapping using current user context 
+		netuse_add \\\\fileshare.somedomain.local\\adminstuff \"\" \"\"
+
+	Map a Share without creating a specific device mapping, using a diferent set of credentials
+		netuse_add \\\\fileshare.somedomain.local\\adminstuff someuser SomeUsersPassword /DEVICE:F
+
+	Map a persistent share in the current user context
+		netuse_add \\\\fileshare.somedomain.local\\userdrive \"\" \"\" /PERSIST
+"
+);
+
+alias netuse_list {
+	local('$args $target');
+	if(size(@_) > 2)
+	{
+		berror($1, beacon_command_detail("netuse_list"));
+		return;
+	}
+	$target = "";
+	if(size(@_) == 2)
+	{
+		$len = strlen($2);
+		$target = iff($len == 1, $2 . ":", $2);
+		if($len > 2) #Remote share name was given, correct target
+		{
+			$target = iff(left($2, 2) eq "\\\\", $2, "\\\\" . $2);
+		}
+	}
+	$args = bof_pack($1, "sZ", 2, $target);
+	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
+
+
+}
+
+beacon_command_register(
+	"netuse_list",
+	"Lists local bound connections",
+	"
+Command: netuse_list
+Summary: This command lists bound connections when run without arguments.
+		 It a specific connection when a device or remote share name is given
+Usage:   netuse_list [opt:device || share]
+
+Examples:
+	List local connections:
+		netuse_list
+
+	List all info about Y:
+		netuse_list Y:
+"
+);
+
+alias netuse_delete {
+	local('$args $target $len $persist $force');
+	if(size(@_) < 2)
+	{
+		berror($1, beacon_command_detail("netuse_delete"));
+		return;
+	}
+	$len = strlen($2);
+	$target = iff($len == 1, $2 . ":", $2);
+	if($len > 2) #Remote name was given correct target
+	{
+		$target = iff(left($2, 2) eq "\\\\", $2, "\\\\" . $2);
+	}
+	$persist = 0;
+	$force = 0;
+	%params = ops(@_);
+	@keys = keys(%params);
+	if("PERSIST" in @keys) { $persist = 1; }
+	if("FORCE" in @keys) {$force = 1;}
+	$args = bof_pack($1, "sZss", 3, $target, $persist, $force);
 	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
 }
 
 beacon_command_register(
-	"netuse",
-	"Lists, connects to, or disconnects from a shared resource",
+	"netuse_delete",
+	"disconnects from a shared resource",
 	"
-Command: netuse
-Summary: This command connects a computer to a shared resource or disconnects a
-		 computer from a shared resource. When used without options, it lists
-		 the computer's connections.
-Usage:   netuse (devicename) (sharename) (password) (/USER:username) (/DELETE) (/PERSIST)
-		 devicename	 Optional. The device name on the local system to list, 
-						connect, or disconnect. List all devices if devicename
-						is omitted.
-		 sharename	  Optional. The network name of the shared resource to 
-						connect the local device name to, or 'DELETE' to 
-						disconnect the device.
-		 password	   Optional. The password to use for the remote connection.
-		 username	   Optional. The username to use for the remote connection.
-		 DELETE		 Optional. Delete the connection.
-		 PERSIST		Optional. Persist the connection.
-		 REQUIREPRIVACY      Optional. Enable SMBv3 Encryption.
-		 IPC		Optional. Use when mounting/unmounting IPC$
+Command: netuse_delete
+Summary: This command disconnects a computer from a shared resource.
+Usage:   netuse_delete (devicename || sharename) [opt:/PERSIST] [opt:/FORCE]
+
+	/PERSIST | Delete persistent connections so they are not restored
+	/FORCE | force resource to unmap even if resources are open
+
+Examples:
+	Delete the share with the local device name Y:
+		netuse_delete Y
+
+	Delete the share with an unmapped local device name
+		netuse_delete \\\\fileshare.somecomp.local\\Public
+
+	Delete a share and remove its persistent mapping
+		netuse_delete F /PERSIST
+
+Note if the share has a local device name mapped you must delete using the local name
 "
 );
 
