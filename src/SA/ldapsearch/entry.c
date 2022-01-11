@@ -21,6 +21,40 @@ _fuuidtostring fuuidtostring = (void *)1;
 _RpcStringFreeA frpcstringfree = (void *)1;
 HMODULE rpcrt = (void *)1; 
 
+typedef LDAP *LDAPAPI (*ldap_init_t)(PSTR HostName, ULONG PortNumber);
+typedef ULONG LDAPAPI (*ldap_bind_s_t)(LDAP *ld, const PSTR dn, const PCHAR cred, ULONG method);
+typedef ULONG LDAPAPI (*ldap_unbind_t)(LDAP*);
+typedef ULONG LDAPAPI (*ldap_msgfree_t)(LDAPMessage*);
+typedef VOID LDAPAPI (*ldap_memfree_t)(PCHAR);
+typedef LDAPMessage* (*ldap_first_entry_t)(LDAP *ld,LDAPMessage *res);
+typedef ULONG LDAPAPI (*ldap_get_next_page_s_t)(PLDAP ExternalHandle,PLDAPSearch SearchHandle,struct l_timeval *timeout,ULONG PageSize,ULONG *TotalCount,LDAPMessage **Results);
+typedef ULONG LDAPAPI (*ldap_count_entries_t)(LDAP*,LDAPMessage*);
+typedef LDAPMessage*  (*ldap_next_entry_t)(LDAP*,LDAPMessage*);
+typedef PCHAR LDAPAPI (*ldap_first_attribute_t)(LDAP *ld,LDAPMessage *entry,BerElement **ptr);
+typedef struct berval **LDAPAPI (*ldap_get_values_lenA_t)(LDAP *ExternalHandle,LDAPMessage *Message,const PCHAR attr);
+typedef PCHAR * LDAPAPI (*ldap_get_values_t)(LDAP *ld,LDAPMessage *entry,const PSTR attr);
+typedef ULONG LDAPAPI (*ldap_value_free_len_t)(struct berval **vals);
+typedef ULONG LDAPAPI (*ldap_value_free_t)(PCHAR *);
+typedef PCHAR LDAPAPI (*ldap_next_attribute_t)(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
+typedef PLDAPSearch LDAPAPI (*ldap_search_init_pageA_t)(PLDAP ExternalHandle,const PCHAR DistinguishedName,ULONG ScopeOfSearch,const PCHAR SearchFilter,PCHAR AttributeList[],ULONG AttributesOnly,PLDAPControlA *ServerControls,PLDAPControlA *ClientControls,ULONG PageTimeLimit,ULONG TotalSizeLimit,PLDAPSortKeyA *SortKeys);
+
+#define WLDAP32$ldap_init ((ldap_init_t)DynamicLoad("WLDAP32$ldap_init"))
+#define WLDAP32$ldap_bind_s ((ldap_bind_s_t)DynamicLoad("WLDAP32$ldap_bind_s"))
+#define WLDAP32$ldap_unbind ((ldap_unbind_t)DynamicLoad("WLDAP32$ldap_unbind"))
+#define WLDAP32$ldap_msgfree ((ldap_msgfree_t)DynamicLoad("WLDAP32$ldap_msgfree"))
+#define WLDAP32$ldap_memfree ((ldap_memfree_t)DynamicLoad("WLDAP32$ldap_memfree"))
+#define WLDAP32$ldap_first_entry ((ldap_first_entry_t)DynamicLoad("WLDAP32$ldap_first_entry"))
+#define WLDAP32$ldap_get_next_page_s ((ldap_get_next_page_s_t)DynamicLoad("WLDAP32$ldap_get_next_page_s"))
+#define WLDAP32$ldap_count_entries ((ldap_count_entries_t)DynamicLoad("WLDAP32$ldap_count_entries"))
+#define WLDAP32$ldap_next_entry ((ldap_next_entry_t)DynamicLoad("WLDAP32$ldap_next_entry"))
+#define WLDAP32$ldap_first_attribute ((ldap_first_attribute_t)DynamicLoad("WLDAP32$ldap_first_attribute"))
+#define WLDAP32$ldap_get_values_lenA ((ldap_get_values_lenA_t)DynamicLoad("WLDAP32$ldap_get_values_lenA"))
+#define WLDAP32$ldap_get_values ((ldap_get_values_t)DynamicLoad("WLDAP32$ldap_get_values"))
+#define WLDAP32$ldap_value_free_len ((ldap_value_free_len_t)DynamicLoad("WLDAP32$ldap_value_free_len"))
+#define WLDAP32$ldap_value_free ((ldap_value_free_t)DynamicLoad("WLDAP32$ldap_value_free"))
+#define WLDAP32$ldap_next_attribute ((ldap_next_attribute_t)DynamicLoad("WLDAP32$ldap_next_attribute"))
+#define WLDAP32$ldap_search_init_pageA ((ldap_search_init_pageA_t)DynamicLoad("WLDAP32$ldap_search_init_pageA"))
+
 LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 	LDAP* pLdapConnection = NULL;
 
