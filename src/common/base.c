@@ -6,9 +6,12 @@
 #endif
 
 
-char * output = (char*)1;  // this is just done so its we don't go into .bss which isn't handled properly
-WORD currentoutsize = 1;
-HANDLE trash = (HANDLE)1; // Needed for x64 to not give relocation error
+
+
+char * output __attribute__((section (".data"))) = 0;  // this is just done so its we don't go into .bss which isn't handled properly
+WORD currentoutsize __attribute__((section (".data"))) = 0;
+HANDLE trash __attribute__((section (".data"))) = NULL; // Needed for x64 to not give relocation error
+
 #ifdef BOF
 int bofstart();
 void internal_printf(const char* format, ...);
@@ -21,31 +24,6 @@ int bofstart()
     output = (char*)MSVCRT$calloc(bufsize, 1);
     currentoutsize = 0;
     return 1;
-}
-
-void * BeaconDataExtractOrNull(datap* parser, int* size)
-{
-    char * result = BeaconDataExtract(parser, size);
-    return result[0] == '\0' ? NULL : result;
-}
-
-void print_windows_error(char * premsg, DWORD errnum)
-{
-    LPSTR msg = NULL;
-    if(KERNEL32$FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, errnum,
-    0, (LPSTR)&msg, 0, NULL))
-    {
-        BeaconPrintf(CALLBACK_ERROR, "%s : %s", (premsg) ? premsg : "", msg);
-    }
-    else{
-        BeaconPrintf(CALLBACK_ERROR, "failed to format error message: %lu", errnum);
-    }
-    if(msg)
-    {
-        KERNEL32$LocalFree(msg);
-    }
-    return;
-
 }
 
 void internal_printf(const char* format, ...){
@@ -115,45 +93,83 @@ void printoutput(BOOL done)
 #define bofstart 
 #endif
 
+// Changes to address issue #65.
+// We can't use more dynamic resolve functions in this file, which means a call to HeapRealloc is unacceptable.
+// To that end if you're going to use this function, declare how many libraries you'll be loading out of, multiple functions out of 1 library count as one
+// Normallize your library name to uppercase, yes I could do it, yes I'm also lazy and putting that on the developer.
+// Finally I'm going to assume actual string constants are passed in, which is to say don't pass in something to this you plan to free yourself
+// If you must then free it after bofstop is called
+#ifdef DYNAMIC_LIB_COUNT
 
+
+typedef struct loadedLibrary {
+    HMODULE hMod; // mod handle
+    const char * name; // name normalized to uppercase
+}loadedLibrary, *ploadedLibrary;
+loadedLibrary loadedLibraries[DYNAMIC_LIB_COUNT] __attribute__((section (".data"))) = {0};
+DWORD loadedLibrariesCount __attribute__((section (".data"))) = 0;
+
+BOOL intstrcmp(LPCSTR szLibrary, LPCSTR sztarget)
+{
+    BOOL bmatch = FALSE;
+    DWORD pos = 0;
+    while(szLibrary[pos] && sztarget[pos])
+    {
+        if(szLibrary[pos] != sztarget[pos])
+        {
+            goto end;
+        }
+        pos++;
+    }
+    if(szLibrary[pos] | sztarget[pos]) // if either of these down't equal null then they can't match
+        {goto end;}
+    bmatch = TRUE;
+
+    end:
+    return bmatch;
+}
+
+//GetProcAddress, LoadLibraryA, GetModuleHandle, and FreeLibrary are gimmie functions
 //
 // DynamicLoad
 // Retrieves a function pointer given the BOF library-function name
-// szBOFfunc            - The library and function name in BOF format, e.g., 
-//                          KERNEL32$GetLastError
+// szLibrary           - The library containing the function you want to load
+// szFunction          - The Function that you want to load
 // Returns a FARPROC function pointer if successful, or NULL if lookup fails
 //
-FARPROC DynamicLoad(LPCSTR szBOFfunc)
+FARPROC DynamicLoad(const char * szLibrary, const char * szFunction)
 {
     FARPROC fp = NULL;
-    LPSTR szLibrary = NULL;
-    LPSTR szFunction = NULL;
-    CHAR * pchDivide = NULL;
-    HMODULE hLibrary = NULL;
-
-    szLibrary = (LPSTR)intAlloc(MSVCRT$strlen(szBOFfunc)+1);
-    if(szLibrary)
+    HMODULE hMod = NULL;
+    DWORD i = 0;
+    DWORD liblen = 0;
+    for(i = 0; i < loadedLibrariesCount; i++)
     {
-        MSVCRT$strcpy(szLibrary,szBOFfunc);
-        pchDivide = MSVCRT$strchr(szLibrary, '$');
-        pchDivide[0] = '\0';
-        pchDivide++;
-        szFunction = pchDivide;
-        hLibrary = KERNEL32$LoadLibraryA(szLibrary);
-        if (hLibrary)
+        if(intstrcmp(szLibrary, loadedLibraries[i].name))
         {
-            fp = KERNEL32$GetProcAddress(hLibrary,szFunction);
+            hMod = loadedLibraries[i].hMod;
         }
-        intFree(szLibrary);
     }
+    if(!hMod)
+    {
+        hMod = LoadLibraryA(szLibrary);
+        if(!hMod){ 
+            BeaconPrintf(CALLBACK_ERROR, "*** DynamicLoad(%s) FAILED!\nCould not find library to load.", szLibrary);
+            return NULL;
+        }
+        loadedLibraries[loadedLibrariesCount].hMod = hMod;
+        loadedLibraries[loadedLibrariesCount].name = szLibrary; //And this is why this HAS to be a constant or not freed before bofstop
+        loadedLibrariesCount++;
+    }
+    fp = GetProcAddress(hMod, szFunction);
 
     if (NULL == fp)
     {
-        BeaconPrintf(CALLBACK_ERROR, "*** DynamicLoad(%s) FAILED!\n", szBOFfunc);
+        BeaconPrintf(CALLBACK_ERROR, "*** DynamicLoad(%s) FAILED!\n", szFunction);
     }
-
     return fp;
 }
+#endif
 
 
 char* Utf16ToUtf8(const wchar_t* input)
@@ -201,6 +217,12 @@ fail:
 //release any global functions here
 void bofstop()
 {
-
+#ifdef DYNAMIC_LIB_COUNT
+    DWORD i;
+    for(i = 0; i < loadedLibrariesCount; i++)
+    {
+        FreeLibrary(loadedLibraries[i].hMod);
+    }
+#endif
 	return;
 }

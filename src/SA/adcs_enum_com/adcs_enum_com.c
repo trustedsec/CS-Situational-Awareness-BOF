@@ -45,33 +45,33 @@ typedef HRESULT WINAPI (*CACertTypeGetSecurity_t)(IN LPVOID hCertType, OUT PSECU
 typedef HRESULT WINAPI (*caTranslateFileTimePeriodToPeriodUnits_t)(IN FILETIME const *pftGMT, IN BOOL Flags, OUT DWORD *pcPeriodUnits, OUT LPVOID*prgPeriodUnits);
 typedef HRESULT WINAPI (*CAGetCertTypeAccessRights_t)(IN LPVOID hCertType, IN DWORD dwContext, OUT DWORD *pdwAccessRights);
 
-#define CERTCLI$CAEnumFirstCA ((CAEnumFirstCA_t)DynamicLoad("CERTCLI$CAEnumFirstCA"))
-#define CERTCLI$CAEnumNextCA ((CAEnumNextCA_t)DynamicLoad("CERTCLI$CAEnumNextCA"))
-#define CERTCLI$CACloseCA ((CACloseCA_t)DynamicLoad("CERTCLI$CACloseCA"))
-#define CERTCLI$CACountCAs ((CACountCAs_t)DynamicLoad("CERTCLI$CACountCAs"))
-#define CERTCLI$CAGetDN ((CAGetDN_t)DynamicLoad("CERTCLI$CAGetDN"))
-#define CERTCLI$CAGetCAProperty ((CAGetCAProperty_t)DynamicLoad("CERTCLI$CAGetCAProperty"))
-#define CERTCLI$CAFreeCAProperty ((CAFreeCAProperty_t)DynamicLoad("CERTCLI$CAFreeCAProperty"))
-#define CERTCLI$CAGetCAFlags ((CAGetCAFlags_t)DynamicLoad("CERTCLI$CAGetCAFlags"))
-#define CERTCLI$CAGetCACertificate ((CAGetCACertificate_t)DynamicLoad("CERTCLI$CAGetCACertificate"))
-#define CERTCLI$CAGetCAExpiration ((CAGetCAExpiration_t)DynamicLoad("CERTCLI$CAGetCAExpiration"))
-#define CERTCLI$CAGetCASecurity ((CAGetCASecurity_t)DynamicLoad("CERTCLI$CAGetCASecurity"))
-#define CERTCLI$CAGetAccessRights ((CAGetAccessRights_t)DynamicLoad("CERTCLI$CAGetAccessRights"))
-#define CERTCLI$CAEnumCertTypesForCA ((CAEnumCertTypesForCA_t)DynamicLoad("CERTCLI$CAEnumCertTypesForCA"))
-#define CERTCLI$CAEnumCertTypes ((CAEnumCertTypes_t)DynamicLoad("CERTCLI$CAEnumCertTypes"))
-#define CERTCLI$CAEnumNextCertType ((CAEnumNextCertType_t)DynamicLoad("CERTCLI$CAEnumNextCertType"))
-#define CERTCLI$CACountCertTypes ((CACountCertTypes_t)DynamicLoad("CERTCLI$CACountCertTypes"))
-#define CERTCLI$CACloseCertType ((CACloseCertType_t)DynamicLoad("CERTCLI$CACloseCertType"))
-#define CERTCLI$CAGetCertTypeProperty ((CAGetCertTypeProperty_t)DynamicLoad("CERTCLI$CAGetCertTypeProperty"))
-#define CERTCLI$CAGetCertTypePropertyEx ((CAGetCertTypePropertyEx_t)DynamicLoad("CERTCLI$CAGetCertTypePropertyEx"))
-#define CERTCLI$CAFreeCertTypeProperty ((CAFreeCertTypeProperty_t)DynamicLoad("CERTCLI$CAFreeCertTypeProperty"))
-#define CERTCLI$CAGetCertTypeExtensionsEx ((CAGetCertTypeExtensionsEx_t)DynamicLoad("CERTCLI$CAGetCertTypeExtensionsEx"))
-#define CERTCLI$CAFreeCertTypeExtensions ((CAFreeCertTypeExtensions_t)DynamicLoad("CERTCLI$CAFreeCertTypeExtensions"))
-#define CERTCLI$CAGetCertTypeFlagsEx ((CAGetCertTypeFlagsEx_t)DynamicLoad("CERTCLI$CAGetCertTypeFlagsEx"))
-#define CERTCLI$CAGetCertTypeExpiration ((CAGetCertTypeExpiration_t)DynamicLoad("CERTCLI$CAGetCertTypeExpiration"))
-#define CERTCLI$CACertTypeGetSecurity ((CACertTypeGetSecurity_t)DynamicLoad("CERTCLI$CACertTypeGetSecurity"))
-#define CERTCLI$caTranslateFileTimePeriodToPeriodUnits ((caTranslateFileTimePeriodToPeriodUnits_t)DynamicLoad("CERTCLI$caTranslateFileTimePeriodToPeriodUnits"))
-#define CERTCLI$CAGetCertTypeAccessRights ((CAGetCertTypeAccessRights_t)DynamicLoad("CERTCLI$CAGetCertTypeAccessRights"))
+#define CERTCLI$CAEnumFirstCA ((CAEnumFirstCA_t)DynamicLoad("CERTCLI","CAEnumFirstCA"))
+#define CERTCLI$CAEnumNextCA ((CAEnumNextCA_t)DynamicLoad("CERTCLI","CAEnumNextCA"))
+#define CERTCLI$CACloseCA ((CACloseCA_t)DynamicLoad("CERTCLI","CACloseCA"))
+#define CERTCLI$CACountCAs ((CACountCAs_t)DynamicLoad("CERTCLI","CACountCAs"))
+#define CERTCLI$CAGetDN ((CAGetDN_t)DynamicLoad("CERTCLI","CAGetDN"))
+#define CERTCLI$CAGetCAProperty ((CAGetCAProperty_t)DynamicLoad("CERTCLI","CAGetCAProperty"))
+#define CERTCLI$CAFreeCAProperty ((CAFreeCAProperty_t)DynamicLoad("CERTCLI","CAFreeCAProperty"))
+#define CERTCLI$CAGetCAFlags ((CAGetCAFlags_t)DynamicLoad("CERTCLI","CAGetCAFlags"))
+#define CERTCLI$CAGetCACertificate ((CAGetCACertificate_t)DynamicLoad("CERTCLI","CAGetCACertificate"))
+#define CERTCLI$CAGetCAExpiration ((CAGetCAExpiration_t)DynamicLoad("CERTCLI","CAGetCAExpiration"))
+#define CERTCLI$CAGetCASecurity ((CAGetCASecurity_t)DynamicLoad("CERTCLI","CAGetCASecurity"))
+#define CERTCLI$CAGetAccessRights ((CAGetAccessRights_t)DynamicLoad("CERTCLI","CAGetAccessRights"))
+#define CERTCLI$CAEnumCertTypesForCA ((CAEnumCertTypesForCA_t)DynamicLoad("CERTCLI","CAEnumCertTypesForCA"))
+#define CERTCLI$CAEnumCertTypes ((CAEnumCertTypes_t)DynamicLoad("CERTCLI","CAEnumCertTypes"))
+#define CERTCLI$CAEnumNextCertType ((CAEnumNextCertType_t)DynamicLoad("CERTCLI","CAEnumNextCertType"))
+#define CERTCLI$CACountCertTypes ((CACountCertTypes_t)DynamicLoad("CERTCLI","CACountCertTypes"))
+#define CERTCLI$CACloseCertType ((CACloseCertType_t)DynamicLoad("CERTCLI","CACloseCertType"))
+#define CERTCLI$CAGetCertTypeProperty ((CAGetCertTypeProperty_t)DynamicLoad("CERTCLI","CAGetCertTypeProperty"))
+#define CERTCLI$CAGetCertTypePropertyEx ((CAGetCertTypePropertyEx_t)DynamicLoad("CERTCLI","CAGetCertTypePropertyEx"))
+#define CERTCLI$CAFreeCertTypeProperty ((CAFreeCertTypeProperty_t)DynamicLoad("CERTCLI","CAFreeCertTypeProperty"))
+#define CERTCLI$CAGetCertTypeExtensionsEx ((CAGetCertTypeExtensionsEx_t)DynamicLoad("CERTCLI","CAGetCertTypeExtensionsEx"))
+#define CERTCLI$CAFreeCertTypeExtensions ((CAFreeCertTypeExtensions_t)DynamicLoad("CERTCLI","CAFreeCertTypeExtensions"))
+#define CERTCLI$CAGetCertTypeFlagsEx ((CAGetCertTypeFlagsEx_t)DynamicLoad("CERTCLI","CAGetCertTypeFlagsEx"))
+#define CERTCLI$CAGetCertTypeExpiration ((CAGetCertTypeExpiration_t)DynamicLoad("CERTCLI","CAGetCertTypeExpiration"))
+#define CERTCLI$CACertTypeGetSecurity ((CACertTypeGetSecurity_t)DynamicLoad("CERTCLI","CACertTypeGetSecurity"))
+#define CERTCLI$caTranslateFileTimePeriodToPeriodUnits ((caTranslateFileTimePeriodToPeriodUnits_t)DynamicLoad("CERTCLI","caTranslateFileTimePeriodToPeriodUnits"))
+#define CERTCLI$CAGetCertTypeAccessRights ((CAGetCertTypeAccessRights_t)DynamicLoad("CERTCLI","CAGetCertTypeAccessRights"))
 
 
 typedef PCCERT_CONTEXT WINAPI (*CertCreateCertificateContext_t)(DWORD dwCertEncodingType, const BYTE *pbCertEncoded, DWORD cbCertEncoded);
@@ -80,11 +80,11 @@ typedef WINBOOL WINAPI (*CertGetCertificateContextProperty_t)(PCCERT_CONTEXT pCe
 typedef WINBOOL WINAPI (*CertGetCertificateChain_t)(HCERTCHAINENGINE hChainEngine, PCCERT_CONTEXT pCertContext, LPFILETIME pTime, HCERTSTORE hAdditionalStore, PCERT_CHAIN_PARA pChainPara, DWORD dwFlags, LPVOID pvReserved, PCCERT_CHAIN_CONTEXT *ppChainContext);
 typedef VOID WINAPI (*CertFreeCertificateChain_t)(PCCERT_CHAIN_CONTEXT pChainContext);
 
-#define CRYPT32$CertCreateCertificateContext ((CertCreateCertificateContext_t)DynamicLoad("CRYPT32$CertCreateCertificateContext"))
-#define CRYPT32$CertGetNameStringW ((CertGetNameStringW_t)DynamicLoad("CRYPT32$CertGetNameStringW"))
-#define CRYPT32$CertGetCertificateContextProperty ((CertGetCertificateContextProperty_t)DynamicLoad("CRYPT32$CertGetCertificateContextProperty"))
-#define CRYPT32$CertGetCertificateChain ((CertGetCertificateChain_t)DynamicLoad("CRYPT32$CertGetCertificateChain"))
-#define CRYPT32$CertFreeCertificateChain ((CertFreeCertificateChain_t)DynamicLoad("CRYPT32$CertFreeCertificateChain"))
+#define CRYPT32$CertCreateCertificateContext ((CertCreateCertificateContext_t)DynamicLoad("CRYPT32","CertCreateCertificateContext"))
+#define CRYPT32$CertGetNameStringW ((CertGetNameStringW_t)DynamicLoad("CRYPT32","CertGetNameStringW"))
+#define CRYPT32$CertGetCertificateContextProperty ((CertGetCertificateContextProperty_t)DynamicLoad("CRYPT32","CertGetCertificateContextProperty"))
+#define CRYPT32$CertGetCertificateChain ((CertGetCertificateChain_t)DynamicLoad("CRYPT32","CertGetCertificateChain"))
+#define CRYPT32$CertFreeCertificateChain ((CertFreeCertificateChain_t)DynamicLoad("CRYPT32","CertFreeCertificateChain"))
 
 
 typedef BSTR WINAPI (*SysAllocString_t)(const OLECHAR *);
@@ -94,21 +94,21 @@ typedef void WINAPI (*SafeArrayDestroy_t)(SAFEARRAY *psa);
 typedef void WINAPI (*VariantInit_t)(VARIANTARG *pvarg);
 typedef void WINAPI (*VariantClear_t)(VARIANTARG *pvarg);
 
-#define OLEAUT32$SysAllocString ((SysAllocString_t)DynamicLoad("OLEAUT32$SysAllocString"))
-#define OLEAUT32$SysStringLen ((SysStringLen_t)DynamicLoad("OLEAUT32$SysStringLen"))
-#define OLEAUT32$SysFreeString ((SysFreeString_t)DynamicLoad("OLEAUT32$SysFreeString"))
-#define OLEAUT32$SafeArrayDestroy ((SafeArrayDestroy_t)DynamicLoad("OLEAUT32$SafeArrayDestroy"))
-#define OLEAUT32$VariantInit ((VariantInit_t)DynamicLoad("OLEAUT32$VariantInit"))
-#define OLEAUT32$VariantClear ((VariantClear_t)DynamicLoad("OLEAUT32$VariantClear"))
+#define OLEAUT32$SysAllocString ((SysAllocString_t)DynamicLoad("OLEAUT32","SysAllocString"))
+#define OLEAUT32$SysStringLen ((SysStringLen_t)DynamicLoad("OLEAUT32","SysStringLen"))
+#define OLEAUT32$SysFreeString ((SysFreeString_t)DynamicLoad("OLEAUT32","SysFreeString"))
+#define OLEAUT32$SafeArrayDestroy ((SafeArrayDestroy_t)DynamicLoad("OLEAUT32","SafeArrayDestroy"))
+#define OLEAUT32$VariantInit ((VariantInit_t)DynamicLoad("OLEAUT32","VariantInit"))
+#define OLEAUT32$VariantClear ((VariantClear_t)DynamicLoad("OLEAUT32","VariantClear"))
 
 
 typedef HRESULT WINAPI (*CoInitializeEx_t)(LPVOID pvReserved, DWORD dwCoInit);
 typedef HRESULT WINAPI (*CoUninitialize_t)(void);
 typedef int WINAPI (*StringFromGUID2_t)(REFGUID rguid, LPOLESTR lpsz, int cchMax);
 
-#define OLE32$CoInitializeEx ((CoInitializeEx_t)DynamicLoad("OLE32$CoInitializeEx"))
-#define OLE32$CoUninitialize ((CoUninitialize_t)DynamicLoad("OLE32$CoUninitialize"))
-#define OLE32$StringFromGUID2 ((StringFromGUID2_t)DynamicLoad("OLE32$StringFromGUID2"))
+#define OLE32$CoInitializeEx ((CoInitializeEx_t)DynamicLoad("OLE32","CoInitializeEx"))
+#define OLE32$CoUninitialize ((CoUninitialize_t)DynamicLoad("OLE32","CoUninitialize"))
+#define OLE32$StringFromGUID2 ((StringFromGUID2_t)DynamicLoad("OLE32","StringFromGUID2"))
 
 
 #define PROPTYPE_INT 1

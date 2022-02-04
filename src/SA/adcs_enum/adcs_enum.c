@@ -41,33 +41,33 @@ typedef HRESULT WINAPI (*CACertTypeGetSecurity_t)(IN LPVOID hCertType, OUT PSECU
 typedef HRESULT WINAPI (*caTranslateFileTimePeriodToPeriodUnits_t)(IN FILETIME const *pftGMT, IN BOOL Flags, OUT DWORD *pcPeriodUnits, OUT LPVOID*prgPeriodUnits);
 typedef HRESULT WINAPI (*CAGetCertTypeAccessRights_t)(IN LPVOID hCertType, IN DWORD dwContext, OUT DWORD *pdwAccessRights);
 
-#define CERTCLI$CAEnumFirstCA ((CAEnumFirstCA_t)DynamicLoad("CERTCLI$CAEnumFirstCA"))
-#define CERTCLI$CAEnumNextCA ((CAEnumNextCA_t)DynamicLoad("CERTCLI$CAEnumNextCA"))
-#define CERTCLI$CACloseCA ((CACloseCA_t)DynamicLoad("CERTCLI$CACloseCA"))
-#define CERTCLI$CACountCAs ((CACountCAs_t)DynamicLoad("CERTCLI$CACountCAs"))
-#define CERTCLI$CAGetDN ((CAGetDN_t)DynamicLoad("CERTCLI$CAGetDN"))
-#define CERTCLI$CAGetCAProperty ((CAGetCAProperty_t)DynamicLoad("CERTCLI$CAGetCAProperty"))
-#define CERTCLI$CAFreeCAProperty ((CAFreeCAProperty_t)DynamicLoad("CERTCLI$CAFreeCAProperty"))
-#define CERTCLI$CAGetCAFlags ((CAGetCAFlags_t)DynamicLoad("CERTCLI$CAGetCAFlags"))
-#define CERTCLI$CAGetCACertificate ((CAGetCACertificate_t)DynamicLoad("CERTCLI$CAGetCACertificate"))
-#define CERTCLI$CAGetCAExpiration ((CAGetCAExpiration_t)DynamicLoad("CERTCLI$CAGetCAExpiration"))
-#define CERTCLI$CAGetCASecurity ((CAGetCASecurity_t)DynamicLoad("CERTCLI$CAGetCASecurity"))
-#define CERTCLI$CAGetAccessRights ((CAGetAccessRights_t)DynamicLoad("CERTCLI$CAGetAccessRights"))
-#define CERTCLI$CAEnumCertTypesForCA ((CAEnumCertTypesForCA_t)DynamicLoad("CERTCLI$CAEnumCertTypesForCA"))
-#define CERTCLI$CAEnumCertTypes ((CAEnumCertTypes_t)DynamicLoad("CERTCLI$CAEnumCertTypes"))
-#define CERTCLI$CAEnumNextCertType ((CAEnumNextCertType_t)DynamicLoad("CERTCLI$CAEnumNextCertType"))
-#define CERTCLI$CACountCertTypes ((CACountCertTypes_t)DynamicLoad("CERTCLI$CACountCertTypes"))
-#define CERTCLI$CACloseCertType ((CACloseCertType_t)DynamicLoad("CERTCLI$CACloseCertType"))
-#define CERTCLI$CAGetCertTypeProperty ((CAGetCertTypeProperty_t)DynamicLoad("CERTCLI$CAGetCertTypeProperty"))
-#define CERTCLI$CAGetCertTypePropertyEx ((CAGetCertTypePropertyEx_t)DynamicLoad("CERTCLI$CAGetCertTypePropertyEx"))
-#define CERTCLI$CAFreeCertTypeProperty ((CAFreeCertTypeProperty_t)DynamicLoad("CERTCLI$CAFreeCertTypeProperty"))
-#define CERTCLI$CAGetCertTypeExtensionsEx ((CAGetCertTypeExtensionsEx_t)DynamicLoad("CERTCLI$CAGetCertTypeExtensionsEx"))
-#define CERTCLI$CAFreeCertTypeExtensions ((CAFreeCertTypeExtensions_t)DynamicLoad("CERTCLI$CAFreeCertTypeExtensions"))
-#define CERTCLI$CAGetCertTypeFlagsEx ((CAGetCertTypeFlagsEx_t)DynamicLoad("CERTCLI$CAGetCertTypeFlagsEx"))
-#define CERTCLI$CAGetCertTypeExpiration ((CAGetCertTypeExpiration_t)DynamicLoad("CERTCLI$CAGetCertTypeExpiration"))
-#define CERTCLI$CACertTypeGetSecurity ((CACertTypeGetSecurity_t)DynamicLoad("CERTCLI$CACertTypeGetSecurity"))
-#define CERTCLI$caTranslateFileTimePeriodToPeriodUnits ((caTranslateFileTimePeriodToPeriodUnits_t)DynamicLoad("CERTCLI$caTranslateFileTimePeriodToPeriodUnits"))
-#define CERTCLI$CAGetCertTypeAccessRights ((CAGetCertTypeAccessRights_t)DynamicLoad("CERTCLI$CAGetCertTypeAccessRights"))
+#define CERTCLI$CAEnumFirstCA ((CAEnumFirstCA_t)DynamicLoad("CERTCLI", "CAEnumFirstCA"))
+#define CERTCLI$CAEnumNextCA ((CAEnumNextCA_t)DynamicLoad("CERTCLI", "CAEnumNextCA"))
+#define CERTCLI$CACloseCA ((CACloseCA_t)DynamicLoad("CERTCLI", "CACloseCA"))
+#define CERTCLI$CACountCAs ((CACountCAs_t)DynamicLoad("CERTCLI", "CACountCAs"))
+#define CERTCLI$CAGetDN ((CAGetDN_t)DynamicLoad("CERTCLI", "CAGetDN"))
+#define CERTCLI$CAGetCAProperty ((CAGetCAProperty_t)DynamicLoad("CERTCLI", "CAGetCAProperty"))
+#define CERTCLI$CAFreeCAProperty ((CAFreeCAProperty_t)DynamicLoad("CERTCLI", "CAFreeCAProperty"))
+#define CERTCLI$CAGetCAFlags ((CAGetCAFlags_t)DynamicLoad("CERTCLI", "CAGetCAFlags"))
+#define CERTCLI$CAGetCACertificate ((CAGetCACertificate_t)DynamicLoad("CERTCLI", "CAGetCACertificate"))
+#define CERTCLI$CAGetCAExpiration ((CAGetCAExpiration_t)DynamicLoad("CERTCLI", "CAGetCAExpiration"))
+#define CERTCLI$CAGetCASecurity ((CAGetCASecurity_t)DynamicLoad("CERTCLI", "CAGetCASecurity"))
+#define CERTCLI$CAGetAccessRights ((CAGetAccessRights_t)DynamicLoad("CERTCLI", "CAGetAccessRights"))
+#define CERTCLI$CAEnumCertTypesForCA ((CAEnumCertTypesForCA_t)DynamicLoad("CERTCLI", "CAEnumCertTypesForCA"))
+#define CERTCLI$CAEnumCertTypes ((CAEnumCertTypes_t)DynamicLoad("CERTCLI", "CAEnumCertTypes"))
+#define CERTCLI$CAEnumNextCertType ((CAEnumNextCertType_t)DynamicLoad("CERTCLI", "CAEnumNextCertType"))
+#define CERTCLI$CACountCertTypes ((CACountCertTypes_t)DynamicLoad("CERTCLI", "CACountCertTypes"))
+#define CERTCLI$CACloseCertType ((CACloseCertType_t)DynamicLoad("CERTCLI", "CACloseCertType"))
+#define CERTCLI$CAGetCertTypeProperty ((CAGetCertTypeProperty_t)DynamicLoad("CERTCLI", "CAGetCertTypeProperty"))
+#define CERTCLI$CAGetCertTypePropertyEx ((CAGetCertTypePropertyEx_t)DynamicLoad("CERTCLI", "CAGetCertTypePropertyEx"))
+#define CERTCLI$CAFreeCertTypeProperty ((CAFreeCertTypeProperty_t)DynamicLoad("CERTCLI", "CAFreeCertTypeProperty"))
+#define CERTCLI$CAGetCertTypeExtensionsEx ((CAGetCertTypeExtensionsEx_t)DynamicLoad("CERTCLI", "CAGetCertTypeExtensionsEx"))
+#define CERTCLI$CAFreeCertTypeExtensions ((CAFreeCertTypeExtensions_t)DynamicLoad("CERTCLI", "CAFreeCertTypeExtensions"))
+#define CERTCLI$CAGetCertTypeFlagsEx ((CAGetCertTypeFlagsEx_t)DynamicLoad("CERTCLI", "CAGetCertTypeFlagsEx"))
+#define CERTCLI$CAGetCertTypeExpiration ((CAGetCertTypeExpiration_t)DynamicLoad("CERTCLI", "CAGetCertTypeExpiration"))
+#define CERTCLI$CACertTypeGetSecurity ((CACertTypeGetSecurity_t)DynamicLoad("CERTCLI", "CACertTypeGetSecurity"))
+#define CERTCLI$caTranslateFileTimePeriodToPeriodUnits ((caTranslateFileTimePeriodToPeriodUnits_t)DynamicLoad("CERTCLI", "caTranslateFileTimePeriodToPeriodUnits"))
+#define CERTCLI$CAGetCertTypeAccessRights ((CAGetCertTypeAccessRights_t)DynamicLoad("CERTCLI", "CAGetCertTypeAccessRights"))
 
 
 typedef PCCERT_CONTEXT WINAPI (*CertCreateCertificateContext_t)(DWORD dwCertEncodingType, const BYTE *pbCertEncoded, DWORD cbCertEncoded);
@@ -76,11 +76,11 @@ typedef WINBOOL WINAPI (*CertGetCertificateContextProperty_t)(PCCERT_CONTEXT pCe
 typedef WINBOOL WINAPI (*CertGetCertificateChain_t)(HCERTCHAINENGINE hChainEngine, PCCERT_CONTEXT pCertContext, LPFILETIME pTime, HCERTSTORE hAdditionalStore, PCERT_CHAIN_PARA pChainPara, DWORD dwFlags, LPVOID pvReserved, PCCERT_CHAIN_CONTEXT *ppChainContext);
 typedef VOID WINAPI (*CertFreeCertificateChain_t)(PCCERT_CHAIN_CONTEXT pChainContext);
 
-#define CRYPT32$CertCreateCertificateContext ((CertCreateCertificateContext_t)DynamicLoad("CRYPT32$CertCreateCertificateContext"))
-#define CRYPT32$CertGetNameStringW ((CertGetNameStringW_t)DynamicLoad("CRYPT32$CertGetNameStringW"))
-#define CRYPT32$CertGetCertificateContextProperty ((CertGetCertificateContextProperty_t)DynamicLoad("CRYPT32$CertGetCertificateContextProperty"))
-#define CRYPT32$CertGetCertificateChain ((CertGetCertificateChain_t)DynamicLoad("CRYPT32$CertGetCertificateChain"))
-#define CRYPT32$CertFreeCertificateChain ((CertFreeCertificateChain_t)DynamicLoad("CRYPT32$CertFreeCertificateChain"))
+#define CRYPT32$CertCreateCertificateContext ((CertCreateCertificateContext_t)DynamicLoad("CRYPT32", "CertCreateCertificateContext"))
+#define CRYPT32$CertGetNameStringW ((CertGetNameStringW_t)DynamicLoad("CRYPT32", "CertGetNameStringW"))
+#define CRYPT32$CertGetCertificateContextProperty ((CertGetCertificateContextProperty_t)DynamicLoad("CRYPT32", "CertGetCertificateContextProperty"))
+#define CRYPT32$CertGetCertificateChain ((CertGetCertificateChain_t)DynamicLoad("CRYPT32", "CertGetCertificateChain"))
+#define CRYPT32$CertFreeCertificateChain ((CertFreeCertificateChain_t)DynamicLoad("CRYPT32", "CertFreeCertificateChain"))
 
 
 #define CHECK_RETURN_FALSE( function, return_value, result) \
@@ -163,7 +163,7 @@ HRESULT adcs_enum()
 
 	// get the first CA in the domain
 	hr = CERTCLI$CAEnumFirstCA( NULL, 0, &hCAInfoNext );
-	CHECK_RETURN_FAIL(L"CAEnumFirstCA", hr)
+	CHECK_RETURN_FAIL("CAEnumFirstCA", hr)
 
 	// CountCAs
 	if (NULL == hCAInfoNext)
@@ -186,11 +186,11 @@ HRESULT adcs_enum()
 
 		// list info for current CA
 		hr = _adcs_enum_ca(hCAInfo);
-		CHECK_RETURN_FAIL(L"_adcs_enum_ca", hr)
+		CHECK_RETURN_FAIL("_adcs_enum_ca", hr)
 
 		// get the next CA in the domain
 		hr = CERTCLI$CAEnumNextCA(hCAInfo, &hCAInfoNext);
-		CHECK_RETURN_FAIL(L"CAEnumNextCA", hr)
+		CHECK_RETURN_FAIL("CAEnumNextCA", hr)
 	} // end loop through CAs in the domain
 	
 	hr = S_OK;
@@ -222,21 +222,21 @@ HRESULT _adcs_enum_ca(HCAINFO hCAInfo)
 
 	// simple name of the CA
 	hr = CERTCLI$CAGetCAProperty( hCAInfo, CA_PROP_NAME, &awszPropertyValue );
-	CHECK_RETURN_FAIL(L"CAGetCAProperty(CA_PROP_NAME)", hr)
+	CHECK_RETURN_FAIL("CAGetCAProperty(CA_PROP_NAME)", hr)
 	internal_printf("  Enterprise CA Name        : %S\n", awszPropertyValue[dwPropertyValueIndex]);
 	SAFE_CAFREECAPROPERTY( hCAInfo, awszPropertyValue )
 	dwPropertyValueIndex = 0;
 
 	// dns name of the machine
 	hr = CERTCLI$CAGetCAProperty( hCAInfo, CA_PROP_DNSNAME, &awszPropertyValue );
-	CHECK_RETURN_FAIL(L"CAGetCAProperty(CA_PROP_DNSNAME)", hr);
+	CHECK_RETURN_FAIL("CAGetCAProperty(CA_PROP_DNSNAME)", hr);
 	internal_printf("  DNS Hostname              : %S\n", awszPropertyValue[dwPropertyValueIndex]);
 	SAFE_CAFREECAPROPERTY( hCAInfo, awszPropertyValue )
 	dwPropertyValueIndex = 0;
 
 	// flags
 	hr = CERTCLI$CAGetCAFlags( hCAInfo, &dwFlags );
-	CHECK_RETURN_FAIL(L"CAGetCAFlags", hr)
+	CHECK_RETURN_FAIL("CAGetCAFlags", hr)
 	internal_printf("  Flags                     :");
 	if(CA_FLAG_NO_TEMPLATE_SUPPORT & dwFlags) { internal_printf(" NO_TEMPLATE_SUPPORT"); }
 	if(CA_FLAG_SUPPORTS_NT_AUTHENTICATION & dwFlags) { internal_printf(" SUPPORTS_NT_AUTHENTICATION"); }
@@ -246,7 +246,7 @@ HRESULT _adcs_enum_ca(HCAINFO hCAInfo)
 
 	// expiration
 	hr = CERTCLI$CAGetCAExpiration( hCAInfo, &dwExpiration, &dwUnits );
-	CHECK_RETURN_FAIL(L"CAGetCAExpiration", hr)
+	CHECK_RETURN_FAIL("CAGetCAExpiration", hr)
 	internal_printf("  Expiration                : %lu", dwExpiration);
 	if (CA_UNITS_DAYS == dwUnits) { internal_printf(" days\n"); }
 	else if (CA_UNITS_WEEKS == dwUnits) { internal_printf(" weeks\n"); }
@@ -255,21 +255,21 @@ HRESULT _adcs_enum_ca(HCAINFO hCAInfo)
 
 	// certificate
 	hr = CERTCLI$CAGetCACertificate( hCAInfo, &pCert );
-	CHECK_RETURN_FAIL(L"CAGetCACertificate", hr);
+	CHECK_RETURN_FAIL("CAGetCACertificate", hr);
 	internal_printf("  CA Cert                   :\n");
 	hr = _adcs_enum_cert(pCert);
-	CHECK_RETURN_FAIL(L"_adcs_enum_cert", hr);
+	CHECK_RETURN_FAIL("_adcs_enum_cert", hr);
 
 	// permissions
 	hr = CERTCLI$CAGetCASecurity( hCAInfo, &pSD );
-	CHECK_RETURN_FAIL(L"CAGetCASecurity", hr);
+	CHECK_RETURN_FAIL("CAGetCASecurity", hr);
 	internal_printf("  Permissions               :\n");
 	hr = _adcs_enum_ca_permissions(pSD);
-	CHECK_RETURN_FAIL(L"_adcs_enum_ca_permissions", hr);
+	CHECK_RETURN_FAIL("_adcs_enum_ca_permissions", hr);
 
 	// get the first template on the CA
 	hr = CERTCLI$CAEnumCertTypesForCA(hCAInfo, CT_ENUM_MACHINE_TYPES|CT_ENUM_USER_TYPES|CT_FLAG_NO_CACHE_LOOKUP, &hCertTypeNext);
-	CHECK_RETURN_FAIL(L"CAEnumCertTypesForCA", hr)
+	CHECK_RETURN_FAIL("CAEnumCertTypesForCA", hr)
 
 	// CountCertTypes
 	if (NULL == hCertTypeNext)
@@ -289,11 +289,11 @@ HRESULT _adcs_enum_ca(HCAINFO hCAInfo)
 
 		// list info for current template
 		hr = _adcs_enum_cert_type(hCertType);
-		CHECK_RETURN_FAIL(L"_adcs_enum_cert_type", hr);
+		CHECK_RETURN_FAIL("_adcs_enum_cert_type", hr);
 
 		// get the next template on the CA
 		hr = CERTCLI$CAEnumNextCertType(hCertType, &hCertTypeNext);
-		CHECK_RETURN_FAIL(L"CAEnumNextCertType", hr);
+		CHECK_RETURN_FAIL("CAEnumNextCertType", hr);
 	} // end loop through templates on the CA
 
 	hr = S_OK;
@@ -570,7 +570,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 
 	// Common name of the certificate type
 	hr = CERTCLI$CAGetCertTypeProperty( hCertType, CERTTYPE_PROP_CN, &awszPropertyValue );
-	CHECK_RETURN_FAIL(L"CAGetCertTypeProperty(CERTTYPE_PROP_CN)", hr);
+	CHECK_RETURN_FAIL("CAGetCertTypeProperty(CERTTYPE_PROP_CN)", hr);
 	internal_printf("    Template Name           : %S\n", awszPropertyValue[dwPropertyValueIndex]);
 	SAFE_CAFREECERTTYPEPROPERTY(hCertType, awszPropertyValue)
 	dwPropertyValueIndex = 0;
@@ -581,7 +581,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 		CERTTYPE_PROP_FRIENDLY_NAME,
 		&awszPropertyValue
 	);
-	CHECK_RETURN_FAIL(L"CAGetCertTypeProperty(CERTTYPE_PROP_FRIENDLY_NAME)", hr);
+	CHECK_RETURN_FAIL("CAGetCertTypeProperty(CERTTYPE_PROP_FRIENDLY_NAME)", hr);
 	internal_printf("    Friendly Name           : %S\n", awszPropertyValue[dwPropertyValueIndex]);
 	SAFE_CAFREECERTTYPEPROPERTY(hCertType, awszPropertyValue)
 	dwPropertyValueIndex = 0;
@@ -592,7 +592,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 		CERTTYPE_PROP_OID,
 		&awszPropertyValue
 	);
-	CHECK_RETURN_FAIL(L"CAGetCertTypeProperty(CERTTYPE_PROP_OID)", hr);
+	CHECK_RETURN_FAIL("CAGetCertTypeProperty(CERTTYPE_PROP_OID)", hr);
 	internal_printf("    Template OID            : %S\n", awszPropertyValue[dwPropertyValueIndex]);
 	SAFE_CAFREECERTTYPEPROPERTY(hCertType, awszPropertyValue)
 	dwPropertyValueIndex = 0;
@@ -601,9 +601,9 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 	MSVCRT$memset(&ftExpiration, 0, sizeof(ftExpiration));
 	MSVCRT$memset(&ftOverlap, 0, sizeof(ftOverlap));
 	hr = CERTCLI$CAGetCertTypeExpiration( hCertType, &ftExpiration, &ftOverlap );
-	CHECK_RETURN_FAIL(L"CAGetCertTypeExpiration()", hr);
+	CHECK_RETURN_FAIL("CAGetCertTypeExpiration()", hr);
 	hr = CERTCLI$caTranslateFileTimePeriodToPeriodUnits( &ftExpiration, TRUE, &cPeriodUnits, (LPVOID*)(&prgPeriodUnits) );
-	CHECK_RETURN_FAIL(L"caTranslateFileTimePeriodToPeriodUnits()", hr);
+	CHECK_RETURN_FAIL("caTranslateFileTimePeriodToPeriodUnits()", hr);
 	internal_printf("    Validity Period         : %ld ", prgPeriodUnits->lCount);
 	if (ENUM_PERIOD_SECONDS == prgPeriodUnits->enumPeriod) { internal_printf("seconds"); }
 	else if (ENUM_PERIOD_MINUTES == prgPeriodUnits->enumPeriod) { internal_printf("minutes"); }
@@ -617,7 +617,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 	SAFE_LOCAL_FREE (prgPeriodUnits);
 	prgPeriodUnits = NULL;
 	hr = CERTCLI$caTranslateFileTimePeriodToPeriodUnits( &ftOverlap, TRUE, &cPeriodUnits, (LPVOID*)(&prgPeriodUnits) );
-	CHECK_RETURN_FAIL(L"caTranslateFileTimePeriodToPeriodUnits()", hr);
+	CHECK_RETURN_FAIL("caTranslateFileTimePeriodToPeriodUnits()", hr);
 	internal_printf("    Renewal Period          : %ld ", prgPeriodUnits->lCount);
 	if (ENUM_PERIOD_SECONDS == prgPeriodUnits->enumPeriod) { internal_printf("seconds"); }
 	else if (ENUM_PERIOD_MINUTES == prgPeriodUnits->enumPeriod) { internal_printf("minutes"); }
@@ -630,7 +630,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 	SAFE_LOCAL_FREE (prgPeriodUnits);
 	// Name Flags
 	hr = CERTCLI$CAGetCertTypeFlagsEx( hCertType, CERTTYPE_SUBJECT_NAME_FLAG, &dwPropertyValue );
-	CHECK_RETURN_FAIL(L"CAGetCertTypeFlagsEx(CERTTYPE_SUBJECT_NAME_FLAG)", hr);
+	CHECK_RETURN_FAIL("CAGetCertTypeFlagsEx(CERTTYPE_SUBJECT_NAME_FLAG)", hr);
 	internal_printf("    Name Flags              :");
 	if(CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT & dwPropertyValue) { internal_printf(" ENROLLEE_SUPPLIES_SUBJECT"); }
 	if(CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT_ALT_NAME & dwPropertyValue) { internal_printf(" ENROLLEE_SUPPLIES_SUBJECT_ALT_NAME"); }
@@ -650,7 +650,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 
 	// Enrollment Flags
 	hr = CERTCLI$CAGetCertTypeFlagsEx( hCertType, CERTTYPE_ENROLLMENT_FLAG, &dwPropertyValue );
-	CHECK_RETURN_FAIL(L"CAGetCertTypeFlagsEx(CERTTYPE_ENROLLMENT_FLAG)", hr);
+	CHECK_RETURN_FAIL("CAGetCertTypeFlagsEx(CERTTYPE_ENROLLMENT_FLAG)", hr);
 	internal_printf("    Enrollment Flags        :");
 	if(CT_FLAG_INCLUDE_SYMMETRIC_ALGORITHMS & dwPropertyValue) { internal_printf(" INCLUDE_SYMMETRIC_ALGORITHMS"); }
 	if(CT_FLAG_PEND_ALL_REQUESTS & dwPropertyValue) { internal_printf(" PEND_ALL_REQUESTS"); }
@@ -676,7 +676,7 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 
 	// The number of RA signatures required on a request referencing this template
 	hr = CERTCLI$CAGetCertTypePropertyEx( hCertType, CERTTYPE_PROP_RA_SIGNATURE, (LPVOID)(&dwPropertyValue) );
-	CHECK_RETURN_FAIL(L"CAGetCertTypeProperty(CERTTYPE_PROP_RA_SIGNATURE)", hr)
+	CHECK_RETURN_FAIL("CAGetCertTypeProperty(CERTTYPE_PROP_RA_SIGNATURE)", hr)
 	internal_printf("    Signatures Required     : %lu\n", dwPropertyValue);
 	dwPropertyValue = 0;
 
@@ -715,10 +715,10 @@ HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType)
 
 	// permissions
 	hr = CERTCLI$CACertTypeGetSecurity( hCertType, &pSD );
-	CHECK_RETURN_FAIL(L"CACertTypeGetSecurity", hr);
+	CHECK_RETURN_FAIL("CACertTypeGetSecurity", hr);
 	internal_printf("    Permissions             :\n");
 	hr = _adcs_enum_cert_type_permissions(pSD);
-	CHECK_RETURN_FAIL(L"_adcs_enum_cert_type_permissions", hr);
+	CHECK_RETURN_FAIL("_adcs_enum_cert_type_permissions", hr);
 
 	internal_printf("\n");
 

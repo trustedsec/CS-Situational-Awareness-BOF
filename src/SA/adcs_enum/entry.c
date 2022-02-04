@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
+#define DYNAMIC_LIB_COUNT 2
 #include "beacon.h"
 #include "bofdefs.h"
 #include "base.c"
