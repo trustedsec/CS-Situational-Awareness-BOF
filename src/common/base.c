@@ -33,18 +33,17 @@ void internal_printf(const char* format, ...){
     char* intBuffer = NULL;
     va_list args;
     va_start(args, format);
-    buffersize = MSVCRT$vsnprintf(NULL, 0, format, args); // +1 because vsprintf goes to buffersize-1 , and buffersize won't return with the null
+    buffersize = MSVCRT$_vsnprintf(NULL, 0, format, args); // +1 because vsprintf goes to buffersize-1 , and buffersize won't return with the null
     va_end(args);
     
     // vsnprintf will return -1 on encoding failure (ex. non latin characters in Wide string)
     if (buffersize == -1)
         return;
-    
     char* transferBuffer = (char*)intAlloc(bufsize);
-    intBuffer = (char*)intAlloc(buffersize);
+    intBuffer = (char*)intAlloc(buffersize+1);
     /*Print string to memory buffer*/
     va_start(args, format);
-    MSVCRT$vsnprintf(intBuffer, buffersize, format, args); // tmpBuffer2 has a null terminated string
+    MSVCRT$_vsnprintf(intBuffer, buffersize, format, args); // tmpBuffer2 has a null terminated string
     va_end(args);
     if(buffersize + currentoutsize < bufsize) // If this print doesn't overflow our output buffer, just buffer it to the end
     {

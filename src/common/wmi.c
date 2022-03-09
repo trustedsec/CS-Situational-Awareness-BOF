@@ -114,11 +114,15 @@ HRESULT Wmi_Connect(
 	}
 	if ( (NULL != pwszServerArg) && (MSVCRT$wcslen(pwszServerArg) > 0) )
 	{
-		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, pwszServerArg);
+        if (MSVCRT$wcslen(pwszServerArg) < MAX_PATH){
+		    MSVCRT$wcscpy(pwszServer, pwszServerArg);
+        }
 	}
 	else
 	{
-		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, RESOURCE_LOCAL_HOST);		
+        if (MSVCRT$wcslen(RESOURCE_LOCAL_HOST) < MAX_PATH){
+		    MSVCRT$wcscpy(pwszServer, RESOURCE_LOCAL_HOST);		
+        }
 	}
 	
 	// Get the namespace	
@@ -131,11 +135,13 @@ HRESULT Wmi_Connect(
 	}
 	if ( (NULL != pwszNameSpaceArg) && (MSVCRT$wcslen(pwszNameSpaceArg) > 0) )
 	{
-		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, pwszNameSpaceArg);
+        if (MSVCRT$wcslen(pwszNameSpaceArg) < MAX_PATH){
+		    MSVCRT$wcscpy(pwszNameSpace, pwszNameSpaceArg);
+        }
 	}
 	else
 	{
-		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, WMI_NAMESPACE_CIMV2);		
+		MSVCRT$wcscpy(pwszNameSpace, WMI_NAMESPACE_CIMV2);		
 	}
 	
 	// Create the full resource path from the server and namespace

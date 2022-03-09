@@ -13,6 +13,15 @@ If you want to use the same workflow as this repository, your basic steps are as
 
 Realistically, this could be compressed into a helper script, but those steps were not taken for this effort.
 
+## BOFs tested on XP/2003
+Please update if/when you use the BOF on a xp/2003 system, or if you make changes to a BOF.
+- arp
+- tasklist (wmi code should be same for wmi query)
+- ipconfig
+- netstat
+- routeprint
+- listdns
+
 ## Available commands
 |command|Usage|notes|
 |-------|-----|-----|
