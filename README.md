@@ -15,6 +15,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 
 ## BOFs tested on XP/2003
 Please update if/when you use the BOF on a xp/2003 system, or if you make changes to a BOF.
+NOTE: You need to build this branch before use.
 - arp
 - tasklist (wmi code should be same for wmi query)
 - ipconfig
