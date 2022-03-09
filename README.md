@@ -77,4 +77,7 @@ Thank you to all of the contributors listed under contributors.  Each have contr
 ##### compiler used
 Precompiled BOF's are provided in this project and are compiled using a recent version of Mingw-w64 typically installed from brew.
 
+## System Support
+These BOF's are written with support for windows vista+ in mind.  A new branch called [winxp_2003](https://github.com/trustedsec/CS-Situational-Awareness-BOF/tree/winxp_2003) has been created if you need to use the main set of BOF's on those older systems.  This branch will remain in a less supported state (it will be functional, but not updated with every new push / feature that we may add)
+
 
