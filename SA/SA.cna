@@ -1367,3 +1367,28 @@ target \"\" for the local computer
 
 Usage: get_password_policy [hostname]"
 );
+
+// ------------------------------
+
+alias probe
+{
+	local('$host $port $args');
+
+	if(size(@_) < 3)
+	{
+		berror($1, "usage: probe <host> <port>");
+		return;
+	}
+	$host = $2;
+	$port = $3;
+	$args = bof_pack($1, "zi", $host, $port);
+	beacon_inline_execute($1, readbof($1, "probe"), "go", $args);
+}
+
+beacon_command_register(
+	"probe",
+	"Check if a port is open",
+	"Command: probe
+
+Usage: probe <host> <port>"
+);
