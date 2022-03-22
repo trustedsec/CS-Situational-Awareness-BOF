@@ -1368,11 +1368,9 @@ target \"\" for the local computer
 Usage: get_password_policy [hostname]"
 );
 
-// ------------------------------
-
 alias probe
 {
-	local('$host $port $args');
+	local('$host $port $args $portint');
 
 	if(size(@_) < 3)
 	{
@@ -1381,6 +1379,13 @@ alias probe
 	}
 	$host = $2;
 	$port = $3;
+	$portint = parseNumber($port, 10);
+	if ($portint < 1 || $portint > 65535) {
+		berror($1, "usage: probe <host> <port>");
+		berror($1, "Port out of range");
+		return
+	}
+
 	$args = bof_pack($1, "zi", $host, $port);
 	beacon_inline_execute($1, readbof($1, "probe"), "go", $args);
 }

@@ -34,9 +34,9 @@ BOOL is_port_open(char* host, int port)
             WS2_32$select(1, NULL, &sockets, NULL, &tv);
 
             if (WS2_32$__WSAFDIsSet(sock, &sockets)) {
-                WS2_32$closesocket(sock);
                 ret = TRUE;
             }
+            WS2_32$closesocket(sock);
         }
         WS2_32$freeaddrinfo(result);
     }
