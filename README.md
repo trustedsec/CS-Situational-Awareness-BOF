@@ -45,6 +45,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netLocalGroupList|netLocalGroupList [opt: server]|List local groups from the local (or specified) computer|
 |netLocalGroupListMembers|netLocalGroupListMembers [groupname] [opt: server]| Lists local groups from the local (or specified) computer|
 |nslookup|nslookup [hostname] [opt:dns server] [opt: record type]| Makes a dns query.<br/>  dns server is the server you want to query (do not specify or 0 for default) <br/>record type is something like A, AAAA, or ANY.  Some situations are limited due to observed crashes.|
+|probe|probe [host] [port]|Check if port is open|
 |reg_query|[opt:hostname] [hive] [path] [opt: value to query]|queries a registry value or enumerates a single key|
 |reg_query_recursive|[opt:hostname] [hive] [path]| recursively enumerates a key starting at path|
 |routeprint|routeprint| prints ipv4 configured routes|
