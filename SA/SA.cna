@@ -1383,7 +1383,7 @@ alias probe
 	if ($portint < 1 || $portint > 65535) {
 		berror($1, "usage: probe <host> <port>");
 		berror($1, "Port out of range");
-		return
+		return;
 	}
 
 	$args = bof_pack($1, "zi", $host, $port);
