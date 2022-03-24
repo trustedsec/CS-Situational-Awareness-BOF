@@ -104,9 +104,9 @@ void Reg_InternalPrintKey(char * data, const char * valuename, DWORD type, DWORD
     {
         while(data[0] != '\0')
         {
-            DWORD len = strlen(data)+1;
+            DWORD len = MSVCRT$strlen(data)+1;
             internal_printf("%s%s", data, (data[len]) ? "\\0" : "");
-            data += strlen(data)+1;
+            data += MSVCRT$strlen(data)+1;
         }
         internal_printf("\n");
     }
@@ -235,7 +235,7 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
 	}
     keyStack = stackInit();
 
-    keyStack->push(keyStack, init_regkey(keystring, strlen(keystring), NULL, 0, rootkey));
+    keyStack->push(keyStack, init_regkey(keystring, MSVCRT$strlen(keystring), NULL, 0, rootkey));
     while((curitem = keyStack->pop(keyStack)) != NULL)
     {
         
