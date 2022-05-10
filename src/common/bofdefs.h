@@ -264,6 +264,7 @@ WINIMPM WINBOOL WINAPI CRYPT32$CertGetCertificateContextProperty (PCCERT_CONTEXT
 WINIMPM WINBOOL WINAPI CRYPT32$CertGetCertificateChain (HCERTCHAINENGINE hChainEngine, PCCERT_CONTEXT pCertContext, LPFILETIME pTime, HCERTSTORE hAdditionalStore, PCERT_CHAIN_PARA pChainPara, DWORD dwFlags, LPVOID pvReserved, PCCERT_CHAIN_CONTEXT *ppChainContext);
 WINIMPM VOID WINAPI CRYPT32$CertFreeCertificateChain (PCCERT_CHAIN_CONTEXT pChainContext);
 WINIMPM PCCRYPT_OID_INFO WINAPI CRYPT32$CryptFindOIDInfo (DWORD dwKeyType, void *pvKey, DWORD dwGroupId);
+WINIMPM WINBOOL WINAPI CRYPT32$CryptBinaryToStringA(const byte* pbBinary, DWORD cbBinary, DWORD dwFlags, LPSTR pszString, DWORD *pcchString);
 
 
 //WS2_32
@@ -381,6 +382,10 @@ WINLDAPAPI VOID LDAPAPI WLDAP32$ldap_memfree(PCHAR);
 WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind(LDAP*);
 WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind_s(LDAP*);
 WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_msgfree(LDAPMessage*);
+WINBERAPI BerElement *BERAPI WLDAP32$ber_alloc_t(INT options);
+WINBERAPI INT BERAPI WLDAP32$ber_printf(BerElement *pBerElement,PSTR fmt,...);
+WINBERAPI INT BERAPI WLDAP32$ber_flatten(BerElement *pBerElement,PBERVAL *pBerVal);
+WINBERAPI VOID BERAPI WLDAP32$ber_bvfree(struct berval *bv);
 
 //RPCRT4
 RPCRTAPI RPC_STATUS RPC_ENTRY RPCRT4$UuidToStringA(UUID *Uuid,RPC_CSTR *StringUuid);

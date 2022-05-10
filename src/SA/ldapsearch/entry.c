@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <dsgetdc.h>
 #include <winldap.h>
+#include <ntldap.h>
 #include <winber.h>
 #include <rpc.h>
 #include <lm.h>
@@ -54,6 +55,52 @@ typedef PLDAPSearch LDAPAPI (*ldap_search_init_pageA_t)(PLDAP ExternalHandle,con
 #define WLDAP32$ldap_value_free ((ldap_value_free_t)DynamicLoad("WLDAP32$ldap_value_free"))
 #define WLDAP32$ldap_next_attribute ((ldap_next_attribute_t)DynamicLoad("WLDAP32$ldap_next_attribute"))
 #define WLDAP32$ldap_search_init_pageA ((ldap_search_init_pageA_t)DynamicLoad("WLDAP32$ldap_search_init_pageA"))
+
+LDAPControlA *FormatSDFlags(int iFlagValue)
+{
+  BerElement *pber = NULL;
+  PLDAPControlA pLControl = NULL;
+  PBERVAL pldctrl_value = NULL;
+  int success = -1;
+
+  internal_printf("%s", LDAP_SERVER_SD_FLAGS_OID);
+  // Format and encode the SEQUENCE data in a BerElement.
+
+  pber = WLDAP32$ber_alloc_t(LBER_USE_DER);
+  if(pber==NULL) return NULL;
+  pLControl = MSVCRT$calloc(1, sizeof(LDAPControlA));
+  if(pLControl==NULL) { WLDAP32$ber_free(pber,1); return NULL; }
+  WLDAP32$ber_printf(pber, (PSTR)"{i}", iFlagValue);
+
+  // Transfer the encoded data into a BERVAL.
+  success = WLDAP32$ber_flatten(pber, &pldctrl_value);
+  if(success == 0)
+  {
+      WLDAP32$ber_free(pber, 1);
+  }
+  else
+  {
+      internal_printf("ber_flatten failed");
+      // Call error handler here.
+  }
+
+  // Copy the BERVAL data to the LDAPControl structure.
+  pLControl->ldctl_oid = (PCHAR)LDAP_SERVER_SD_FLAGS_OID;
+  pLControl->ldctl_iscritical = TRUE;
+  pLControl->ldctl_value.bv_val = (PCHAR)(MSVCRT$calloc(1, pldctrl_value->bv_len));
+  memcpy(pLControl->ldctl_value.bv_val,
+         pldctrl_value->bv_val, pldctrl_value->bv_len);
+  pLControl->ldctl_value.bv_len = pldctrl_value->bv_len;
+
+  // Cleanup temporary berval.
+  WLDAP32$ber_bvfree(pldctrl_value);
+
+  // Memory leak, need to free memz 
+  // Freeing will be easier if I just pass the pLControl pointer in by ref
+
+  // Return the formatted LDAPControl data.
+  return pLControl;
+}
 
 LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 	LDAP* pLdapConnection = NULL;
@@ -119,6 +166,14 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
     }
 
         
+    LDAPControlA simpleControl;
+    PLDAPControlA controlArray[2];
+
+    simpleControl = *FormatSDFlags(OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION);
+    
+    controlArray[0] = &simpleControl;
+    controlArray[1] = NULL;
+
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
         pLdapConnection,    // Session handle
         distinguishedName,  // DN to start search
@@ -126,7 +181,7 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         ldap_filter,        // Filter
         (*attr) ? attr : NULL,               // Retrieve list of attributes
         0,                  // Get both attributes and values
-        NULL,
+        controlArray,
         NULL,
         15,
         maxResults,
@@ -165,6 +220,45 @@ void customAttributes(PCHAR pAttribute, PCHAR pValue)
         ADVAPI32$ConvertSidToStringSidA((PSID)tmp->bv_val, &sid);
         internal_printf("%s", sid);
         KERNEL32$LocalFree(sid);
+    }
+    else if (MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0
+        || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0)
+    {
+        PBERVAL attr = (PBERVAL)pValue;
+        DWORD destSize;
+
+        BOOL base64 = CRYPT32$CryptBinaryToStringA(
+            (CONST BYTE*)attr->bv_val,
+            attr->bv_len,
+            CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+            NULL,
+            &destSize
+        );
+
+        // destSize should contain the size of the output buffer
+        char* base64String = (char*)MSVCRT$calloc(1, (SIZE_T)destSize);
+
+        // malloc error handling
+        if (base64String == NULL)
+        {
+            BeaconPrintf(CALLBACK_ERROR, "Error! Unable to allocate a buffer to Base64 encode the AP-REQ blob! Error: 0x%lx\n", KERNEL32$GetLastError());
+
+            // Return an error
+            return;
+        }
+        else
+        {
+            // Base64 encode the entire AP-REQ blob and output it
+            BOOL base64 = CRYPT32$CryptBinaryToStringA(
+                (CONST BYTE*)attr->bv_val,
+                attr->bv_len,
+                CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF,
+                base64String,
+                &destSize
+            );
+        }
+
+        internal_printf("%s", base64String);
     }
     else
     {
@@ -307,7 +401,11 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
             {
                 isbinary = FALSE;
                 // Get the string values.
-                if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0)
+                if (
+                    MSVCRT$strcmp(pAttribute, "objectSid") == 0
+                    || MSVCRT$strcmp(pAttribute, "objectGUID") == 0
+                    || MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0
+                    || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0)
                 {
                     ppValue = (char **)WLDAP32$ldap_get_values_lenA(pLdapConnection, pEntry, pAttribute); //not really a char **
                     isbinary = TRUE;
