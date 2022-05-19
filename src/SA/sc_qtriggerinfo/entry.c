@@ -11,6 +11,8 @@ const char * gServiceName = 1;
 #pragma GCC diagnostic pop
 #ifndef SERVICE_CONFIG_TRIGGER_INFO
 #define SERVICE_CONFIG_TRIGGER_INFO 8
+#endif
+#ifdef __MINGW32__
 typedef struct _SERVICE_TRIGGER_SPECIFIC_DATA_ITEM {
   DWORD dwDataType;
   DWORD cbData;
