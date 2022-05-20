@@ -78,7 +78,7 @@ sub ops {
 
 
 sub readbof {
-	local('$barch $handle $data $args');
+	local('$barch $handle $data $msg $ttp');
 	$barch  = barch($1);
 
 	# read in the right BOF file
@@ -90,18 +90,19 @@ sub readbof {
 	{
 		berror($1, "could not read bof file");
 	}
-
-	# pack our arguments
-	#$args   = bof_pack($1, "zi", "Hello World", 1234);
-
+	
+	$ttp = iff( ($4 eq $null || $4 eq ""), "", $4);
+	$msg = iff( ($3 eq $null || $3 eq ""), "Running $2", $3);
+	$msg = iff( ($ttp ne $null && $ttp ne ""), $msg . " (" . $ttp . ")", $msg);
 	# announce what we're doing
-	btask($1, "Running $2");
+	blog($1, $msg);
+	btask($1, $msg, $ttp);
 	return $data;
 }
 
 
 alias dir {
-	local('$params $keys $args $targetdir $subdirs');
+	local('$params $keys $args $targetdir $subdirs $ttp $text');
 
 	%params = ops(@_);
 	@keys = keys(%params);
@@ -116,8 +117,16 @@ alias dir {
 		$targetdir = %params["1"];
 	}
 
+	if(left($2, 2) eq "\\\\") {
+		$ttp = "T1135";
+		$text = "Issuing remote dir to $targetdir";
+	} else {
+		$ttp = "T1083";
+		$text = "Issuing local dir to $targetdir";
+	}
+
 	$args = bof_pack($1, "Zs", $targetdir, $subdirs);
-	beacon_inline_execute($1, readbof($1, "dir"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "dir", $msg, $ttp), "go", $args);
 }
 
 beacon_command_register(
@@ -134,7 +143,7 @@ beacon_command_register(
 
 alias env {
 	# execute it.
-	beacon_inline_execute($1, readbof($1, "env"), "go");
+	beacon_inline_execute($1, readbof($1, "env", $null, "T1082"), "go");
 }
 
 
@@ -172,7 +181,7 @@ alias ldapsearch {
 	$args   = bof_pack($1, "zzizz", $2, $attributes, $result_limit, $hostname, $domain);
 
 	# execute it.
-	beacon_inline_execute($1, readbof($1, "ldapsearch"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "ldapsearch", $null, "T1018, T1069.002, T1087.002, T1087.003, T1087.004, T1482"), "go", $args);
 }
 
 alias nonpagedldapsearch
@@ -193,12 +202,12 @@ alias nonpagedldapsearch
 	$args   = bof_pack($1, "zzizz", $2, $attributes, $result_limit, $hostname, $domain);
 
 	# execute it.
-	beacon_inline_execute($1, readbof($1, "nonpagedldapsearch"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "nonpagedldapsearch", $null, "T1018, T1069.002, T1087.002, T1087.003, T1087.004, T1482"), "go", $args);
 }
 
 alias ipconfig {
 
-	beacon_inline_execute($1, readbof($1, "ipconfig"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "ipconfig", $null, "T1016"), "go", $null);
 }
 
 beacon_command_register(
@@ -208,7 +217,7 @@ beacon_command_register(
 
 
 alias arp {
-    beacon_inline_execute($1,readbof($1,'arp'),"go",$null);
+	beacon_inline_execute($1,readbof($1,'arp', $null, "T1016, T1018"),"go",$null);
 }
 
 beacon_command_register("arp", 
@@ -237,7 +246,7 @@ alias nslookup {
 	$server = ""
 	}
 	$args = bof_pack($1, "zzs", $lookup, $server, $type);
-	beacon_inline_execute($1, readbof($1, "nslookup"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "nslookup", "Attempting to resolve $lookup", "T1018"), "go", $args);
 }
 
 beacon_command_register(
@@ -250,7 +259,7 @@ alias netview {
 
 	$domain = iff(-istrue $2, $2, "");
 	$args = bof_pack($1, "Z", $domain);
-	beacon_inline_execute($1, readbof($1, "netview"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netview", $null, "T1018"), "go", $args);
 }
 
 beacon_command_register(
@@ -263,7 +272,7 @@ hint: use netview_list if you want to map shares of a remote machine"
 
 alias listdns {
 
-	beacon_inline_execute($1, readbof($1, "listdns"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "listdns", $null, $null), "go", $null);
 }
 
 beacon_command_register(
@@ -277,7 +286,7 @@ alias listmods {
 
 	$pid = iff(-istrue $2, $2, 0);
 	$args = bof_pack($1, "i", $pid);
-	beacon_inline_execute($1, readbof($1, "listmods"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "listmods", $null, $null), "go", $args);
 }
 
 beacon_command_register(
@@ -307,7 +316,7 @@ alias netuse_add {
 	if("DEVICE" in @keys) { $device = %params["DEVICE"] . ":"; }
 
 	$args = bof_pack($1, "sZZZZss", 1, $share, $user, $password, $device, $persist, $requireencrypt);
-	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netuse", $null, "T1570, T1021.002"), "go", $args);
 
 
 }
@@ -361,9 +370,7 @@ alias netuse_list {
 		}
 	}
 	$args = bof_pack($1, "sZ", 2, $target);
-	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
-
-
+	beacon_inline_execute($1, readbof($1, "netuse", $null, "T1135"), "go", $args);
 }
 
 beacon_command_register(
@@ -404,7 +411,7 @@ alias netuse_delete {
 	if("PERSIST" in @keys) { $persist = 1; }
 	if("FORCE" in @keys) {$force = 1;}
 	$args = bof_pack($1, "sZss", 3, $target, $persist, $force);
-	beacon_inline_execute($1, readbof($1, "netuse"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netuse", $null, "T1570, T1021.002"), "go", $args);
 }
 
 beacon_command_register(
@@ -441,7 +448,7 @@ alias netuser {
 	}
 	$domain = iff(-istrue $3, $3, "");
 	$args = bof_pack($1, "ZZ", $2, $domain);
-	beacon_inline_execute($1, readbof($1, "netuser"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netuser", $null, "T1087.001"), "go", $args);
 }
 
 beacon_command_register(
@@ -451,7 +458,7 @@ beacon_command_register(
 );
 
 alias windowlist {
-	beacon_inline_execute($1, readbof($1, "windowlist"), "go", bof_pack($1, "i", iff($2 eq "all", 1, 0)));
+	beacon_inline_execute($1, readbof($1, "windowlist", $null, "T1010"), "go", bof_pack($1, "i", iff($2 eq "all", 1, 0)));
 }
 
 beacon_command_register(
@@ -462,7 +469,7 @@ beacon_command_register(
 );
 
 alias netstat {
-	beacon_inline_execute($1, readbof($1, "netstat"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "netstat", $null, "T1049"), "go", $null);
 }
 
 beacon_command_register(
@@ -472,7 +479,7 @@ beacon_command_register(
 );
 
 alias routeprint {
-	beacon_inline_execute($1, readbof($1, "routeprint"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "routeprint", $null, "T1016"), "go", $null);
 }
 
 beacon_command_register(
@@ -482,7 +489,7 @@ beacon_command_register(
 );
 
 alias whoami {
-	beacon_inline_execute($1, readbof($1, "whoami"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "whoami", $null, "T1033"), "go", $null);
 }
 
 beacon_command_register (
@@ -509,7 +516,7 @@ alias userenum {
 		$type = %enumtype["all"];
 	}
 	$args = bof_pack($1, "ii", 0, $type);
-	beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netuserenum", $null, "T1087.001"), "go", $args);
 }
 
 alias domainenum {
@@ -530,7 +537,7 @@ alias domainenum {
 		$type = %enumtype["all"];
 	}
 		$args = bof_pack($1, "ii", 1, $type);
-	beacon_inline_execute($1, readbof($1, "netuserenum"), "go", $args); # netuserenum here is not a mistake
+	beacon_inline_execute($1, readbof($1, "netuserenum", $null, "T1087.002"), "go", $args); # netuserenum here is not a mistake
 }
 
 beacon_command_register(
@@ -550,7 +557,7 @@ beacon_command_register(
 )
 
 alias driversigs {
-	beacon_inline_execute($1, readbof($1, "driversigs"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "driversigs", $null, "T1518.001"), "go", $null);
 }
 
 beacon_command_register(
@@ -563,7 +570,7 @@ alias netshares{
 	local('$args $name')
 	$name = iff(-istrue $2, $2, "");
 	$args = bof_pack($1, "Zi", $name, 0);
-	beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netshares", $null, "T1135"), "go", $args);
 }
 
 beacon_command_register(
@@ -576,7 +583,7 @@ alias netsharesAdmin{
 	local('$args $name')
 	$name = iff(-istrue $2, $2, "");
 	$args = bof_pack($1, "Zi", $name, 1);
-	beacon_inline_execute($1, readbof($1, "netshares"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netshares", $null, "T1135"), "go", $args);
 }
 
 beacon_command_register(
@@ -604,7 +611,7 @@ sub bnetgroup{
 		$domain = iff(-istrue $3, $3, "");
 	}
 	$args = bof_pack($1, "sZZ", $type, $domain, $group);
-	beacon_inline_execute($1, readbof($1, "netgroup"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netgroup", $null, "T1069.002"), "go", $args);
 }
 
 alias netGroupList {
@@ -646,7 +653,7 @@ sub bnetlocalgroup{
 		$server = iff(-istrue $3, $3, "");
 	}
 	$args = bof_pack($1, "sZZ", $type, $server, $group);
-	beacon_inline_execute($1, readbof($1, "netlocalgroup"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "netlocalgroup", $null, "T1069.001"), "go", $args);
 }
 
 alias netLocalGroupList {
@@ -672,7 +679,7 @@ beacon_command_register(
 sub bschtasksenum{
 	local('$args');
 	$args = bof_pack($1, "Z", iff(-istrue $2, $2, ""));
-	beacon_inline_execute($1, readbof($1, "schtasksenum"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "schtasksenum", $null, $null), "go", $args);		# while T1053.005 exists, it is related to use not discovery
 }
 
 alias schtasksenum{
@@ -689,7 +696,7 @@ beacon_command_register(
 sub bschtasksquery{
 	local('$args');
 	$args = bof_pack($1, "ZZ", $2, $3);
-	beacon_inline_execute($1, readbof($1, "schtasksquery"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "schtasksquery", $null, $null), "go", $args);
 }
 
 
@@ -726,7 +733,7 @@ beacon_command_register(
 );
 
 sub bcacls{
-	beacon_inline_execute($1, readbof($1, "cacls"), "go",  bof_pack($1, "Z", $2));
+	beacon_inline_execute($1, readbof($1, "cacls", $null, $null), "go",  bof_pack($1, "Z", $2));			# while T1222 exists, it is for changing them not discovering them
 }
 
 alias cacls{
@@ -771,7 +778,7 @@ alias sc_query {
 	}
 
 	$args = bof_pack($1, "zz", $hostname, $servicename);
-	beacon_inline_execute($1, readbof($1, "sc_query"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "sc_query", $null, "T1007"), "go", $args);
 
 }
 
@@ -807,7 +814,7 @@ alias sc_qc {
 
 
 	$args = bof_pack($1, "zz", $hostname, $servicename);
-	beacon_inline_execute($1, readbof($1, "sc_qc"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "sc_qc", $null, "T1007"), "go", $args);
 }
 
 beacon_command_register(
@@ -838,7 +845,7 @@ alias sc_qdescription {
 	}
 
 		$args = bof_pack($1, "zz", $hostname, $servicename);
-		beacon_inline_execute($1, readbof($1, "sc_qdescription"), "go", $args);
+		beacon_inline_execute($1, readbof($1, "sc_qdescription", $null, "T1007"), "go", $args);
 
 }
 
@@ -851,7 +858,7 @@ beacon_command_register(
 #2 = hostname
 #3 = servicename
 sub bsc_qfailure{
-	beacon_inline_execute($1, readbof($1, "sc_qfailure"), "go", bof_pack($1, "zz", $2, $3))
+	beacon_inline_execute($1, readbof($1, "sc_qfailure", $null, "T1007"), "go", bof_pack($1, "zz", $2, $3))
 }
 
 alias sc_qfailure{
@@ -882,7 +889,7 @@ beacon_command_register(
 );
 
 sub bsc_qtriggerinfo{
-	beacon_inline_execute($1, readbof($1, "sc_qtriggerinfo"), "go", bof_pack($1, "zz", $2, $3))
+	beacon_inline_execute($1, readbof($1, "sc_qtriggerinfo", $null, "T1007"), "go", bof_pack($1, "zz", $2, $3))
 }
 
 alias sc_qtriggerinfo{
@@ -915,7 +922,7 @@ beacon_command_register(
 
 alias sc_enum{
 	#$2 = NULL if not given which is what makes this ok
-	beacon_inline_execute($1, readbof($1, "sc_enum"), "go", bof_pack($1, "z", $2));
+	beacon_inline_execute($1, readbof($1, "sc_enum", $null, "T1007"), "go", bof_pack($1, "z", $2));
 }
 
 beacon_command_register(
@@ -970,7 +977,7 @@ alias reg_query
 			$key = "";
 		}
 		$args = bof_pack($1, "zizzi", $hostname, $hive, $path, $key, 0);
-		beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
+		beacon_inline_execute($1, readbof($1, "reg_query", $null, $null), "go", $args);			#T1060 exists but is about setting run keys, no broader TTP exists and none for discovery
 	}
 
 }
@@ -1018,7 +1025,7 @@ alias reg_query_recursive{
 		println($path);
 		$i++;
 		$args = bof_pack($1, "zizzi", $hostname, $hive, $path, "", 1);
-		beacon_inline_execute($1, readbof($1, "reg_query"), "go", $args);
+		beacon_inline_execute($1, readbof($1, "reg_query", $null, $null), "go", $args);
 	}
 }
 
@@ -1046,9 +1053,8 @@ alias tasklist{
 		return;
 	}
 	$system = iff(-istrue $2, $2, ".");
-	blog($1, "Connecting to \\\\$system and retrieving list of currently running processes");
 	$args = bof_pack($1, "Z", $system);
-	beacon_inline_execute($1, readbof($1, "tasklist"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "tasklist", "Connecting to \\\\$system and retrieving list of currently running processes", "T1057"), "go", $args);
 }
 
 beacon_command_register(
@@ -1081,10 +1087,8 @@ alias wmi_query{
 	$system = iff(-istrue $3, $3, ".");
 	$namespace = iff(-istrue $4, $4, "root\\cimv2");
 
-	blog($1, "Connecting to \\\\$system\\$namespace and running the WMI query \'$query\'");
-
 	$args = bof_pack($1, "ZZZ", $system, $namespace, $query);
-	beacon_inline_execute($1, readbof($1, "wmi_query"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "wmi_query", "Connecting to \\\\$system\\$namespace and running the WMI query \'$query\'", $null), "go", $args);			#T1047 exists but is about execution, not discovery
 }
 
 beacon_command_register(
@@ -1111,7 +1115,7 @@ alias netsession {
 	local('$args $hostname');
 
 	$args = bof_pack($1, "Z", $2);
-	beacon_inline_execute($1, readbof($1, "get-netsession"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "get-netsession", $null, "T1049"), "go", $args);     #T1049 is a loose match
 }
 
 beacon_command_register(
@@ -1122,7 +1126,7 @@ beacon_command_register(
 
 
 alias resources {
-		beacon_inline_execute($1, readbof($1, "resources"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "resources", $null, "T1082"), "go", $null);
 }
 
 beacon_command_register(
@@ -1132,7 +1136,7 @@ beacon_command_register(
 
 
 alias uptime {
-		beacon_inline_execute($1, readbof($1, "uptime"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "uptime", $null, "T1082"), "go", $null);
 }
 
 beacon_command_register(
@@ -1154,9 +1158,8 @@ alias enum_filter_driver{
 		return;
 	}
 	$system = iff(-istrue $2, $2, $null);
-	blog($1, "Retrieving list of filter drivers");
 	$args = bof_pack($1, "z", $system);
-	beacon_inline_execute($1, readbof($1, "enum_filter_driver"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "enum_filter_driver", "Retrieving list of filter drivers", "T1518.001"), "go", $args);
 }
 
 beacon_command_register(
@@ -1183,9 +1186,7 @@ alias adv_audit_policies{
 		
 	$iswow64 = iff(-is64 $1 && barch($1) eq "x86", 1, 0);
 
-	blog($1, "Retrieving advanced security audit policies... iswow64: $iswow64");
-
-    beacon_inline_execute($1, readbof($1, "adv_audit_policies"), "go", bof_pack($1, "i", $iswow64));
+	beacon_inline_execute($1, readbof($1, "adv_audit_policies", "Retrieving advanced security audit policies... iswow64: $iswow64", $null), "go", bof_pack($1, "i", $iswow64));
 }
 
 beacon_command_register(
@@ -1201,7 +1202,7 @@ Usage:   adv_audit_policies
 
 alias listpipes
 {
-	blog($1, "Listing Named Pipes");
+	btask($1, "Listing Named Pipes", "DS0023");
 	bls($1, "//./pipe/");
 }
 
@@ -1211,7 +1212,7 @@ beacon_command_register(
 	"Usage: listpipes"
 );
 alias enumLocalSessions{
-	beacon_inline_execute($1, readbof($1, "enumlocalsessions"), "go", $null);
+	beacon_inline_execute($1, readbof($1, "enumlocalsessions", $null, "T1033"), "go", $null);
 }
 
 alias findLoadedModule{
@@ -1229,7 +1230,7 @@ alias findLoadedModule{
 	$modname = $2;
 	$procname = iff(-istrue $3, $3, "");
 	$args = bof_pack($1, "zz", $modname, $procname);
-	beacon_inline_execute($1, readbof($1, "findLoadedModule"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "findLoadedModule", $null, $null), "go", $args);
 }
 
 beacon_command_register(
@@ -1247,7 +1248,7 @@ alias adcs_enum{
 	local('$args');
 
 	$args = $null;
-	beacon_inline_execute($1, readbof($1, "adcs_enum"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "adcs_enum", $null, $null), "go", $args);
 }
 
 beacon_command_register(
@@ -1269,7 +1270,7 @@ alias adcs_enum_com{
 	local('$args');
 
 	$args = $null;
-	beacon_inline_execute($1, readbof($1, "adcs_enum_com"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "adcs_enum_com", $null, $null), "go", $args);
 }
 
 beacon_command_register(
@@ -1291,7 +1292,7 @@ alias adcs_enum_com2{
 	local('$args');
 
 	$args = $null;
-	beacon_inline_execute($1, readbof($1, "adcs_enum_com2"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "adcs_enum_com2", $null, $null), "go", $args);
 }
 
 beacon_command_register(
@@ -1323,7 +1324,7 @@ alias vssenum{
 	$sharename = iff(-istrue $3, $3, "C$");
 	$args = bof_pack($1, "ZZ", $hostname, $sharename);
 	blog($1, $hostname);
-	beacon_inline_execute($1, readbof($1, "vssenum"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "vssenum", $null, $null), "go", $args);			# backups and snapshots are referenced but not discovery
 
 }
 
@@ -1354,7 +1355,7 @@ alias get_password_policy
 	}
 	$server = $2;
 	$args = bof_pack($1, "Z", $server);
-	beacon_inline_execute($1, readbof($1, "get_password_policy"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "get_password_policy", $null, "T1201"), "go", $args);
 }
 
 beacon_command_register(
@@ -1387,7 +1388,7 @@ alias probe
 	}
 
 	$args = bof_pack($1, "zi", $host, $port);
-	beacon_inline_execute($1, readbof($1, "probe"), "go", $args);
+	beacon_inline_execute($1, readbof($1, "probe", $null, "T1046"), "go", $args);
 }
 
 beacon_command_register(
