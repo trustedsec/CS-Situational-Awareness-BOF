@@ -34,6 +34,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
 |listmods|listmods [opt: pid]| List a process modules (DLL). Target current process if pid is empty. Complement to driversigs to determine if our process was injected by edr/av.|
 |listpipes|listpipes| Lists named pipes|
+|locale|locale|Display system locale language, locale id, date/time, and country|
 |netstat|netstat| tcp / udp ipv4 netstat listing|
 |netuser|netuser [username] [opt: domain]| Pulls info about specific user.  Pulls from domain if a domainname is specified|
 |netuse_add|netuse_add [sharename] [opt:username] [opt:password] [opt:/DEVICE:devicename] [opt:/PERSIST] [opt:/REQUIREPRIVACY]|bind a new connection to a remote machine|

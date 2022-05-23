@@ -286,6 +286,15 @@ beacon_command_register(
 	"Synopsis: listmods <opt: pid> "
 );
 
+alias locale {
+	btask($1, "Retrieving system locale information", "T1614, T1614.001");
+	beacon_inline_execute($1,readbof($1,'locale'),"go",$null);
+}
+
+beacon_command_register("locale", 
+"Retrieve System Locale Information, Date Format, and Country", 
+"Synopsis: locale \n\nPrints locale information");
+
 alias netuse_add {
 	local('$args $device $share $user $password $persist $requireencrypt %params');
 

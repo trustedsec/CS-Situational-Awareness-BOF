@@ -83,6 +83,11 @@ WINBASEAPI HMODULE WINAPI KERNEL32$LoadLibraryA (LPCSTR lpLibFileName);
 WINBASEAPI FARPROC WINAPI KERNEL32$GetProcAddress (HMODULE hModule, LPCSTR lpProcName);
 WINBASEAPI WINBOOL WINAPI KERNEL32$FreeLibrary (HMODULE hLibModule);
 DECLSPEC_IMPORT WINBASEAPI int WINAPI KERNEL32$lstrlenA(LPCSTR);
+DECLSPEC_IMPORT int WINAPI KERNEL32$GetLocaleInfoEx(LPCWSTR lpLocaleName, LCTYPE LCType, LPWSTR lpLCData, int cchData);
+WINBASEAPI int WINAPI KERNEL32$GetSystemDefaultLocaleName(LPCWSTR lpLocaleName, int cchLocaleName);
+DECLSPEC_IMPORT LCID WINAPI KERNEL32$LocaleNameToLCID(LPCWSTR lpName, DWORD dwFlags);
+DECLSPEC_IMPORT int WINAPI KERNEL32$GetDateFormatEx(LPCWSTR lpLocaleName, DWORD dwFlags, const SYSTEMTIME *lpData, LPCWSTR lpFormat, LPWSTR lpDateStr, int cchDate, LPCWSTR lpCalendar);
+
 
 //WTSAPI32
 DECLSPEC_IMPORT DWORD WINAPI WTSAPI32$WTSEnumerateSessionsA(LPVOID, DWORD, DWORD, PWTS_SESSION_INFO*, DWORD*);
@@ -493,6 +498,11 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define KERNEL32$GetProcAddress GetProcAddress
 #define KERNEL32$FreeLibrary FreeLibrary
 #define KERNEL32$lstrlenA lstrlenA
+#define KERNEL32$GetLocaleInfoEx GetLocaleInfoEx
+#define KERNEL32$GetSystemDefaultLocaleName GetSystemDefaultLocaleName
+#define KERNEL32$LocaleNameToLCID LocaleNameToLCID
+#define KERNEL32$GetDateFormatEx GetDateFormatEx
+
 #define WTSAPI32$WTSEnumerateSessionsA WTSEnumerateSessionsA
 #define WTSAPI32$WTSQuerySessionInformationA WTSQuerySessionInformationA
 #define WTSAPI32$WTSFreeMemory WTSFreeMemory
