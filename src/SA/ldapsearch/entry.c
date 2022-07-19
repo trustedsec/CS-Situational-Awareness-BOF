@@ -38,6 +38,7 @@ typedef ULONG LDAPAPI (*ldap_value_free_len_t)(struct berval **vals);
 typedef ULONG LDAPAPI (*ldap_value_free_t)(PCHAR *);
 typedef PCHAR LDAPAPI (*ldap_next_attribute_t)(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
 typedef PLDAPSearch LDAPAPI (*ldap_search_init_pageA_t)(PLDAP ExternalHandle,const PCHAR DistinguishedName,ULONG ScopeOfSearch,const PCHAR SearchFilter,PCHAR AttributeList[],ULONG AttributesOnly,PLDAPControlA *ServerControls,PLDAPControlA *ClientControls,ULONG PageTimeLimit,ULONG TotalSizeLimit,PLDAPSortKeyA *SortKeys);
+WINBASEAPI void* WINAPI MSVCRT$malloc(SIZE_T);
 
 #define WLDAP32$ldap_init ((ldap_init_t)DynamicLoad("WLDAP32", "ldap_init"))
 #define WLDAP32$ldap_bind_s ((ldap_bind_s_t)DynamicLoad("WLDAP32", "ldap_bind_s"))
@@ -55,6 +56,42 @@ typedef PLDAPSearch LDAPAPI (*ldap_search_init_pageA_t)(PLDAP ExternalHandle,con
 #define WLDAP32$ldap_value_free ((ldap_value_free_t)DynamicLoad("WLDAP32", "ldap_value_free"))
 #define WLDAP32$ldap_next_attribute ((ldap_next_attribute_t)DynamicLoad("WLDAP32", "ldap_next_attribute"))
 #define WLDAP32$ldap_search_init_pageA ((ldap_search_init_pageA_t)DynamicLoad("WLDAP32", "ldap_search_init_pageA"))
+
+// https://opensource.apple.com/source/QuickTimeStreamingServer/QuickTimeStreamingServer-452/CommonUtilitiesLib/base64.c.auto.html
+
+static const char basis_64[] =
+"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+int Base64encode(char* encoded, const char* string, int len) {
+	int i;
+	char* p;
+
+	p = encoded;
+	for (i = 0; i < len - 2; i += 3) {
+		*p++ = basis_64[(string[i] >> 2) & 0x3F];
+		*p++ = basis_64[((string[i] & 0x3) << 4) |
+			((int)(string[i + 1] & 0xF0) >> 4)];
+		*p++ = basis_64[((string[i + 1] & 0xF) << 2) |
+			((int)(string[i + 2] & 0xC0) >> 6)];
+		*p++ = basis_64[string[i + 2] & 0x3F];
+	}
+	if (i < len) {
+		*p++ = basis_64[(string[i] >> 2) & 0x3F];
+		if (i == (len - 1)) {
+			*p++ = basis_64[((string[i] & 0x3) << 4)];
+			*p++ = '=';
+		}
+		else {
+			*p++ = basis_64[((string[i] & 0x3) << 4) |
+				((int)(string[i + 1] & 0xF0) >> 4)];
+			*p++ = basis_64[((string[i + 1] & 0xF) << 2)];
+		}
+		*p++ = '=';
+	}
+
+	*p++ = '\0';
+	return p - encoded;
+}
 
 LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 	LDAP* pLdapConnection = NULL;
@@ -90,7 +127,6 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 }
 
 PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes, ULONG maxResults){
-	
     internal_printf("[*] Filter: %s\n",ldap_filter);
 
     ULONG errorCode = LDAP_SUCCESS;
@@ -98,8 +134,6 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
     PCHAR attr[MAX_ATTRIBUTES] = {0};
 	if(ldap_attributes){
         internal_printf("[*] Returning specific attribute(s): %s\n",ldap_attributes);
-
-
         
         int attribute_count = 0;
         char *token = NULL;
@@ -158,10 +192,19 @@ void customAttributes(PCHAR pAttribute, PCHAR pValue)
         internal_printf("%s", G);
         //RPCRT4$RpcStringFreeA(&G);       
         frpcstringfree(&G);
-    }
+    } else if (MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0) {
+		char *encoded = NULL;
+		PBERVAL tmp = (PBERVAL)pValue;
+		ULONG len = tmp->bv_len;
+		encoded = (char *)MSVCRT$malloc((size_t)len*2);
+		Base64encode(encoded, (char *)tmp->bv_val, len);
+		internal_printf("%s", encoded);
+		MSVCRT$free(encoded);
+	}
     else if(MSVCRT$strcmp(pAttribute, "objectSid") == 0)
     {
         LPSTR sid = NULL;
+		//internal_printf("len of objectSID: %d\n", MSVCRT$strlen(pValue));
         PBERVAL tmp = (PBERVAL)pValue;
         ADVAPI32$ConvertSidToStringSidA((PSID)tmp->bv_val, &sid);
         internal_printf("%s", sid);
@@ -308,12 +351,12 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
             {
                 isbinary = FALSE;
                 // Get the string values.
-                if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0)
+				if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0 || MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0)
                 {
+					//internal_printf("\n%s\n", pAttribute);
                     ppValue = (char **)WLDAP32$ldap_get_values_lenA(pLdapConnection, pEntry, pAttribute); //not really a char **
                     isbinary = TRUE;
-                }
-                else{
+				} else {
                     ppValue = WLDAP32$ldap_get_values(
                                 pLdapConnection,  // Session Handle
                                 pEntry,           // Current entry
@@ -416,7 +459,7 @@ VOID go(
     hostname = *hostname == 0 ? NULL : hostname;
     domain = *domain == 0 ? NULL : domain;
 
-
+	
 	if(!bofstart())
 	{
 		return;
