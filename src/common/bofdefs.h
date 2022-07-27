@@ -184,6 +184,11 @@ WINUSERAPI int WINAPI USER32$IsWindowVisible (HWND hWnd);
 WINUSERAPI int WINAPI USER32$GetWindowTextA(HWND hWnd,LPSTR lpString,int nMaxCount);
 WINUSERAPI int WINAPI USER32$GetClassNameA(HWND hWnd,LPSTR lpClassName,int nMaxCount);
 WINUSERAPI LPWSTR WINAPI USER32$CharPrevW(LPCWSTR lpszStart,LPCWSTR lpszCurrent);
+WINUSERAPI HWND WINAPI USER32$FindWindowExA (HWND hWndParent, HWND hWndChildAfter, LPCSTR lpszClass, LPCSTR lpszWindow);
+WINUSERAPI LRESULT WINAPI USER32$SendMessageA (HWND hwnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+WINUSERAPI int WINAPI USER32$GetWindowTextA(HWND  hWnd, LPSTR lpString, int nMaxCount);
+WINUSERAPI int WINAPI USER32$GetClassNameA(HWND hWnd, LPTSTR lpClassName, int nMaxCount);
+WINUSERAPI BOOL WINAPI USER32$EnumChildWindows(HWND hWndParent, WNDENUMPROC lpEnumFunc, LPARAM lParam);
 
 //secur32
 WINBASEAPI BOOLEAN WINAPI SECUR32$GetUserNameExA (int NameFormat, LPSTR lpNameBuffer, PULONG nSize);
@@ -595,6 +600,11 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define USER32$GetWindowTextA GetWindowTextA
 #define USER32$GetClassNameA GetClassNameA
 #define USER32$CharPrevW CharPrevW
+#define USER32$FindWindowExA FindWindowExA 
+#define USER32$SendMessageA SendMessageA
+#define USER32$GetWindowTextA GetWindowTextA
+#define USER32$GetClassNameA GetClassNameA
+#define USER32$EnumChildWindows EnumChildWindows
 #define SECUR32$GetUserNameExA  GetUserNameExA 
 #define SHLWAPI$StrStrIA StrStrIA
 #define ADVAPI32$OpenProcessToken  OpenProcessToken 
