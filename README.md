@@ -30,7 +30,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |findLoadedModule|findLoadedModule [modulepart] [opt:procnamepart]| Finds what processes \*modulepart\* is loaded into, optionally searching just \*procnamepart\*|
 |get_password_policy|get_password_policy [hostname]| Gets target server or domain's configured password policy and lockouts|
 |ipconfig|ipconfig| Simply gets ipv4 addresses, hostname and dns server|
-|ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] [opt: DC hostname or IP] [opt: Distingished Name]| Executes LDAP searches |
+|ldapsearch|ldapsearch [query] [opt: attribute] [opt: results_limit] [opt: DC hostname or IP] [opt: Distingished Name]| Executes LDAP searches (NOTE: specify *,ntsecuritydescriptor as attribute if you want all attributes + base64 encoded ACL of the objects, this can then be resolved using BOFHound)|
 |listdns|listdns| Pulls dns cache entries, attempts to query and resolve each|
 |listmods|listmods [opt: pid]| List a process modules (DLL). Target current process if pid is empty. Complement to driversigs to determine if our process was injected by edr/av.|
 |listpipes|listpipes| Lists named pipes|
