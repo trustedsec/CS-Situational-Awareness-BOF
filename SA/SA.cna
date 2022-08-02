@@ -304,6 +304,15 @@ beacon_command_register("locale",
 "Retrieve System Locale Information, Date Format, and Country", 
 "Synopsis: locale \n\nPrints locale information");
 
+alias notepad {
+	btask($1, "Searching for open notepad windows", "T1552");
+	beacon_inline_execute($1,readbof($1,'notepad'),"go",$null);
+}
+
+beacon_command_register("notepad", 
+"Search for open notepad and notepad++ windows and grab text from the editor control object", 
+"Synopsis: notepad \n\nPrints any observed open notepad or notepad++ sessions and prints their contents. Not reliant on clipboard. Not reliant on window being non-minimized");
+
 alias netuse_add {
 	local('$args $device $share $user $password $persist $requireencrypt %params');
 
