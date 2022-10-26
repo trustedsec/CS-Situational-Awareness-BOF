@@ -15,7 +15,8 @@ VOID go(
 {
 	HRESULT hr = S_OK;
 	datap parser;
-	wchar_t * pwszEnumerationType = NULL;
+	wchar_t * domain = NULL;
+	int len;
     
 	if (!bofstart())
 	{
@@ -24,14 +25,18 @@ VOID go(
 
 	BeaconDataParse(&parser, Buffer, Length);
 	
-	hr = adcs_enum();
+	domain = (wchar_t *)BeaconDataExtract(&parser, &len);
+
+	hr = adcs_enum(domain);
 
 	if (S_OK != hr)
 	{
 		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx\n", hr);
 	}
-
-	internal_printf("\nadcs_enum SUCCESS.\n");
+	else
+	{
+		internal_printf("\nadcs_enum SUCCESS.\n");
+	}
 
 	printoutput(TRUE);
 };
@@ -39,16 +44,26 @@ VOID go(
 int main(int argc, char ** argv)
 {
 	HRESULT hr = S_OK;
-	wchar_t * pwszEnumerationType = NULL;
+	wchar_t domainarg[MAX_PATH];
+	wchar_t* domain = NULL;
 
-	hr = adcs_enum();
+	if (argc==2)
+	{
+		memset(domainarg, 0, sizeof(wchar_t)*MAX_PATH);
+		mbstowcs(domainarg, argv[1], MAX_PATH);
+		domain = domainarg;
+	}
+
+	hr = adcs_enum(domain);
 
 	if (S_OK != hr)
 	{
 		BeaconPrintf(CALLBACK_ERROR, "adcs_enum failed: 0x%08lx\n", hr);
 	}
-
-	internal_printf("\nadcs_enum SUCCESS.\n");
+	else
+	{
+		internal_printf("\nadcs_enum SUCCESS.\n");
+	}
 
 	return 0;
 }

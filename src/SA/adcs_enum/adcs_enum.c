@@ -154,15 +154,17 @@ DEFINE_MY_GUID(CertificateAll,0x00000000,0x0000,0x0000,0x00,0x00,0x00,0x00,0x00,
 DEFINE_MY_GUID(ManageCA,0x05000000,0x0015,0x0000,0xf9,0xbf,0xaa,0x22,0x07,0x95,0x8d,0xdd);
 
 
-HRESULT adcs_enum()
+HRESULT adcs_enum(wchar_t* domain)
 {
 	HRESULT	hr = S_OK;
 
 	HCAINFO hCAInfo = NULL;
 	HCAINFO hCAInfoNext = NULL;
+	LPWSTR wszScope = domain;
+	DWORD dwFlags = CA_FLAG_SCOPE_DNS;
 
 	// get the first CA in the domain
-	hr = CERTCLI$CAEnumFirstCA( NULL, 0, &hCAInfoNext );
+	hr = CERTCLI$CAEnumFirstCA( wszScope, dwFlags, &hCAInfoNext );
 	CHECK_RETURN_FAIL("CAEnumFirstCA", hr)
 
 	// CountCAs
