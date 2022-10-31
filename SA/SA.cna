@@ -1265,7 +1265,9 @@ beacon_command_register(
 alias adcs_enum{
 	local('$args');
 
-	$args = $null;
+	$domain = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Z", $domain);
+
 	beacon_inline_execute($1, readbof($1, "adcs_enum", $null, $null), "go", $args);
 }
 
@@ -1279,7 +1281,8 @@ Summary: This command enumerates the certificate authorities and certificate
          undocumented Win32 functions. It displays basic information as well 
          as the CA cert, flags, permissions, and similar information for the 
          templates.
-Usage:   adcs_enum
+Usage:   adcs_enum (domain)
+		 domain		Optional. Specified domain otherwise uses current domain.
 "
 );
 
