@@ -83,8 +83,36 @@ void netuserinfo(wchar_t* username, wchar_t* hostname){
         internal_printf("Full Name:\t\t\t%S\n", pBuf4->usri4_full_name == NULL ? L"" : pBuf4->usri4_full_name);
         internal_printf("User's comment:\t\t%S\n", pBuf4->usri4_usr_comment == NULL ? L"" : pBuf4->usri4_usr_comment);
         internal_printf("Country code:\t\t\t%ld\n", pBuf4->usri4_country_code);
+
+        internal_printf("\n");
+
         internal_printf("Flags (account details hex):\t%lx\n", pBuf4->usri4_flags);
-        internal_printf("Account expires:\t\t");
+
+        internal_printf("Account enabled:\t\t\t");
+        if (pBuf4->usri4_flags & UF_ACCOUNTDISABLE){
+            internal_printf("No\n");
+        }
+        else{
+            internal_printf("Yes\n");
+        }
+
+        internal_printf("Trusted for delegation:\t\t");
+        if (pBuf4->usri4_flags & UF_TRUSTED_FOR_DELEGATION){
+            internal_printf("Yes\n");
+        }
+        else{
+            internal_printf("No\n");
+        }
+
+        internal_printf("Dont require preauth:\t\t");
+        if (pBuf4->usri4_flags & UF_DONT_REQUIRE_PREAUTH){
+            internal_printf("Yes\n");
+        }
+        else{
+            internal_printf("No\n");
+        }
+
+        internal_printf("Account expires:\t\t\t");
         if (pBuf4->usri4_acct_expires == TIMEQ_FOREVER){
             internal_printf("Never");
         }
@@ -100,7 +128,7 @@ void netuserinfo(wchar_t* username, wchar_t* hostname){
         #else
         internal_printf("not supported on x86 beacons\n");
         #endif
-        internal_printf("\nPassword expires:\t\t");
+        internal_printf("\nPassword expires:\t\t\t");
         if (pBuf4->usri4_flags & UF_DONT_EXPIRE_PASSWD){
             internal_printf("Never");
         }
@@ -114,15 +142,16 @@ void netuserinfo(wchar_t* username, wchar_t* hostname){
                 }
             }
         }
-        internal_printf("\nPassword changeable:\t\t%s\n", "Not implemented");
-        internal_printf("Password required:\t\t");
+	    
+	internal_printf("\nPassword changeable:\t\t%s\n", "Not implemented");
+        internal_printf("\nPassword required:\t\t");
         if (pBuf4->usri4_flags & UF_PASSWD_NOTREQD){
             internal_printf("No\n");
         }
         else{
             internal_printf("Yes\n");
         }
-        internal_printf("User may change password:\t");
+        internal_printf("User may change password:\t\t");
         if (pBuf4->usri4_flags & UF_PASSWD_CANT_CHANGE){
             internal_printf("No\n\n");
         }
