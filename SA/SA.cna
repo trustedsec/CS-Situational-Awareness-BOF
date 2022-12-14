@@ -1419,3 +1419,16 @@ beacon_command_register(
 
 Usage: probe <host> <port>"
 );
+
+alias list_firewall_rules
+{
+	beacon_inline_execute($1, readbof($1, "list_firewall_rules"), "go",  $null);
+}
+
+beacon_command_register(
+	"list_firewall_rules",
+	"List all windows firewall rules",
+	"Command: list_firewall_rules
+
+Usage: list_firewall_rules"
+);

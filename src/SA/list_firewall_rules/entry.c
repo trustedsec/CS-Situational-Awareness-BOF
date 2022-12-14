@@ -4,6 +4,8 @@
 #include "bofdefs.h"
 #include "base.c"
 
+//ported from https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ics/c-enumerating-firewall-rules
+
 #define NET_FW_IP_PROTOCOL_TCP_NAME L"TCP"
 #define NET_FW_IP_PROTOCOL_UDP_NAME L"UDP"
 
@@ -36,8 +38,8 @@ void DumpFWRulesInCollection(INetFwRule* FwRule)
     NET_FW_ACTION fwAction;
 
 
-	VariantInit(&InterfaceArray);
-	VariantInit(&InterfaceString);
+	OLEAUT32$VariantInit(&InterfaceArray);
+	OLEAUT32$VariantInit(&InterfaceString);
 
     ProfileMapElement ProfileMap[3];
     ProfileMap[0].Id = NET_FW_PROFILE2_DOMAIN;
@@ -183,7 +185,7 @@ void DumpFWRulesInCollection(INetFwRule* FwRule)
 
             for (long index = pSa->rgsabound->lLbound; index < (long)pSa->rgsabound->cElements; index++)
             {
-                SafeArrayGetElement(pSa, &index, &InterfaceString);
+                OLEAUT32$SafeArrayGetElement(pSa, &index, &InterfaceString);
                 internal_printf("Interfaces:       %ls\n", ((BSTR)InterfaceString.bstrVal) ? (BSTR)InterfaceString.bstrVal : L"N/A");
             }
         }
@@ -230,7 +232,7 @@ HRESULT WFCOMInitialize(INetFwPolicy2** ppNetFwPolicy2)
 	const IID INetFwPolicy2_uuid = {0x98325047,0xC671,0x4174,{0x8D,0x81,0xDE,0xFC,0xD3,0xF0,0x31,0x86}};
     HRESULT hr = S_OK;
 
-    hr = CoCreateInstance(
+    hr = OLE32$CoCreateInstance(
         &NetFwPolicy2_uuid, 
         NULL, 
         CLSCTX_INPROC_SERVER, 
@@ -239,11 +241,8 @@ HRESULT WFCOMInitialize(INetFwPolicy2** ppNetFwPolicy2)
 
     if (FAILED(hr))
     {
-        internal_printf("CoCreateInstance for INetFwPolicy2 failed: 0x%08lx\n", hr);
-        goto Cleanup;        
+        internal_printf("CoCreateInstance for INetFwPolicy2 failed: 0x%08lx\n", hr);    
     }
-
-Cleanup:
     return hr;
 }
 
@@ -265,7 +264,7 @@ void list_rules()
 
         long fwRuleCount;
 
-	hrComInit = CoInitialize(NULL);
+	hrComInit = OLE32$CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
     if (hrComInit != RPC_E_CHANGED_MODE)
     {
         if (FAILED(hrComInit))
@@ -274,7 +273,7 @@ void list_rules()
             goto Cleanup;
         }
     }
-    VariantInit(&var);
+    OLEAUT32$VariantInit(&var);
     hr = WFCOMInitialize(&pNetFwPolicy2);
     if (FAILED(hr))
     {
@@ -310,14 +309,14 @@ void list_rules()
 
     while(SUCCEEDED(hr) && hr != S_FALSE)
     {
-        VariantClear(&var);
+        OLEAUT32$VariantClear(&var);
         hr = pVariant->lpVtbl->Next(pVariant, 1, &var, &cFetched);
 
         if (S_FALSE != hr)
         {
             if (SUCCEEDED(hr))
             {
-                hr = VariantChangeType(&var, &var, 0, VT_DISPATCH);
+                hr = OLEAUT32$VariantChangeType(&var, &var, 0, VT_DISPATCH);
             }
             if (SUCCEEDED(hr))
             {
@@ -349,7 +348,7 @@ Cleanup:
     // Uninitialize COM.
     if (SUCCEEDED(hrComInit))
     {
-        CoUninitialize();
+        OLE32$CoUninitialize();
     }
 }
 
