@@ -32,7 +32,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |ipconfig| ipconfig| List IPv4 address, hostname, and DNS server|
 |ldapsearch| ldapsearch [query] [opt: attribute] [opt: results_limit] [opt: DC hostname or IP] [opt: Distingished Name]| Execute LDAP searches (NOTE: specify *,ntsecuritydescriptor as attribute if you want all attributes + base64 encoded ACL of the objects, this can then be resolved using BOFHound)|
 |listdns| listdns| List DNS cache entries. Attempt to query and resolve each|
-|list_firewall_rules| list_firewall_rules| List all Windows firewall rules |
+|list_firewall_rules| list_firewall_rules| List Windows firewall rules |
 |listmods| listmods [opt: pid]| List process modules (DLL). Target current process if PID is empty. Complement to driversigs to determine if our process was injected by AV/EDR|
 |listpipes| listpipes| List named pipes|
 |locale| locale| List system locale language, locale ID, date, time, and country|
