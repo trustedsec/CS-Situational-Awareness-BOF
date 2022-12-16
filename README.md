@@ -40,16 +40,16 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netGroupListMembers| netGroupListMembers [groupname] [opt: domain]| List group members from the default or specified domain|
 |netLocalGroupList| netLocalGroupList [opt: server]| List local groups from the local or specified computer|
 |netLocalGroupListMembers| netLocalGroupListMembers [groupname] [opt: server]| List local groups from the local or specified computer|
+|netloggedon| netloggedon [hostname]| Return users logged on the local or remote computer|
 |netsession| netsession [opt:computer]| Enumerate sessions on the local or specified computer|
+|netshares| netshares [hostname]| List shares on the local or remote computer|
 |netstat| netstat| TCP and UDP IPv4 listing ports|
+|netuptime| netuptime [hostname]| Return information about the boot time on the local or remote computer|
 |netuser| netuser [username] [opt: domain]| Get info about specific user. Pull from domain if a domainname is specified|
 |netuse_add| netuse_add [sharename] [opt:username] [opt:password] [opt:/DEVICE:devicename] [opt:/PERSIST] [opt:/REQUIREPRIVACY]| Bind a new connection to a remote computer|
 |netuse_delete| netuse_delete [device\|\|sharename] [opt:/PERSIST] [opt:/FORCE]| Delete the bound device / sharename]|
 |netuse_list| netuse_list [opt:target]| List all bound share resources or info about target local resource|
 |netview| netview| List reachable computers in the current domain|
-|netshares| netshares [hostname]| List shares on the local or remote computer|
-|netloggedon| netloggedon [hostname]| Return users logged on the local or remote computer|
-|netuptime| netuptime [hostname]| Return information about the boot time on the local or remote computer|
 |nslookup| nslookup [hostname] [opt:dns server] [opt: record type]| Make a DNS query.<br/>  DNS server is the server you want to query (do not specify or 0 for default) <br/>record type is something like A, AAAA, or ANY. Some situations are limited due to observed crashes|
 |probe| probe [host] [port]| Check if a specific port is open|
 |reg_query| [opt:hostname] [hive] [path] [opt: value to query]| Query a registry value or enumerate a single key|
