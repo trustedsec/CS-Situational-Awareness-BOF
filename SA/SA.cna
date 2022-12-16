@@ -1432,3 +1432,30 @@ beacon_command_register(
 
 Usage: list_firewall_rules"
 );
+
+alias netloggedon{
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 0);
+	beacon_inline_execute($1, readbof($1, "netloggedon", $null, "T1049"), "go", $args);
+}
+
+beacon_command_register(
+	"netloggedon",
+	"Returns users logged on the local (or a remote) machine - administrative rights needed",
+	"netloggedon <\\computername>"
+);
+
+alias netuptime{
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 0);
+	beacon_inline_execute($1, readbof($1, "netuptime", $null, "T1082"), "go", $args);
+}
+
+beacon_command_register(
+	"netuptime",
+	"Returns information about the boot time on the local (or a remote) machine",
+	"netuptime <\\computername>"
+);
+
