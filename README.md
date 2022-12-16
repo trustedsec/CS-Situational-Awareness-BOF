@@ -18,21 +18,21 @@ Realistically, this could be compressed into a helper script, but those steps we
 |--------|-----|-----|
 |adcs_enum | adcs_enum| Enumerate CAs and templates in the AD using Win32 functions|
 |adcs_enum_com | adcs_enum_com| Enumerate CAs and templates in the AD using ICertConfig COM object|
-|adcs_enum_com2 | adcs_enum_com2| Enumerates CAs and templates in the AD using IX509PolicyServerListManager COM object|
+|adcs_enum_com2 | adcs_enum_com2| Enumerate CAs and templates in the AD using IX509PolicyServerListManager COM object|
 |adv_audit_policies | adv_audit_policies| Retrieve advanced security audit policies|
 |arp | arp| List ARP table|
 |cacls|cacls [filepath]| List user permissions for the specified file, wildcards supported|
 |dir| dir [directory] [/s]| List files in a directory. Supports wildcards (e.g. "C:\Windows\S*") the CobaltStrike `ls` command|
 |driversigs| driversigs| Enumerate installed services Imagepaths to check the signing cert against known AV/EDR vendors|
-|enum_filter_driver| enum_filter_driver [opt:computer]| Enumerate all the filter drivers|
-|enumLocalSessions| enumLocalSessions| Enumerate the currently attached user sessions both local and over RDP|
+|enum_filter_driver| enum_filter_driver [opt:computer]| Enumerate filter drivers|
+|enumLocalSessions| enumLocalSessions| Enumerate currently attached user sessions both local and over RDP|
 |env| env| List process environment variables|
 |findLoadedModule| findLoadedModule [modulepart] [opt:procnamepart]| Find what processes \*modulepart\* are loaded into, optionally searching just \*procnamepart\*|
 |get_password_policy| get_password_policy [hostname]| Get target server or domain's configured password policy and lockouts|
 |ipconfig| ipconfig| List IPv4 address, hostname, and DNS server|
 |ldapsearch| ldapsearch [query] [opt: attribute] [opt: results_limit] [opt: DC hostname or IP] [opt: Distingished Name]| Execute LDAP searches (NOTE: specify *,ntsecuritydescriptor as attribute if you want all attributes + base64 encoded ACL of the objects, this can then be resolved using BOFHound)|
 |listdns| listdns| List DNS cache entries. Attempt to query and resolve each|
-|list_firewall_rules| list_firewall_rules| List Windows firewall rules |
+|list_firewall_rules| list_firewall_rules| List Windows firewall rules|
 |listmods| listmods [opt: pid]| List process modules (DLL). Target current process if PID is empty. Complement to driversigs to determine if our process was injected by AV/EDR|
 |listpipes| listpipes| List named pipes|
 |locale| locale| List system locale language, locale ID, date, time, and country|
@@ -47,31 +47,31 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netuse_delete| netuse_delete [device\|\|sharename] [opt:/PERSIST] [opt:/FORCE]| Delete the bound device / sharename]|
 |netuse_list| netuse_list [opt:target]| List all bound share resources or info about target local resource|
 |netview| netview| List reachable computers in the current domain|
-|netshares| netshares [hostname]| list shares on local or remote computer|
-|netloggedon| netloggedon [hostname]| Returns users logged on the local (or a remote) machine|
-|netuptime| netuptime [hostname]| Returns information about the boot time on the local (or a remote) machine|
-|nslookup| nslookup [hostname] [opt:dns server] [opt: record type]| Make a DNS query.<br/>  DNS server is the server you want to query (do not specify or 0 for default) <br/>record type is something like A, AAAA, or ANY.  Some situations are limited due to observed crashes|
+|netshares| netshares [hostname]| List shares on the local or remote computer|
+|netloggedon| netloggedon [hostname]| Return users logged on the local or remote computer|
+|netuptime| netuptime [hostname]| Return information about the boot time on the local or remote computer|
+|nslookup| nslookup [hostname] [opt:dns server] [opt: record type]| Make a DNS query.<br/>  DNS server is the server you want to query (do not specify or 0 for default) <br/>record type is something like A, AAAA, or ANY. Some situations are limited due to observed crashes|
 |probe| probe [host] [port]| Check if a specific port is open|
 |reg_query| [opt:hostname] [hive] [path] [opt: value to query]| Query a registry value or enumerate a single key|
 |reg_query_recursive| [opt:hostname] [hive] [path]| Recursively enumerate a key starting at path|
 |resources| resources| List memory usage and available disk space on the primary hard drive|
 |routeprint| routeprint| List IPv4 routes|
-|sc_enum| sc_enum [opt:server]| Enumerate all services for qc, query, qfailure, and qtriggers info|
+|sc_enum| sc_enum [opt:server]| Enumerate services for qc, query, qfailure, and qtriggers info|
 |sc_qc| sc_qc [service name] [opt:server]| sc qc impelmentation in BOF|
 |sc_qdescription| sc_qdescription [service name] [opt: server]| sc qdescription implementation in BOF|
 |sc_qfailure| sc_qfailure [service name] [opt:server]| Query a service for failure conditions|
 |sc_qtriggerinfo| sc_qtriggerinfo [service name] [opt:server]| Query a service for trigger conditions|
 |sc_query| sc_query [opt: service name] [opt: server]| sc query implementation in BOF|
-|schtasksenum| schtasksenum [opt: server]| Enumerate all scheduled tasks on the local computer or if provided remote computer|
-|schtasksquery| schtasksquery [opt: server] [taskpath]| Query the given task on the local computer or if provided remote computer|
+|schtasksenum| schtasksenum [opt: server]| Enumerate scheduled tasks on the local or remote computer|
+|schtasksquery| schtasksquery [opt: server] [taskpath]| Query the given task on the local or remote computer|
 |tasklist| tasklist [opt: server]| List running processes including PID, PPID, and ComandLine (uses wmi)|
 |uptime| uptime| List system boot time and how long it has been running|
-|vssenum| vssenum [hostname] [opt:sharename]| Enumerate shadow copies on some Server 2012+ servers|
+|vssenum| vssenum [hostname] [opt:sharename]| Enumerate Shadow Copies on some Server 2012+ servers|
 |whoami| whoami| List whoami /all|
 |windowlist| windowlist [opt:all]| List visible windows in the current user session|
 |wmi_query| wmi_query query [opt: server] [opt: namespace]| Run a wmi query and display results in CSV format|
 
-Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote systems and has the ability to recursively enumerate a whole key.
+Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote computers and has the ability to recursively enumerate a whole key.
 
 #### Credits
 The functional code for most of these commands was taken from the reactos project or code examples hosted on MSDN.
