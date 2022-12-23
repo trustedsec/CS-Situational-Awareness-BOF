@@ -39,6 +39,10 @@ typedef ULONG LDAPAPI (*ldap_value_free_t)(PCHAR *);
 typedef PCHAR LDAPAPI (*ldap_next_attribute_t)(LDAP *ld,LDAPMessage *entry,BerElement *ptr);
 typedef PLDAPSearch LDAPAPI (*ldap_search_init_pageA_t)(PLDAP ExternalHandle,const PCHAR DistinguishedName,ULONG ScopeOfSearch,const PCHAR SearchFilter,PCHAR AttributeList[],ULONG AttributesOnly,PLDAPControlA *ServerControls,PLDAPControlA *ClientControls,ULONG PageTimeLimit,ULONG TotalSizeLimit,PLDAPSortKeyA *SortKeys);
 WINBASEAPI void* WINAPI MSVCRT$malloc(SIZE_T);
+WINBERAPI BerElement *BERAPI WLDAP32$ber_alloc_t(INT options);
+WINBERAPI INT BERAPI WLDAP32$ber_printf(BerElement *pBerElement, PSTR fmt, ...);
+WINBERAPI INT BERAPI WLDAP32$ber_flatten(BerElement *pBerElement, PBERVAL *pBerVal);
+WINLDAPAPI VOID LDAPAPI WLDAP32$ber_bvfree(PBERVAL bv);
 
 #define WLDAP32$ldap_init ((ldap_init_t)DynamicLoad("WLDAP32", "ldap_init"))
 #define WLDAP32$ldap_bind_s ((ldap_bind_s_t)DynamicLoad("WLDAP32", "ldap_bind_s"))
@@ -57,8 +61,45 @@ WINBASEAPI void* WINAPI MSVCRT$malloc(SIZE_T);
 #define WLDAP32$ldap_next_attribute ((ldap_next_attribute_t)DynamicLoad("WLDAP32", "ldap_next_attribute"))
 #define WLDAP32$ldap_search_init_pageA ((ldap_search_init_pageA_t)DynamicLoad("WLDAP32", "ldap_search_init_pageA"))
 
-// https://opensource.apple.com/source/QuickTimeStreamingServer/QuickTimeStreamingServer-452/CommonUtilitiesLib/base64.c.auto.html
+//https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ldap/ldap-server-sd-flags-oid
+// Set LDAP server control flags so low-privileged domain users can read nTSecurityDescriptor attribute
+PLDAPControlA FormatSDFlags(int iFlagValue) {
+	BerElement *pber = NULL;
+	PLDAPControl pLControl = NULL;
+	PBERVAL pldctrl_value = NULL;
+	int success = -1;
 
+	// Format and encode the SEQUENCE data in a BerElement.
+	pber = WLDAP32$ber_alloc_t(LBER_USE_DER);
+	if(pber==NULL) return NULL;
+	pLControl = (PLDAPControl)MSVCRT$malloc(sizeof(LDAPControl));
+	if(pLControl==NULL) { WLDAP32$ber_free(pber,1); return NULL; }
+	WLDAP32$ber_printf(pber,"{i}",iFlagValue);
+	
+	// Transfer the encoded data into a BERVAL.
+	success = WLDAP32$ber_flatten(pber,&pldctrl_value);
+	if(success == 0)
+		WLDAP32$ber_free(pber,1);
+	else {
+		BeaconPrintf(CALLBACK_ERROR, "ber_flatten failed!");
+		// Call error handler here.
+	}
+
+	// Copy the BERVAL data to the LDAPControl structure.
+	pLControl->ldctl_oid = "1.2.840.113556.1.4.801";
+	pLControl->ldctl_iscritical = TRUE;
+	pLControl->ldctl_value.bv_val = (char*)MSVCRT$malloc((size_t)pldctrl_value->bv_len);
+	memcpy(pLControl->ldctl_value.bv_val, pldctrl_value->bv_val, pldctrl_value->bv_len);
+	pLControl->ldctl_value.bv_len = pldctrl_value->bv_len;
+	
+	// Cleanup temporary berval.
+	WLDAP32$ber_bvfree(pldctrl_value);
+
+	// Return the formatted LDAPControl data.
+	return pLControl;
+}
+
+// https://opensource.apple.com/source/QuickTimeStreamingServer/QuickTimeStreamingServer-452/CommonUtilitiesLib/base64.c.auto.html
 static const char basis_64[] =
 "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -128,8 +169,14 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 
 PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes, ULONG maxResults){
     internal_printf("[*] Filter: %s\n",ldap_filter);
-
-    ULONG errorCode = LDAP_SUCCESS;
+	
+	// Security descriptor flags to read nTSecurityDescriptor as low-priv domain user
+	// value taken from https://github.com/fortalice/pyldapsearch/blob/main/pyldapsearch/__main__.py (Microsoft docs mentioned XORing all possible values to get this, but that didn't work)
+	int sdFlags = 0x07;
+	PLDAPControlA serverControls[2];
+	int aclSearch = 0;
+	
+	ULONG errorCode = LDAP_SUCCESS;
     PLDAPSearch pSearchResult = NULL;
     PCHAR attr[MAX_ATTRIBUTES] = {0};
 	if(ldap_attributes){
@@ -140,8 +187,12 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         const char s[2] = ","; //delimiter
 
         token = MSVCRT$strtok(ldap_attributes, s);
-
         while( token != NULL ) {
+			if (MSVCRT$_stricmp(token, "nTSecurityDescriptor") == 0) {
+				serverControls[0] = FormatSDFlags(sdFlags);
+				serverControls[1] = NULL;
+				aclSearch = 1;
+			}
             if(attribute_count < (MAX_ATTRIBUTES - 1)){
                 attr[attribute_count] = token;
                 attribute_count++;
@@ -153,20 +204,37 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         }
     }
 
-        
+	if (aclSearch) {
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
-        pLdapConnection,    // Session handle
-        distinguishedName,  // DN to start search
-        LDAP_SCOPE_SUBTREE, // Scope
-        ldap_filter,        // Filter
-        (*attr) ? attr : NULL,               // Retrieve list of attributes
-        0,                  // Get both attributes and values
-        NULL,
-        NULL,
-        15,
-        maxResults,
-        NULL);    // [out] Search results
-    
+		pLdapConnection,    // Session handle
+		distinguishedName,  // DN to start search
+		LDAP_SCOPE_SUBTREE, // Scope
+		ldap_filter,        // Filter
+		(*attr) ? attr : NULL,               // Retrieve list of attributes
+		0,                  // Get both attributes and values
+		serverControls,
+		NULL,
+		15,
+		maxResults,
+		NULL);    // [out] Search results
+		
+		MSVCRT$free(serverControls[0]->ldctl_value.bv_val);
+		MSVCRT$free(serverControls[0]);
+	} else {
+		pSearchResult = WLDAP32$ldap_search_init_pageA(
+		pLdapConnection,    // Session handle
+		distinguishedName,  // DN to start search
+		LDAP_SCOPE_SUBTREE, // Scope
+		ldap_filter,        // Filter
+		(*attr) ? attr : NULL,               // Retrieve list of attributes
+		0,                  // Get both attributes and values
+		NULL,
+		NULL,
+		15,
+		maxResults,
+		NULL);    // [out] Search results
+	}
+	
     if (pSearchResult == NULL) 
     {
         BeaconPrintf(CALLBACK_ERROR, "Paging not supported on this server, aborting");
