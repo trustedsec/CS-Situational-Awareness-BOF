@@ -1,4 +1,4 @@
-BOFNAME := enumlocalsessions
+BOFNAME := enumLocalSessions
 COMINCLUDE := -I ../../common
 LIBINCLUDE := -l wtsapi32
 CC_x64 := x86_64-w64-mingw32-gcc
