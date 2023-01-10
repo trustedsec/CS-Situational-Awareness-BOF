@@ -1,5 +1,5 @@
 #pragma once
-#pragma intrinsic(memcmp, memcpy,strcpy,strcmp,strlen)
+#pragma intrinsic(memcmp, memcpy,strcpy,strcmp,_stricmp,strlen)
 #include <windows.h>
 #include <process.h>
 #include <winternl.h>
@@ -133,6 +133,7 @@ DECLSPEC_IMPORT char * __cdecl MSVCRT$strcat(char * __restrict__ _Dest,const cha
 WINBASEAPI size_t __cdecl MSVCRT$strnlen(const char *_Str,size_t _MaxCount);
 WINBASEAPI size_t __cdecl MSVCRT$strlen(const char *_Str);
 DECLSPEC_IMPORT int __cdecl MSVCRT$strcmp(const char *_Str1,const char *_Str2);
+DECLSPEC_IMPORT int __cdecl MSVCRT$_stricmp(const char *string1,const char *string2);
 WINBASEAPI int __cdecl MSVCRT$strncmp(const char *_Str1,const char *_Str2,size_t _MaxCount);
 DECLSPEC_IMPORT char * __cdecl MSVCRT$strcpy(char * __restrict__ __dst, const char * __restrict__ __src);
 DECLSPEC_IMPORT PCHAR __cdecl MSVCRT$strstr(const char *haystack, const char *needle);
@@ -550,6 +551,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define MSVCRT$strlen strlen
 #define MSVCRT$strcmp strcmp
 #define MSVCRT$strncmp strncmp
+#define MSVCRT$_stricmp _stricmp
 #define MSVCRT$strcpy strcpy
 #define MSVCRT$strstr strstr
 #define MSVCRT$strchr strchr
