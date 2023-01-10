@@ -154,7 +154,9 @@ beacon_command_register(
 	\"\" works as a default for attributes (get all) DC hostname / IP (use Primary DC) and distingished name (use Base domain Level)
 	0 works as default for result_count (get all)
 
-Useful queries:
+Important - To add in ACLs so Bloodhound can draw relationships between objects (see external BofHound tool), add nTSecurityDescriptor in the attributes list, like so:
+ldapsearch <query> *,ntsecuritydescriptor ...
+Useful queries (queries are just an example, edit where necessary to make it OPSEC safe):
 
 - Kerberoastable:\n(&(samAccountType=805306368)(servicePrincipalName=*)(!samAccountName=krbtgt)(!(UserAccountControl:1.2.840.113556.1.4.803:=2)))
 
