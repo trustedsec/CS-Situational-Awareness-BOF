@@ -539,7 +539,47 @@ HRESULT _adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD)
 				{
 					internal_printf("                              Read Rights\n");
 				} // end if ADS_RIGHT_READ_CONTROL permission
+
+				// Check if ADS_RIGHT_WRITE_OWNER permission
+				if ( 
+					(ADS_RIGHT_WRITE_OWNER & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteOwner Rights\n");
+				} // end if ADS_RIGHT_WRITE_OWNER permission
 				
+				// Check if ADS_RIGHT_WRITE_DAC permission
+				if ( 
+					(ADS_RIGHT_WRITE_DAC & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteDacl Rights\n");
+				} // end if ADS_RIGHT_WRITE_DAC permission
+				
+				// Check if ADS_RIGHT_GENERIC_WRITE permission
+				if ( 
+					(ADS_RIGHT_GENERIC_WRITE & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteProperty Rights\n");
+				} // end if ADS_RIGHT_GENERIC_WRITE permission
+
+				// Check if ADS_RIGHT_DS_WRITE_PROP permission
+				if ( 
+					(ADS_RIGHT_DS_WRITE_PROP & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteProperty Rights on ");
+					OLECHAR szGuid[MAX_PATH];
+					if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
+					{
+						internal_printf("%S\n", szGuid);
+					}
+					else
+					{
+						internal_printf("{ERROR}\n");
+					}
+				} // end if ADS_RIGHT_DS_WRITE_PROP permission
 
 			} // end if GetAce was successful
 		} // end for loop through ACEs (AceCount)
@@ -849,14 +889,32 @@ HRESULT _adcs_enum_cert_type_permissions(PSECURITY_DESCRIPTOR pSD)
 					internal_printf("                              WriteDacl Rights\n");
 				} // end if ADS_RIGHT_WRITE_DAC permission
 				
-				// Check if ADS_RIGHT_DS_WRITE_PROP permission
+				
+				// Check if ADS_RIGHT_GENERIC_WRITE permission
 				if ( 
-					(ADS_RIGHT_GENERIC_WRITE & pAceObject->Mask) ||
-					(ADS_RIGHT_DS_WRITE_PROP & pAceObject->Mask)
+					(ADS_RIGHT_GENERIC_WRITE & pAceObject->Mask)
 				)
 				{
 					internal_printf("                              WriteProperty Rights\n");
+				} // end if ADS_RIGHT_GENERIC_WRITE permission
+
+				// Check if ADS_RIGHT_DS_WRITE_PROP permission
+				if ( 
+					(ADS_RIGHT_DS_WRITE_PROP & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteProperty Rights on ");
+					OLECHAR szGuid[MAX_PATH];
+					if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
+					{
+						internal_printf("%S\n", szGuid);
+					}
+					else
+					{
+						internal_printf("{ERROR}\n");
+					}
 				} // end if ADS_RIGHT_DS_WRITE_PROP permission
+
 				
 			} // end if GetAce was successful
 		} // end for loop through ACEs (AceCount)
