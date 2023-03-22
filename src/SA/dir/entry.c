@@ -26,7 +26,7 @@ void listDir(wchar_t *path, unsigned short subdirs) {
 	// Query the first file
 	(hand = KERNEL32$FindFirstFileW(path, &fd));
 	if (hand == INVALID_HANDLE_VALUE) {
-		BeaconPrintf(CALLBACK_ERROR, "File not found: %ls", path);
+		BeaconPrintf(CALLBACK_ERROR, "Couldn't open %ls: Error %lu", path, KERNEL32$GetLastError());
 		return;
 	}
 
