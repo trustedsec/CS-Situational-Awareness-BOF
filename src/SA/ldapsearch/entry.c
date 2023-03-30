@@ -322,7 +322,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
     _ldap_search_abondon_page searchDone = (_ldap_search_abondon_page)GetProcAddress(wldap, "ldap_search_abandon_page");
     if(searchDone == NULL) {internal_printf("Unable to load required function"); return;}
 
-	distinguishedName = (domain) ? domain : MSVCRT$strstr(szDN, "DC");
+	distinguishedName = (domain) ? domain : MSVCRT$strstr(szDN, "DC=");
 	if(distinguishedName != NULL && res) {
     	internal_printf("[*] Distinguished name: %s\n", distinguishedName);	
 	}
