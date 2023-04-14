@@ -12,14 +12,26 @@ void listDir(wchar_t *path, unsigned short subdirs) {
 	int nFiles = 0;
 	int nDirs = 0;
 	Pqueue dirQueue = queueInit();
+	wchar_t * uncIndex;
 	char * curitem;
 	WCHAR * nextPath;
+	int pathlen = MSVCRT$wcslen(path);
+
+	// Per MSDN: "On network shares ... you cannot use an lpFileName that points to the share itself; for example, "\\Server\Share" is not valid."
+	// Workaround: If we're using a UNC Path, there'd better be at least 4 backslashes
+	// This breaks the convention, but a `cmd /c dir \\hostname\admin$` will work, so let's replicate that functionality.
+	if (MSVCRT$_wcsnicmp(path, L"\\\\", 2) == 0) {
+		uncIndex = MSVCRT$wcsstr(path + 2, L"\\");
+		if (uncIndex != NULL && MSVCRT$wcsstr(uncIndex + 1, L"\\") == NULL) {
+			MSVCRT$wcscat(path, L"\\");
+			pathlen = pathlen + 1;
+		}
+	}
 
 	// If the file ends in \ or is a drive (C:), throw a * on there
-	int a = MSVCRT$wcslen(path);
-	if (MSVCRT$_wcsicmp(path + a - 1, L"\\") == 0) {
+	if (MSVCRT$_wcsicmp(path + pathlen - 1, L"\\") == 0) {
 		MSVCRT$wcscat(path, L"*");
-	} else if (MSVCRT$_wcsicmp(path + a - 1, L":") == 0) {
+	} else if (MSVCRT$_wcsicmp(path + pathlen - 1, L":") == 0) {
 		MSVCRT$wcscat(path, L"\\*");
 	}
 
@@ -29,9 +41,8 @@ void listDir(wchar_t *path, unsigned short subdirs) {
 		BeaconPrintf(CALLBACK_ERROR, "Couldn't open %ls: Error %lu", path, KERNEL32$GetLastError());
 		return;
 	}
-
 	// If it's a single directory without a wildcard, re-run it with a \*
-	if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && MSVCRT$wcsstr(path, L"\\*") == NULL) {
+	if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && MSVCRT$wcsstr(path, L"*") == NULL) {
 		MSVCRT$wcscat(path, L"\\*");
 		listDir(path, subdirs);
 		return;
@@ -106,10 +117,10 @@ VOID go(
 	wchar_t * path = (wchar_t *)BeaconDataExtract(&parser, NULL);
 	unsigned short subdirs = BeaconDataShort(&parser);
 
-    // Not positive how long path is, let's be safe
-    // At worst, we will append \* so give it four bytes (= 2 wchar_t)
-    wchar_t * realPath = intAlloc(1024);
-    MSVCRT$wcsncat(realPath, path, 1020);
+	// Not positive how long path is, let's be safe
+	// At worst, we will append \* so give it four bytes (= 2 wchar_t)
+	wchar_t * realPath = intAlloc(1024);
+	MSVCRT$wcsncat(realPath, path, 1020);
 
 	if(!bofstart())
 	{
