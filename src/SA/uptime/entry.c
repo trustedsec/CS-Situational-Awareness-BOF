@@ -21,6 +21,8 @@ void printUptime64() {
 	FILETIME curFTime = {0};
 	ULARGE_INTEGER utime;
 	KERNEL32$GetLocalTime(&curTime);
+	internal_printf("Local time: %4d-%.2d-%.2d %.2d:%.2d:%.2d\n", curTime.wYear, curTime.wMonth, 
+			curTime.wDay, curTime.wHour, curTime.wMinute, curTime.wSecond);
 
 	KERNEL32$SystemTimeToFileTime(&curTime, &curFTime);
 	memcpy(&utime, &curFTime, sizeof(utime));
