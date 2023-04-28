@@ -120,7 +120,7 @@ PrintFileDacl(IN LPWSTR FilePath,
                                           &Dacl,
                                           &DaclDefaulted))
             {
-                if (DaclPresent)
+                if (Dacl && DaclPresent)
                 {
                     PACCESS_ALLOWED_ACE Ace;
                     DWORD AceIndex = 0;
