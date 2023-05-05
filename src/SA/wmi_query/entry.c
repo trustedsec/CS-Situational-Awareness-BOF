@@ -8,7 +8,8 @@
 HRESULT wmi_query(
 	LPWSTR pwszServer,
 	LPWSTR pwszNameSpace,	
-	LPWSTR pwszQuery
+	LPWSTR pwszQuery,
+	LPWSTR pwszResource
 )
 {
 	HRESULT	hr						= S_OK;
@@ -30,7 +31,7 @@ HRESULT wmi_query(
 	}
 
 	// Connect to WMI on host
-	hr = Wmi_Connect(&m_WMI, pwszServer, pwszNameSpace);
+	hr = Wmi_Connect(&m_WMI, pwszResource);
 	if (FAILED(hr))
 	{
 		BeaconPrintf(CALLBACK_ERROR, "Wmi_Connect failed: 0x%08lx", hr);
@@ -105,6 +106,7 @@ VOID go(
 	wchar_t * pwszServer = NULL;
 	wchar_t * pwszNameSpace = NULL;	
 	wchar_t * pwszQuery = NULL;
+	wchar_t * pwszResource = NULL;
 
 	if (!bofstart())
 	{
@@ -115,8 +117,9 @@ VOID go(
 	pwszServer = (wchar_t *)BeaconDataExtract(&parser, NULL);
 	pwszNameSpace = (wchar_t *)BeaconDataExtract(&parser, NULL);	
 	pwszQuery = (wchar_t *)BeaconDataExtract(&parser, NULL);
+	pwszResource = (wchar_t *)BeaconDataExtract(&parser, NULL);
 	
-	hr = wmi_query(pwszServer, pwszNameSpace, pwszQuery);
+	hr = wmi_query(pwszServer, pwszNameSpace, pwszQuery, pwszResource);
 
 	if (S_OK != hr)
 	{

@@ -48,11 +48,9 @@ HRESULT Wmi_Initialize(WMI* pWmi)
 
 	pWmi->pWbemServices = NULL;
 	pWmi->pWbemLocator  = NULL;
-	pWmi->bstrServer = NULL;
 	pWmi->pEnumerator = NULL;
 	pWmi->bstrLanguage  = NULL;
 	pWmi->bstrNameSpace = NULL;
-	pWmi->bstrNetworkResource = NULL;
 	pWmi->bstrQuery = NULL;
 	
 	pWmi->bstrLanguage = OLEAUT32$SysAllocString(WMI_QUERY_LANGUAGE);
@@ -68,18 +66,20 @@ HRESULT Wmi_Initialize(WMI* pWmi)
 		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeEx failed: 0x%08lx", hr);
 		goto fail;
 	}
-
-	// Initialize COM process security
-	hr = OLE32$CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, 0);
-	if (FAILED(hr))
-	{
-		if (RPC_E_TOO_LATE != hr)
-		{
-			BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeSecurity failed: 0x%08lx", hr);
-			OLE32$CoUninitialize();
-			goto fail;
-		}
-	}
+		hr = OLE32$CoInitializeSecurity( //Failure of this function does not necessarily mean we failed to initialize, it will fail on repeated calls, but the values from the original call are retained
+			NULL,
+            -1,
+            NULL,
+            NULL,
+            RPC_C_AUTHN_LEVEL_DEFAULT,
+            RPC_C_IMP_LEVEL_IMPERSONATE,
+            NULL,
+            EOAC_DYNAMIC_CLOAKING,
+            NULL);
+        if (FAILED(hr))
+        {
+            BeaconPrintf(CALLBACK_ERROR, "Failed to set security, token impersonation may not work\n");
+        }
 	
 	hr = S_OK;
 
@@ -90,73 +90,16 @@ fail:
 
 HRESULT Wmi_Connect(
 	WMI* pWmi, 
-	LPWSTR pwszServerArg,
-	LPWSTR pwszNameSpaceArg
+	LPWSTR resource
 )
 {
 	HRESULT hr = S_OK;
-	LPWSTR  pwszServer = NULL;
-	LPWSTR  pwszNameSpace = NULL;	
-	size_t	ullNetworkResourceSize = 0;
-	LPWSTR	lpwszNetworkResource = NULL;
-
-
 	CLSID	CLSID_WbemLocator = { 0x4590F811, 0x1D3A, 0x11D0, {0x89, 0x1F, 0, 0xAA, 0, 0x4B, 0x2E, 0x24} };
 	IID		IID_IWbemLocator = { 0xDC12A687, 0x737F, 0x11CF, {0x88, 0x4D, 0, 0xAA, 0, 0x4B, 0x2E, 0x24} };
 	
-	// Get the server
-	pwszServer = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH*sizeof(wchar_t));
-	if (NULL == pwszServer)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	if ( (NULL != pwszServerArg) && (MSVCRT$wcslen(pwszServerArg) > 0) )
-	{
-		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, pwszServerArg);
-	}
-	else
-	{
-		MSVCRT$wcscpy_s(pwszServer, MAX_PATH, RESOURCE_LOCAL_HOST);		
-	}
-	
-	// Get the namespace	
-	pwszNameSpace = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, MAX_PATH*sizeof(wchar_t));
-	if (NULL == pwszNameSpace)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	if ( (NULL != pwszNameSpaceArg) && (MSVCRT$wcslen(pwszNameSpaceArg) > 0) )
-	{
-		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, pwszNameSpaceArg);
-	}
-	else
-	{
-		MSVCRT$wcscpy_s(pwszNameSpace, MAX_PATH, WMI_NAMESPACE_CIMV2);		
-	}
-	
-	// Create the full resource path from the server and namespace
-	ullNetworkResourceSize = (2 + MSVCRT$wcslen(pwszServer) + 1 + MSVCRT$wcslen(pwszNameSpace) + 1) * sizeof(wchar_t);
-	lpwszNetworkResource = (LPWSTR)KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, ullNetworkResourceSize);
-	if (NULL == lpwszNetworkResource)
-	{
-		hr = WBEM_E_OUT_OF_MEMORY;
-		BeaconPrintf(CALLBACK_ERROR, "KERNEL32$HeapAlloc failed: 0x%08lx", hr);
-		goto fail;
-	}
-	if (-1 == MSVCRT$_snwprintf(lpwszNetworkResource, ullNetworkResourceSize, RESOURCE_FMT_STRING, pwszServer, pwszNameSpace))
-	{
-		hr = WBEM_E_INVALID_NAMESPACE;
-		BeaconPrintf(CALLBACK_ERROR, "MSVCRT$swprintf failed: 0x%08lx", hr);
-		goto fail;
-	}
-	
+
 	// Set the properties in the WMI object
-	pWmi->bstrServer = OLEAUT32$SysAllocString(pwszServer);
-	pWmi->bstrNetworkResource = OLEAUT32$SysAllocString(lpwszNetworkResource);
+	BSTR bstrNetworkResource = OLEAUT32$SysAllocString(resource);
 
 	// Obtain the initial locator to Windows Management on host computer
 	SAFE_RELEASE(pWmi->pWbemLocator);
@@ -177,7 +120,7 @@ HRESULT Wmi_Connect(
 	// Connect to the WMI namespace on host computer with the current user
 	hr = pWmi->pWbemLocator->lpVtbl->ConnectServer(
 		pWmi->pWbemLocator,
-		pWmi->bstrNetworkResource,
+		bstrNetworkResource,
 		NULL,
 		NULL,
 		NULL,
@@ -188,7 +131,7 @@ HRESULT Wmi_Connect(
 	);
 	if (FAILED(hr))
 	{
-		BeaconPrintf(CALLBACK_ERROR, "ConnectServer failed: 0x%08lx", hr);
+		BeaconPrintf(CALLBACK_ERROR, "ConnectServer to %ls failed: 0x%08lx", bstrNetworkResource, hr);
 		goto fail;
 	}
 
@@ -208,25 +151,13 @@ HRESULT Wmi_Connect(
 		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoSetProxyBlanket failed: 0x%08lx", hr);
 		goto fail;
 	}
-
+	BeaconPrintf(CALLBACK_OUTPUT, "Done");
 	hr = S_OK;
 
 fail:
-    // Free local allocations
-	if (pwszServer)
+	if(bstrNetworkResource)
 	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszServer);
-		pwszServer = NULL;
-	}
-	if (pwszNameSpace)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, pwszNameSpace);
-		pwszNameSpace = NULL;
-	}
-	if (lpwszNetworkResource)
-	{
-		KERNEL32$HeapFree(KERNEL32$GetProcessHeap(), 0, lpwszNetworkResource);
-		lpwszNetworkResource = NULL;
+    	OLEAUT32$SysFreeString(bstrNetworkResource);
 	}
 	
 	return hr;
@@ -263,23 +194,6 @@ HRESULT Wmi_Query(
 		goto fail;
 	}
 
-	// Set the IWbemServices proxy so that impersonation of the user (client) occurs
-	hr = OLE32$CoSetProxyBlanket(
-		(IUnknown *)(pWmi->pEnumerator),
-		RPC_C_AUTHN_WINNT,
-		RPC_C_AUTHZ_NONE,
-		NULL,
-		RPC_C_AUTHN_LEVEL_DEFAULT,
-		RPC_C_IMP_LEVEL_IMPERSONATE,
-		NULL,
-		EOAC_DYNAMIC_CLOAKING
-	);
-	if (FAILED(hr))
-	{
-    	BeaconPrintf(CALLBACK_ERROR, "OLE32$CoSetProxyBlanket failed: 0x%08lx", hr);
-    	SAFE_RELEASE(pWmi->pEnumerator);
-		goto fail;
-	}
 
 	hr = S_OK;
 
@@ -586,9 +500,7 @@ void Wmi_Finalize(
 	SAFE_RELEASE(pWmi->pWbemLocator);
 
 	SAFE_FREE(pWmi->bstrLanguage);
-	SAFE_FREE(pWmi->bstrServer);
 	SAFE_FREE(pWmi->bstrNameSpace);
-	SAFE_FREE(pWmi->bstrNetworkResource);
 	SAFE_FREE(pWmi->bstrQuery);
 
 	// un-initialize the COM library
