@@ -151,7 +151,6 @@ HRESULT Wmi_Connect(
 		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoSetProxyBlanket failed: 0x%08lx", hr);
 		goto fail;
 	}
-	BeaconPrintf(CALLBACK_OUTPUT, "Done");
 	hr = S_OK;
 
 fail:
