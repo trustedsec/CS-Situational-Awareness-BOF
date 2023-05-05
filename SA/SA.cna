@@ -1095,7 +1095,7 @@ Note:	You must have a valid login token for the system specified if not
 
 
 alias wmi_query{
-	local('$query $system $namespace $args')
+	local('$query $system $namespace $resource $args')
 
 	if ((size(@_) < 2) || (size(@_) > 4))
 	{
@@ -1106,8 +1106,9 @@ alias wmi_query{
 	$query = $2;
 	$system = iff(-istrue $3, $3, ".");
 	$namespace = iff(-istrue $4, $4, "root\\cimv2");
+	$resource = "\\\\" . $+ . $system . $+ . "\\" . $+ . $namespace;
 
-	$args = bof_pack($1, "ZZZ", $system, $namespace, $query);
+	$args = bof_pack($1, "ZZZZ", $system, $namespace, $query, $resource);
 	beacon_inline_execute($1, readbof($1, "wmi_query", "Connecting to \\\\$system\\$namespace and running the WMI query \'$query\'", $null), "go", $args);			#T1047 exists but is about execution, not discovery
 }
 
