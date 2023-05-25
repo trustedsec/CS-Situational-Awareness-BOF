@@ -1062,9 +1062,9 @@ If a value to query is not specified, that one key is enumerated");
 
 
 alias tasklist{
-	local('$args $system')
+	local('$args $resource')
 
-	$system = "";
+	$resource = "";
 
 	if ((size(@_) < 1) || (size(@_) > 2))
 	{
@@ -1072,9 +1072,9 @@ alias tasklist{
 		berror($1, "Invalid number of arguments");
 		return;
 	}
-	$system = iff(-istrue $2, $2, ".");
-	$args = bof_pack($1, "Z", $system);
-	beacon_inline_execute($1, readbof($1, "tasklist", "Connecting to \\\\$system and retrieving list of currently running processes", "T1057"), "go", $args);
+	$resource = iff(-istrue $2, "\\\\$2\\root\\cimv2", "\\\\.\\root\\cimv2");
+	$args = bof_pack($1, "Z", $resource);
+	beacon_inline_execute($1, readbof($1, "tasklist", "Connecting to $resource and retrieving list of currently running processes", "T1057"), "go", $args);
 }
 
 beacon_command_register(

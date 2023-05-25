@@ -16,7 +16,7 @@
 #define RESULTS_COMMANDLINE_COL		4
 
 HRESULT task_list(
-	LPWSTR pwszServer
+	LPWSTR pwszResource
 )
 {
 	HRESULT	hr = S_OK;
@@ -38,7 +38,7 @@ HRESULT task_list(
 	}
 
 	// Connect to WMI on host
-	hr = Wmi_Connect(&m_WMI, pwszServer, NULL );
+	hr = Wmi_Connect(&m_WMI, pwszResource );
 	if (FAILED(hr))
 	{
 		BeaconPrintf(CALLBACK_ERROR, "Wmi_Connect failed: 0x%08lx", hr);
