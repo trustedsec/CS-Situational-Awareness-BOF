@@ -482,9 +482,17 @@ HRESULT _adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD)
 			{
 				pAceObject = (ACCESS_ALLOWED_OBJECT_ACE*)pAceHeader;
 				pAce = (ACCESS_ALLOWED_ACE*)pAceHeader;
+				int format_ACCESS_ALLOWED_OBJECT_ACE = 0;
 
-				if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType)); }
-				else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAce->SidStart)); }
+				if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType) {
+					//internal_printf("        AceType: ACCESS_ALLOWED_OBJECT_ACE_TYPE\n");
+					format_ACCESS_ALLOWED_OBJECT_ACE = 1;
+					pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType)); 
+				}
+				else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType) { 
+					//internal_printf("        AceType: ACCESS_ALLOWED_ACE_TYPE\n");
+					pPrincipalSid = (PSID)(&(pAce->SidStart)); 
+				}
 				else { continue; }
 
 				// Get the principal
@@ -496,40 +504,46 @@ HRESULT _adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD)
 				{ continue; }
 
 				internal_printf("        Principal           : %S\\%S\n", swzDomainName, swzName);
+				// pAceObject->Mask is always equal to pAce->Mask, not "perfect" but seems to work
 				internal_printf("          Access mask       : %08X\n", pAceObject->Mask);
 				internal_printf("          Flags             : %08X\n", pAceObject->Flags);
 					
-				// Check if Enrollment permission
-				if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
-				{
-					if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
+				if (format_ACCESS_ALLOWED_OBJECT_ACE) {
+					// flags not defined in ACCESS_ALLOWED_ACE_TYPE
+					internal_printf("          Flags             : %08X\n", pAceObject->Flags);
+
+					// Check if Enrollment permission
+					if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
 					{
-						OLECHAR szGuid[MAX_PATH];
-						if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
+						if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
 						{
-							internal_printf("          Extended right    : %S\n", szGuid);
-						}
-						if (
-							(!MSVCRT$memcmp(&CertificateEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
-							(!MSVCRT$memcmp(&CertificateAutoEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
-							(!MSVCRT$memcmp(&CertificateAll, &pAceObject->ObjectType, sizeof (GUID)))
-							)
-						{
-							internal_printf("                              Enrollment Rights\n");
-						}
-						else if (
-							(!MSVCRT$memcmp(&ManageCA, &pAceObject->ObjectType, sizeof (GUID)))
-							)
-						{
-							internal_printf("                              ManageCA Rights\n");
-						}
-					} // end if ACE_OBJECT_TYPE_PRESENT
-				} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+							OLECHAR szGuid[MAX_PATH];
+							if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
+							{
+								internal_printf("                              Extended right %S\n", szGuid);
+							}
+							if (
+								(!MSVCRT$memcmp(&CertificateEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
+								(!MSVCRT$memcmp(&CertificateAutoEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
+								(!MSVCRT$memcmp(&CertificateAll, &pAceObject->ObjectType, sizeof (GUID)))
+								)
+							{
+								internal_printf("                              Enrollment Rights\n");
+							}
+							else if (
+								(!MSVCRT$memcmp(&ManageCA, &pAceObject->ObjectType, sizeof (GUID)))
+								)
+							{
+								internal_printf("                              ManageCA Rights\n");
+							}
+						} // end if ACE_OBJECT_TYPE_PRESENT
+					} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+				}
 				
 				// Check if ADS_RIGHT_GENERIC_ALL permission
 				if (ADS_RIGHT_GENERIC_ALL & pAceObject->Mask)
 				{
-					internal_printf("                              All Rights\n");
+					internal_printf("                              Generic All Rights\n");
 				} // end if ADS_RIGHT_GENERIC_ALL permission
 				
 				// Check if ADS_RIGHT_READ_CONTROL permission
@@ -561,7 +575,7 @@ HRESULT _adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD)
 					(ADS_RIGHT_GENERIC_WRITE & pAceObject->Mask)
 				)
 				{
-					internal_printf("                              WriteProperty Rights\n");
+					internal_printf("                              WriteProperty All Rights\n");
 				} // end if ADS_RIGHT_GENERIC_WRITE permission
 
 				// Check if ADS_RIGHT_DS_WRITE_PROP permission
@@ -569,16 +583,24 @@ HRESULT _adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD)
 					(ADS_RIGHT_DS_WRITE_PROP & pAceObject->Mask)
 				)
 				{
-					internal_printf("                              WriteProperty Rights on ");
-					OLECHAR szGuid[MAX_PATH];
-					if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
-					{
-						internal_printf("%S\n", szGuid);
+					if (format_ACCESS_ALLOWED_OBJECT_ACE) {
+
+						internal_printf("                              WriteProperty Rights on ");
+						OLECHAR szGuid[MAX_PATH];
+						if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
+						{
+							internal_printf("%S\n", szGuid);
+						}
+						else
+						{
+							internal_printf("{ERROR}\n");
+						}
 					}
-					else
-					{
-						internal_printf("{ERROR}\n");
+					else {
+						// if ACCESS_OBJECT_ACE, there is no ACE_OBJECT_TYPE_PRESENT and ObjectType, so it's like a GENERIC_WRITE
+						internal_printf("                              WriteProperty All Rights\n");
 					}
+
 				} // end if ADS_RIGHT_DS_WRITE_PROP permission
 
 			} // end if GetAce was successful
@@ -834,10 +856,20 @@ HRESULT _adcs_enum_cert_type_permissions(PSECURITY_DESCRIPTOR pSD)
 			{
 				pAceObject = (ACCESS_ALLOWED_OBJECT_ACE*)pAceHeader;
 				pAce = (ACCESS_ALLOWED_ACE*)pAceHeader;
+				int format_ACCESS_ALLOWED_OBJECT_ACE = 0;
 
-				if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType)); }
-				else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAce->SidStart)); }
-				else { continue; }
+				if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType) { 
+					//internal_printf("        AceType: ACCESS_ALLOWED_OBJECT_ACE_TYPE\n");
+					format_ACCESS_ALLOWED_OBJECT_ACE = 1;
+					pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType)); 
+				}
+				else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType) { 
+					//internal_printf("        AceType: ACCESS_ALLOWED_ACE_TYPE\n");
+					pPrincipalSid = (PSID)(&(pAce->SidStart)); 
+				}
+				else { 
+					continue; 
+				}
 
 				// Get the principal
 				cchName = MAX_PATH;
@@ -848,24 +880,29 @@ HRESULT _adcs_enum_cert_type_permissions(PSECURITY_DESCRIPTOR pSD)
 				{ continue; }
 				
 				internal_printf("        Principal           : %S\\%S\n", swzDomainName, swzName);
+				// pAceObject->Mask is always equal to pAce->Mask, not "perfect" but seems to work
 				internal_printf("          Access mask       : %08X\n", pAceObject->Mask);
-				internal_printf("          Flags             : %08X\n", pAceObject->Flags);
-					
-				// Check if Enrollment permission
-				if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
-				{
-					if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
+
+				if (format_ACCESS_ALLOWED_OBJECT_ACE) {
+					// flags not defined in ACCESS_ALLOWED_ACE_TYPE
+					internal_printf("          Flags             : %08X\n", pAceObject->Flags);
+
+					// Check if Enrollment permission
+					if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
 					{
-						if (
-							(!MSVCRT$memcmp(&CertificateEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
-							(!MSVCRT$memcmp(&CertificateAutoEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
-							(!MSVCRT$memcmp(&CertificateAll, &pAceObject->ObjectType, sizeof (GUID)))
-							)
+						if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
 						{
-							internal_printf("                              Enrollment Rights\n");
-						}
-					} // end if ACE_OBJECT_TYPE_PRESENT
-				} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+							if (
+								(!MSVCRT$memcmp(&CertificateEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
+								(!MSVCRT$memcmp(&CertificateAutoEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
+								(!MSVCRT$memcmp(&CertificateAll, &pAceObject->ObjectType, sizeof (GUID)))
+								)
+							{
+								internal_printf("                              Enrollment Rights\n");
+							}
+						} // end if ACE_OBJECT_TYPE_PRESENT
+					} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+				}
 				
 				// Check if ADS_RIGHT_GENERIC_ALL permission
 				if (ADS_RIGHT_GENERIC_ALL & pAceObject->Mask)
@@ -903,16 +940,24 @@ HRESULT _adcs_enum_cert_type_permissions(PSECURITY_DESCRIPTOR pSD)
 					(ADS_RIGHT_DS_WRITE_PROP & pAceObject->Mask)
 				)
 				{
-					internal_printf("                              WriteProperty Rights on ");
-					OLECHAR szGuid[MAX_PATH];
-					if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
-					{
-						internal_printf("%S\n", szGuid);
+					if (format_ACCESS_ALLOWED_OBJECT_ACE) {
+
+						internal_printf("                              WriteProperty Rights on ");
+						OLECHAR szGuid[MAX_PATH];
+						if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
+						{
+							internal_printf("%S\n", szGuid);
+						}
+						else
+						{
+							internal_printf("{ERROR}\n");
+						}
 					}
-					else
-					{
-						internal_printf("{ERROR}\n");
+					else {
+						// if ACCESS_OBJECT_ACE, there is no ACE_OBJECT_TYPE_PRESENT and ObjectType, so it's like a GENERIC_WRITE
+						internal_printf("                              WriteProperty All Rights\n");
 					}
+
 				} // end if ADS_RIGHT_DS_WRITE_PROP permission
 
 				
