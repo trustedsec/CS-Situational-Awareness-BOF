@@ -1457,6 +1457,20 @@ alias netuptime{
 }
 
 beacon_command_register(
+	"netuptime",
+	"Returns information about the boot time on the local (or a remote) machine",
+	"netuptime <\\computername>"
+);
+
+
+alias nettime{
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 0);
+	beacon_inline_execute($1, readbof($1, "nettime", $null, "T1082"), "go", $args);
+}
+
+beacon_command_register(
 	"nettime",
 	"Returns information about the current time on a remote (or local) machine. ",
 		"
