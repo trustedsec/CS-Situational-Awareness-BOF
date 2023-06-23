@@ -1457,8 +1457,17 @@ alias netuptime{
 }
 
 beacon_command_register(
-	"netuptime",
-	"Returns information about the boot time on the local (or a remote) machine",
-	"netuptime <\\computername>"
+	"nettime",
+	"Returns information about the current time on a remote (or local) machine. ",
+		"
+Command: nettime
+Summary: This command displays the current time on a remote host. 
+Usage:   enum_filter_driver <target>
+         Ex: nettime target 
+         nettime target.domain.local 
+         nettime  
+
+Note:    nettime will return the time of the localhost if target is null
+"
 );
 
