@@ -317,6 +317,10 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 
 		hr = _adcs_get_CertificationAuthority(pCertificateAuthority);
 		CHECK_RETURN_SOFT_FAIL("_adcs_get_CertificationAuthority()", hr);
+
+		if (FAILED(hr)){
+			BeaconPrintf(CALLBACK_ERROR, "    Failed to display information for the CertificationAuthority \n");
+		}
 	} // end for loop through ICertificationAuthority
 
 	SAFE_RELEASE(pCertificateTemplates);
@@ -334,7 +338,11 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		CHECK_RETURN_FAIL("pCertificateTemplates->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_CertificateTemplate(pCertificateTemplate);
-		CHECK_RETURN_FAIL("_adcs_get_CertificateTemplate()", hr);
+		CHECK_RETURN_SOFT_FAIL("_adcs_get_CertificateTemplate()", hr);
+
+		if (FAILED(hr)){
+			BeaconPrintf(CALLBACK_ERROR, "    Failed to display information for the CertificateTemplate \n");
+		}
 	} // end for loop through ITemplates
 	
 	hr = S_OK;
