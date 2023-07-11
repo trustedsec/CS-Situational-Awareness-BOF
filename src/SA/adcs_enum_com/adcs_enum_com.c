@@ -556,7 +556,11 @@ HRESULT _adcs_get_Templates(BSTR bstrTemplates)
 
 		// Display information for the current template
 		hr = _adcs_get_Template(bstrOID);
-		CHECK_RETURN_FAIL("_adcs_get_Template()", hr);
+		CHECK_RETURN_SOFT_FAIL("SOFT FAILED _adcs_get_Template()", hr);
+		
+		if (FAILED(hr)){
+			BeaconPrintf(CALLBACK_ERROR, "    Failed to display information for the template \n");
+		}
 
 		// Get the next template
 		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
