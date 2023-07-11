@@ -136,6 +136,11 @@ typedef int WINAPI (*StringFromGUID2_t)(REFGUID rguid, LPOLESTR lpsz, int cchMax
 		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
 		goto fail; \
 	}
+#define CHECK_RETURN_SOFT_FAIL( function, result ) \
+	if (FAILED(result)) \
+	{ \
+		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
+	}
 #define SAFE_DESTROY( arraypointer )	\
 	if ( (arraypointer) != NULL )	\
 	{	\
@@ -244,21 +249,23 @@ HRESULT _adcs_get_CertConfig()
 		CHECK_RETURN_FAIL("pCertConfig->lpVtbl->GetField(bstrFieldConfig)", hr);
 		internal_printf("\n[*] Listing info about the configuration '%S'\n", bstrConfig);
 		hr = _adcs_get_CertRequest(bstrConfig);
-		CHECK_RETURN_FAIL("_adcs_get_CertRequest()", hr);
+		CHECK_RETURN_SOFT_FAIL("SOFT FAIL _adcs_get_CertRequest()", hr);
 		SAFE_FREE(bstrConfig);
 
-		// Retrieve the WebEnrollmentServers field for the current configuration
-    	hr = pCertConfig->lpVtbl->GetField(pCertConfig, bstrFieldWebEnrollmentServers, &bstrWebEnrollmentServers);
-		internal_printf("    Web Servers              :\n");
-		if (S_OK == hr)
-		{
-			hr = _adcs_get_WebEnrollmentServers(bstrWebEnrollmentServers);
-			CHECK_RETURN_FAIL("_adcs_get_WebEnrollmentServers()", hr);
-		}
-		else
-		{
-			internal_printf("      N/A\n");
-			hr = S_OK;
+		if (!FAILED(hr)){
+			// Retrieve the WebEnrollmentServers field for the current configuration
+			hr = pCertConfig->lpVtbl->GetField(pCertConfig, bstrFieldWebEnrollmentServers, &bstrWebEnrollmentServers);
+			internal_printf("    Web Servers              :\n");
+			if (S_OK == hr)
+			{
+				hr = _adcs_get_WebEnrollmentServers(bstrWebEnrollmentServers);
+				CHECK_RETURN_FAIL("_adcs_get_WebEnrollmentServers()", hr);
+			}
+			else
+			{
+				internal_printf("      N/A\n");
+				hr = S_OK;
+			}
 		}
 
 		// Retrieve the next available Certificate Services
@@ -522,7 +529,7 @@ HRESULT _adcs_get_Templates(BSTR bstrTemplates)
 
 	if (0 == dwTemplateCount)
 	{
-		internal_printf("[*] Nothing to list, %ld template on the CA \n", dwTemplateCount);
+		internal_printf("    Nothing to list, %ld template on the CA \n", dwTemplateCount);
 		goto fail;
 	}
 

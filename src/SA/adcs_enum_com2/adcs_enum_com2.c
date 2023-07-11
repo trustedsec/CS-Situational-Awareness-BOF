@@ -128,6 +128,11 @@ typedef int WINAPI (*StringFromGUID2_t)(REFGUID rguid, LPOLESTR lpsz, int cchMax
 		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
 		goto fail; \
 	}
+#define CHECK_RETURN_SOFT_FAIL( function, result ) \
+	if (FAILED(result)) \
+	{ \
+		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
+	}
 #define SAFE_DESTROY( arraypointer )	\
 	if ( (arraypointer) != NULL )	\
 	{	\
@@ -221,7 +226,7 @@ HRESULT _adcs_get_PolicyServerListManager()
 		CHECK_RETURN_FAIL("pPolicyServerListManager->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_PolicyServerUrl(pPolicyServerUrl);
-		CHECK_RETURN_FAIL("_adcs_get_PolicyServerUrl()", hr);
+		CHECK_RETURN_SOFT_FAIL("SOFT FAIL _adcs_get_PolicyServerUrl()", hr);
 
 	} // end for loop through IX509PolicyServerUrl
 
@@ -311,7 +316,7 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		CHECK_RETURN_FAIL("pCAs->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_CertificationAuthority(pCertificateAuthority);
-		CHECK_RETURN_FAIL("_adcs_get_CertificationAuthority()", hr);
+		CHECK_RETURN_SOFT_FAIL("_adcs_get_CertificationAuthority()", hr);
 	} // end for loop through ICertificationAuthority
 
 	SAFE_RELEASE(pCertificateTemplates);
