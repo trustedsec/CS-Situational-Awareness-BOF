@@ -267,6 +267,9 @@ HRESULT _adcs_get_CertConfig()
 				hr = S_OK;
 			}
 		}
+		else{
+			internal_printf("      Failed to retrive information about the Certificate Service\n");
+		}
 
 		// Retrieve the next available Certificate Services
     	hr = pCertConfig->lpVtbl->Next(pCertConfig,	&lNextIndex);
@@ -559,7 +562,7 @@ HRESULT _adcs_get_Templates(BSTR bstrTemplates)
 		CHECK_RETURN_SOFT_FAIL("SOFT FAILED _adcs_get_Template()", hr);
 		
 		if (FAILED(hr)){
-			BeaconPrintf(CALLBACK_ERROR, "    Failed to display information for the template \n");
+			internal_printf("    Failed to display information for the template \n");
 		}
 
 		// Get the next template

@@ -228,6 +228,9 @@ HRESULT _adcs_get_PolicyServerListManager()
 		hr = _adcs_get_PolicyServerUrl(pPolicyServerUrl);
 		CHECK_RETURN_SOFT_FAIL("SOFT FAIL _adcs_get_PolicyServerUrl()", hr);
 
+		if (FAILED(hr)){
+			internal_printf("    Failed to display information for the Policy Server \n");
+		}
 	} // end for loop through IX509PolicyServerUrl
 
 	hr = S_OK;
@@ -319,7 +322,7 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		CHECK_RETURN_SOFT_FAIL("_adcs_get_CertificationAuthority()", hr);
 
 		if (FAILED(hr)){
-			BeaconPrintf(CALLBACK_ERROR, "    Failed to display information for the CertificationAuthority \n");
+			internal_printf("    Failed to display information for the CertificationAuthority \n");
 		}
 	} // end for loop through ICertificationAuthority
 
@@ -341,7 +344,7 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		CHECK_RETURN_SOFT_FAIL("_adcs_get_CertificateTemplate()", hr);
 
 		if (FAILED(hr)){
-			BeaconPrintf(CALLBACK_ERROR, "    Failed to display information for the CertificateTemplate \n");
+			internal_printf("    Failed to display information for the CertificateTemplate \n");
 		}
 	} // end for loop through ITemplates
 	
