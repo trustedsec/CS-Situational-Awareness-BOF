@@ -249,7 +249,7 @@ HRESULT _adcs_get_CertConfig()
 		CHECK_RETURN_FAIL("pCertConfig->lpVtbl->GetField(bstrFieldConfig)", hr);
 		internal_printf("\n[*] Listing info about the configuration '%S'\n", bstrConfig);
 		hr = _adcs_get_CertRequest(bstrConfig);
-		CHECK_RETURN_SOFT_FAIL("SOFT FAIL _adcs_get_CertRequest()", hr);
+		CHECK_RETURN_SOFT_FAIL("[SOFT FAIL] _adcs_get_CertRequest()", hr);
 		SAFE_FREE(bstrConfig);
 
 		if (!FAILED(hr)){
@@ -269,6 +269,9 @@ HRESULT _adcs_get_CertConfig()
 		}
 		else{
 			internal_printf("      Failed to retrive information about the Certificate Service\n");
+			if(hr == CERTSRV_E_ENROLL_DENIED){
+				internal_printf("      Error 0x80094011: The permissions on this certification authority do not allow the current user to enroll for certificates, and so not to enumerate the templates using adcs_enum_com.\n");
+			}
 		}
 
 		// Retrieve the next available Certificate Services
@@ -559,7 +562,7 @@ HRESULT _adcs_get_Templates(BSTR bstrTemplates)
 
 		// Display information for the current template
 		hr = _adcs_get_Template(bstrOID);
-		CHECK_RETURN_SOFT_FAIL("SOFT FAILED _adcs_get_Template()", hr);
+		CHECK_RETURN_SOFT_FAIL("[SOFT FAIL] _adcs_get_Template()", hr);
 		
 		if (FAILED(hr)){
 			internal_printf("    Failed to display information for the template \n");

@@ -226,7 +226,7 @@ HRESULT _adcs_get_PolicyServerListManager()
 		CHECK_RETURN_FAIL("pPolicyServerListManager->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_PolicyServerUrl(pPolicyServerUrl);
-		CHECK_RETURN_SOFT_FAIL("SOFT FAIL _adcs_get_PolicyServerUrl()", hr);
+		CHECK_RETURN_SOFT_FAIL("[SOFT FAIL] _adcs_get_PolicyServerUrl()", hr);
 
 		if (FAILED(hr)){
 			internal_printf("    Failed to display information for the Policy Server \n");
@@ -319,7 +319,7 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		CHECK_RETURN_FAIL("pCAs->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_CertificationAuthority(pCertificateAuthority);
-		CHECK_RETURN_SOFT_FAIL("_adcs_get_CertificationAuthority()", hr);
+		CHECK_RETURN_SOFT_FAIL("[SOFT FAIL] _adcs_get_CertificationAuthority()", hr);
 
 		if (FAILED(hr)){
 			internal_printf("    Failed to display information for the CertificationAuthority \n");
@@ -341,7 +341,7 @@ HRESULT _adcs_get_EnrollmentPolicyServer(BSTR bstrPolicyServerUrl, BSTR bstrPoli
 		CHECK_RETURN_FAIL("pCertificateTemplates->lpVtbl->get_ItemByIndex()", hr);
 
 		hr = _adcs_get_CertificateTemplate(pCertificateTemplate);
-		CHECK_RETURN_SOFT_FAIL("_adcs_get_CertificateTemplate()", hr);
+		CHECK_RETURN_SOFT_FAIL("[SOFT FAIL] _adcs_get_CertificateTemplate()", hr);
 
 		if (FAILED(hr)){
 			internal_printf("    Failed to display information for the CertificateTemplate \n");
