@@ -709,7 +709,13 @@ HRESULT _adcs_get_CertificationAuthoritySecurity(BSTR bstrDacl)
 				if (FALSE == ADVAPI32$LookupAccountSidW( NULL, pPrincipalSid, swzName, &cchName, swzDomainName,	&cchDomainName,	&sidNameUse	))
 				{ continue; }
 
-				internal_printf("        Principal           : %S\\%S\n", swzDomainName, swzName);
+				swzStringSid = NULL;
+				if (ADVAPI32$ConvertSidToStringSidW(pPrincipalSid, &swzStringSid)) { 
+					internal_printf("        Principal           : %S\\%S (%S)\n", swzDomainName, swzName,swzStringSid); }
+				else { 
+					internal_printf("        Principal           : %S\\%S (N/A)\n", swzDomainName, swzName); }
+				SAFE_LOCAL_FREE(swzStringSid);
+
 				// pAceObject->Mask is always equal to pAce->Mask, not "perfect" but seems to work
 				internal_printf("          Access mask       : %08X\n", pAceObject->Mask);
 				internal_printf("          Flags             : %08X\n", pAceObject->Flags);
