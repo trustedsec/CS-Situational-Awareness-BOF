@@ -6,7 +6,7 @@
 
 void nettime(LPCWSTR pszServer)
 {
-	TIME_OF_DAY_INFO *pTod = 0;
+	TIME_OF_DAY_INFO *pTod = NULL;
 	NET_API_STATUS nStatus;
 	
 	nStatus = NETAPI32$NetRemoteTOD(pszServer, (LPBYTE *) &pTod);
@@ -34,7 +34,8 @@ void nettime(LPCWSTR pszServer)
 		internal_printf("Unable to retrieve up time remotely: %ld\n", nStatus);
 	}
 
-	NETAPI32$NetApiBufferFree(pTod);
+	if(pTod)
+		{NETAPI32$NetApiBufferFree(pTod);}
 }
 
 

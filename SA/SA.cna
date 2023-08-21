@@ -1466,7 +1466,7 @@ beacon_command_register(
 alias nettime{
 	local('$args $name')
 	$name = iff(-istrue $2, $2, "");
-	$args = bof_pack($1, "Zi", $name, 0);
+	$args = bof_pack($1, "Z", $name);
 	beacon_inline_execute($1, readbof($1, "nettime", $null, "T1082"), "go", $args);
 }
 
