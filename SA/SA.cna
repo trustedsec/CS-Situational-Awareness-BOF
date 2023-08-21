@@ -1462,3 +1462,26 @@ beacon_command_register(
 	"netuptime <\\computername>"
 );
 
+
+alias nettime{
+	local('$args $name')
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 0);
+	beacon_inline_execute($1, readbof($1, "nettime", $null, "T1082"), "go", $args);
+}
+
+beacon_command_register(
+	"nettime",
+	"Returns information about the current time on a remote (or local) machine. ",
+		"
+Command: nettime
+Summary: This command displays the current time on a remote host. 
+Usage:   enum_filter_driver <target>
+         Ex: nettime target 
+         nettime target.domain.local 
+         nettime  
+
+Note:    nettime will return the time of the localhost if target is null
+"
+);
+

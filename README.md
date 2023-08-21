@@ -44,6 +44,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netsession| netsession [opt:computer]| Enumerate sessions on the local or specified computer|
 |netshares| netshares [hostname]| List shares on the local or remote computer|
 |netstat| netstat| TCP and UDP IPv4 listing ports|
+|nettime| nettime [hostname]| Display time on remote computer|
 |netuptime| netuptime [hostname]| Return information about the boot time on the local or remote computer|
 |netuser| netuser [username] [opt: domain]| Get info about specific user. Pull from domain if a domainname is specified|
 |netuse_add| netuse_add [sharename] [opt:username] [opt:password] [opt:/DEVICE:devicename] [opt:/PERSIST] [opt:/REQUIREPRIVACY]| Bind a new connection to a remote computer|
