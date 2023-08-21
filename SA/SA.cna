@@ -60,7 +60,7 @@ sub ops {
 		if ($count > 0) {
 			if ($arg ismatch '/.*:.*') {
 				$arg = replace($arg, '\A/',"");
-				($key $val) = split(":", $arg, 2);
+				($key, $val) = split(":", $arg, 2);
 				%arguments[$key] = $val;
 			}
 			else if ($arg ismatch '/.*') {
@@ -244,8 +244,8 @@ alias nslookup {
 		return;
 	}
 	if($barch eq "x86"){
-	btask($1, "x86 beacons do not support custom dns nameservers, overriding to default")
-	$server = ""
+	btask($1, "x86 beacons do not support custom dns nameservers, overriding to default");
+	$server = "";
 	}
 	$args = bof_pack($1, "zzs", $lookup, $server, $type);
 	beacon_inline_execute($1, readbof($1, "nslookup", "Attempting to resolve $lookup", "T1018"), "go", $args);
@@ -494,7 +494,7 @@ alias netstat {
 
 beacon_command_register(
 	"netstat",
-	"get local ipv4 udp/tcp listening and connected ports"
+	"get local ipv4 udp/tcp listening and connected ports",
 	"Synopsis: List listening and connected ipv4 udp and tcp connections"
 );
 
@@ -514,17 +514,17 @@ alias whoami {
 
 beacon_command_register (
 	"whoami",
-	"internal version of whoami /all"
+	"internal version of whoami /all",
 	"run this to get the info from whoami /all without starting cmd.exe"
 );
 
 alias userenum {
-	local('$args $type')
+	local('$args $type');
 	if(size (@_) == 2)
 	{
 		if(@_[1] in %enumtype)
 		{
-			$type = %enumtype[@_[1]]
+			$type = %enumtype[@_[1]];
 		}
 		else{
 			berror($1, beacon_command_detail("userenum"));
@@ -540,12 +540,12 @@ alias userenum {
 }
 
 alias domainenum {
-	local('$args $type')
+	local('$args $type');
 	if(size (@_) == 2)
 	{
 		if(@_[1] in %enumtype)
 		{
-			$type = %enumtype[@_[1]]
+			$type = %enumtype[@_[1]];
 		}
 		else{
 			berror($1, beacon_command_detail("domainenum"));
@@ -574,7 +574,7 @@ beacon_command_register(
 	"This command lists user accounts on the current computer
 	You may specify one of (all, active, locked, disabled) to filter accounts returned
 	defaults to all if not specified;"
-)
+);
 
 alias driversigs {
 	beacon_inline_execute($1, readbof($1, "driversigs", $null, "T1518.001"), "go", $null);
@@ -587,7 +587,7 @@ beacon_command_register(
 );
 
 alias netshares{
-	local('$args $name')
+	local('$args $name');
 	$name = iff(-istrue $2, $2, "");
 	$args = bof_pack($1, "Zi", $name, 0);
 	beacon_inline_execute($1, readbof($1, "netshares", $null, "T1135"), "go", $args);
@@ -600,7 +600,7 @@ beacon_command_register(
 );
 
 alias netsharesAdmin{
-	local('$args $name')
+	local('$args $name');
 	$name = iff(-istrue $2, $2, "");
 	$args = bof_pack($1, "Zi", $name, 1);
 	beacon_inline_execute($1, readbof($1, "netshares", $null, "T1135"), "go", $args);
@@ -613,7 +613,7 @@ beacon_command_register(
 );
 
 sub bnetgroup{
-	local('$args $domain $group $type')
+	local('$args $domain $group $type');
 	$type = $2;
 	if($type < 0 || $type > 1)
 	{
@@ -655,7 +655,7 @@ beacon_command_register(
 );
 
 sub bnetlocalgroup{
-	local('$args $server $group $type')
+	local('$args $server $group $type');
 	$type = $2;
 	if($type < 0 || $type > 1)
 	{
@@ -721,7 +721,7 @@ sub bschtasksquery{
 
 
 alias schtasksquery{
-	local('$server $taskname')
+	local('$server $taskname');
 	$server = "";
 	if ( size(@_) < 2)
 	{
@@ -878,7 +878,7 @@ beacon_command_register(
 #2 = hostname
 #3 = servicename
 sub bsc_qfailure{
-	beacon_inline_execute($1, readbof($1, "sc_qfailure", $null, "T1007"), "go", bof_pack($1, "zz", $2, $3))
+	beacon_inline_execute($1, readbof($1, "sc_qfailure", $null, "T1007"), "go", bof_pack($1, "zz", $2, $3));
 }
 
 alias sc_qfailure{
@@ -909,7 +909,7 @@ beacon_command_register(
 );
 
 sub bsc_qtriggerinfo{
-	beacon_inline_execute($1, readbof($1, "sc_qtriggerinfo", $null, "T1007"), "go", bof_pack($1, "zz", $2, $3))
+	beacon_inline_execute($1, readbof($1, "sc_qtriggerinfo", $null, "T1007"), "go", bof_pack($1, "zz", $2, $3));
 }
 
 alias sc_qtriggerinfo{
@@ -956,7 +956,7 @@ alias reg_query
 	#I need hostname Hive, path, key type value(s)
 	#test if val in pos 1 is in Hive, if not, then assume it is a hostname
 	# values at end, if multisz pack them using a variable bof string
-	local('$hostname $hive $path $key $i')
+	local('$hostname $hive $path $key $i');
 	$packstr = "zizz";
 	if(size(@_) < 3){
 		berror($1, beacon_command_detail("reg_query"));
@@ -1013,7 +1013,7 @@ hive should be one of:
 If a value to query is not specified, that one key is enumerated");
 
 alias reg_query_recursive{
-	local('$hostname $hive $path $i')
+	local('$hostname $hive $path $i');
 	$packstr = "zizz";
 	if(size(@_) < 3){
 		berror($1, beacon_command_detail("reg_query_recursive"));
@@ -1062,7 +1062,7 @@ If a value to query is not specified, that one key is enumerated");
 
 
 alias tasklist{
-	local('$args $resource')
+	local('$args $resource');
 
 	$resource = "";
 
@@ -1095,7 +1095,7 @@ Note:	You must have a valid login token for the system specified if not
 
 
 alias wmi_query{
-	local('$query $system $namespace $resource $args')
+	local('$query $system $namespace $resource $args');
 
 	if ((size(@_) < 2) || (size(@_) > 4))
 	{
@@ -1168,7 +1168,7 @@ beacon_command_register(
 
 
 alias enum_filter_driver{
-	local('$args $system')
+	local('$args $system');
 
 	$system = "";
 
@@ -1203,7 +1203,7 @@ Note:    You must have a valid login token for the system specified if not
 
 
 alias adv_audit_policies{
-	local('$iswow64')
+	local('$iswow64');
 		
 	$iswow64 = iff(-is64 $1 && barch($1) eq "x86", 1, 0);
 
@@ -1437,7 +1437,7 @@ Usage: list_firewall_rules"
 );
 
 alias netloggedon{
-	local('$args $name')
+	local('$args $name');
 	$name = iff(-istrue $2, $2, "");
 	$args = bof_pack($1, "Zi", $name, 0);
 	beacon_inline_execute($1, readbof($1, "netloggedon", $null, "T1049"), "go", $args);
@@ -1450,7 +1450,7 @@ beacon_command_register(
 );
 
 alias netuptime{
-	local('$args $name')
+	local('$args $name');
 	$name = iff(-istrue $2, $2, "");
 	$args = bof_pack($1, "Zi", $name, 0);
 	beacon_inline_execute($1, readbof($1, "netuptime", $null, "T1082"), "go", $args);
