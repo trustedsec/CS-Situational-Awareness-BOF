@@ -136,6 +136,11 @@ typedef int WINAPI (*StringFromGUID2_t)(REFGUID rguid, LPOLESTR lpsz, int cchMax
 		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
 		goto fail; \
 	}
+#define CHECK_RETURN_SOFT_FAIL( function, result ) \
+	if (FAILED(result)) \
+	{ \
+		BeaconPrintf(CALLBACK_ERROR, "%s failed: 0x%08lx\n", function, result); \
+	}
 #define SAFE_DESTROY( arraypointer )	\
 	if ( (arraypointer) != NULL )	\
 	{	\
@@ -194,7 +199,7 @@ HRESULT adcs_enum_com()
 	CHECK_RETURN_FAIL("CoInitializeEx", hr);
 	
 	hr = _adcs_get_CertConfig();
-	CHECK_RETURN_FAIL("_adcs_get_PolicyServerListManager()", hr);
+	CHECK_RETURN_FAIL("_adcs_get_CertConfig()", hr);
 
 	hr = S_OK;
 
@@ -244,21 +249,29 @@ HRESULT _adcs_get_CertConfig()
 		CHECK_RETURN_FAIL("pCertConfig->lpVtbl->GetField(bstrFieldConfig)", hr);
 		internal_printf("\n[*] Listing info about the configuration '%S'\n", bstrConfig);
 		hr = _adcs_get_CertRequest(bstrConfig);
-		CHECK_RETURN_FAIL("_adcs_get_CertRequest())", hr);
+		CHECK_RETURN_SOFT_FAIL("[SOFT FAIL] _adcs_get_CertRequest()", hr);
 		SAFE_FREE(bstrConfig);
 
-		// Retrieve the WebEnrollmentServers field for the current configuration
-    	hr = pCertConfig->lpVtbl->GetField(pCertConfig, bstrFieldWebEnrollmentServers, &bstrWebEnrollmentServers);
-		internal_printf("    Web Servers              :\n");
-		if (S_OK == hr)
-		{
-			hr = _adcs_get_WebEnrollmentServers(bstrWebEnrollmentServers);
-			CHECK_RETURN_FAIL("_adcs_get_CertRequest())", hr);
+		if (!FAILED(hr)){
+			// Retrieve the WebEnrollmentServers field for the current configuration
+			hr = pCertConfig->lpVtbl->GetField(pCertConfig, bstrFieldWebEnrollmentServers, &bstrWebEnrollmentServers);
+			internal_printf("    Web Servers              :\n");
+			if (S_OK == hr)
+			{
+				hr = _adcs_get_WebEnrollmentServers(bstrWebEnrollmentServers);
+				CHECK_RETURN_FAIL("_adcs_get_WebEnrollmentServers()", hr);
+			}
+			else
+			{
+				internal_printf("      N/A\n");
+				hr = S_OK;
+			}
 		}
-		else
-		{
-			internal_printf("      N/A\n");
-			hr = S_OK;
+		else{
+			internal_printf("      Failed to retrive information about the Certificate Service\n");
+			if(hr == CERTSRV_E_ENROLL_DENIED){
+				internal_printf("      Error 0x80094011: The permissions on this certification authority do not allow the current user to enroll for certificates, and so not to enumerate the templates using adcs_enum_com.\n");
+			}
 		}
 
 		// Retrieve the next available Certificate Services
@@ -321,7 +334,7 @@ HRESULT _adcs_get_CertRequest(BSTR bstrConfig)
 	hr = pCertRequest->lpVtbl->GetCAProperty(pCertRequest, bstrConfig, CR_PROP_TEMPLATES, 0, PROPTYPE_STRING, 0, &varProperty);
 	CHECK_RETURN_FAIL("pCertRequest->lpVtbl->GetCAProperty(CR_PROP_TEMPLATES)", hr);
 	hr = _adcs_get_Templates(varProperty.bstrVal);
-	CHECK_RETURN_FAIL("_adcs_get_Certificate()", hr);
+	CHECK_RETURN_FAIL("_adcs_get_Templates()", hr);
 	OLEAUT32$VariantClear(&varProperty);
 
 	hr = S_OK;
@@ -520,6 +533,12 @@ HRESULT _adcs_get_Templates(BSTR bstrTemplates)
 	dwTemplateCount = dwTemplateCount/2;
 	internal_printf("\n[*] Found %ld templates on the CA\n", dwTemplateCount);
 
+	if (0 == dwTemplateCount)
+	{
+		internal_printf("    Nothing to list, %ld template on the CA \n", dwTemplateCount);
+		goto fail;
+	}
+
 	swzToken = MSVCRT$wcstok_s(swzTokenize, L"\n", &swzNextToken);
 	if (NULL == swzToken)
 	{
@@ -543,7 +562,11 @@ HRESULT _adcs_get_Templates(BSTR bstrTemplates)
 
 		// Display information for the current template
 		hr = _adcs_get_Template(bstrOID);
-		CHECK_RETURN_FAIL("_adcs_get_Template()", hr);
+		CHECK_RETURN_SOFT_FAIL("[SOFT FAIL] _adcs_get_Template()", hr);
+		
+		if (FAILED(hr)){
+			internal_printf("    Failed to display information for the template \n");
+		}
 
 		// Get the next template
 		swzToken = MSVCRT$wcstok_s(NULL, L"\n", &swzNextToken);
@@ -796,17 +819,17 @@ HRESULT _adcs_get_TemplateSecurity(BSTR bstrDacl)
 	else { internal_printf("N/A"); }
 
 	// Get the owner's SID
-	if (ADVAPI32$ConvertSidToStringSidW(pOwner, &swzStringSid)) { internal_printf("\n                               %S\n", swzStringSid); }
-	else { internal_printf("\n                               N/A\n"); }
+	if (ADVAPI32$ConvertSidToStringSidW(pOwner, &swzStringSid)) { internal_printf("\n                              %S\n", swzStringSid); }
+	else { internal_printf("\n                              N/A\n"); }
 	SAFE_LOCAL_FREE(swzStringSid);
 
 	// Get the DACL
 	bReturn = ADVAPI32$GetSecurityDescriptorDacl(pSD, &bDaclPresent, &pDacl, &bDaclDefaulted);
 	CHECK_RETURN_FALSE("GetSecurityDescriptorDacl()", bReturn, hr);
-	internal_printf("      Access Rights          :\n");
+	internal_printf("      Access Rights         :\n");
 	if (FALSE == bDaclPresent) { internal_printf("          N/A\n"); goto fail; }
 
-	// Loop through the ACEs in the ACL
+	// Loop through ACEs in ACL
 	if ( ADVAPI32$GetAclInformation( pDacl, &aclSizeInformation, sizeof(aclSizeInformation), AclSizeInformation ) )
 	{
 		for(DWORD dwAceIndex=0; dwAceIndex<aclSizeInformation.AceCount; dwAceIndex++)
@@ -821,46 +844,116 @@ HRESULT _adcs_get_TemplateSecurity(BSTR bstrDacl)
 			{
 				pAceObject = (ACCESS_ALLOWED_OBJECT_ACE*)pAceHeader;
 				pAce = (ACCESS_ALLOWED_ACE*)pAceHeader;
+				int format_ACCESS_ALLOWED_OBJECT_ACE = 0;
 
-				if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType)); }
-				else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType) { pPrincipalSid = (PSID)(&(pAce->SidStart)); }
-				else { continue; }
+				if (ACCESS_ALLOWED_OBJECT_ACE_TYPE == pAceHeader->AceType) { 
+					//internal_printf("        AceType: ACCESS_ALLOWED_OBJECT_ACE_TYPE\n");
+					format_ACCESS_ALLOWED_OBJECT_ACE = 1;
+					pPrincipalSid = (PSID)(&(pAceObject->InheritedObjectType)); 
+				}
+				else if (ACCESS_ALLOWED_ACE_TYPE == pAceHeader->AceType) { 
+					//internal_printf("        AceType: ACCESS_ALLOWED_ACE_TYPE\n");
+					pPrincipalSid = (PSID)(&(pAce->SidStart)); 
+				}
+				else { 
+					continue; 
+				}
 
 				// Get the principal
 				cchName = MAX_PATH;
 				MSVCRT$memset(swzName, 0, cchName*sizeof(WCHAR));
 				cchDomainName = MAX_PATH;
 				MSVCRT$memset(swzDomainName, 0, cchDomainName*sizeof(WCHAR));
-				if (FALSE == ADVAPI32$LookupAccountSidW( NULL, pPrincipalSid, swzName, &cchName, swzDomainName,	&cchDomainName,	&sidNameUse	)) { continue; }
-				
-				internal_printf("        Principal            : %S\\%S\n", swzDomainName, swzName);
-				internal_printf("          Access mask        : %08X\n", pAceObject->Mask);
-				internal_printf("          Flags              : %08X\n", pAceObject->Flags);
-				
-				// Get the extended rights
-				if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
-				{
-					if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
+				if (FALSE == ADVAPI32$LookupAccountSidW( NULL, pPrincipalSid, swzName, &cchName, swzDomainName,	&cchDomainName,	&sidNameUse	))
+				{ continue; }
+
+				swzStringSid = NULL;
+				if (ADVAPI32$ConvertSidToStringSidW(pPrincipalSid, &swzStringSid)) { 
+					internal_printf("        Principal           : %S\\%S (%S)\n", swzDomainName, swzName,swzStringSid); }
+				else { 
+					internal_printf("        Principal           : %S\\%S (N/A)\n", swzDomainName, swzName); }
+				SAFE_LOCAL_FREE(swzStringSid);
+
+				// pAceObject->Mask is always equal to pAce->Mask, not "perfect" but seems to work
+				internal_printf("          Access mask       : %08X\n", pAceObject->Mask);
+
+				if (format_ACCESS_ALLOWED_OBJECT_ACE) {
+					// flags not defined in ACCESS_ALLOWED_ACE_TYPE
+					internal_printf("          Flags             : %08X\n", pAceObject->Flags);
+
+					// Check if Enrollment permission
+					if (ADS_RIGHT_DS_CONTROL_ACCESS & pAceObject->Mask)
 					{
+						if (ACE_OBJECT_TYPE_PRESENT & pAceObject->Flags)
+						{
+							if (
+								(!MSVCRT$memcmp(&CertificateEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
+								(!MSVCRT$memcmp(&CertificateAutoEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
+								(!MSVCRT$memcmp(&CertificateAll, &pAceObject->ObjectType, sizeof (GUID)))
+								)
+							{
+								internal_printf("                              Enrollment Rights\n");
+							}
+						} // end if ACE_OBJECT_TYPE_PRESENT
+					} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+				}
+				
+				// Check if ADS_RIGHT_GENERIC_ALL permission
+				if (ADS_RIGHT_GENERIC_ALL & pAceObject->Mask)
+				{
+					internal_printf("                              All Rights\n");
+				} // end if ADS_RIGHT_GENERIC_ALL permission
+				
+				// Check if ADS_RIGHT_WRITE_OWNER permission
+				if ( 
+					(ADS_RIGHT_WRITE_OWNER & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteOwner Rights\n");
+				} // end if ADS_RIGHT_WRITE_OWNER permission
+				
+				// Check if ADS_RIGHT_WRITE_DAC permission
+				if ( 
+					(ADS_RIGHT_WRITE_DAC & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteDacl Rights\n");
+				} // end if ADS_RIGHT_WRITE_DAC permission
+				
+				
+				// Check if ADS_RIGHT_GENERIC_WRITE permission
+				if ( 
+					(ADS_RIGHT_GENERIC_WRITE & pAceObject->Mask)
+				)
+				{
+					internal_printf("                              WriteProperty Rights\n");
+				} // end if ADS_RIGHT_GENERIC_WRITE permission
+
+				// Check if ADS_RIGHT_DS_WRITE_PROP permission
+				if ( 
+					(ADS_RIGHT_DS_WRITE_PROP & pAceObject->Mask)
+				)
+				{
+					if (format_ACCESS_ALLOWED_OBJECT_ACE) {
+
+						internal_printf("                              WriteProperty Rights on ");
 						OLECHAR szGuid[MAX_PATH];
 						if ( OLE32$StringFromGUID2(&pAceObject->ObjectType, szGuid, MAX_PATH) )
 						{
-							internal_printf("          Extended right     : %S\n", szGuid);
+							internal_printf("%S\n", szGuid);
 						}
-						if (
-							(!MSVCRT$memcmp(&CertificateEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
-							(!MSVCRT$memcmp(&CertificateAutoEnrollment, &pAceObject->ObjectType, sizeof (GUID))) ||
-							(!MSVCRT$memcmp(&CertificateAll, &pAceObject->ObjectType, sizeof (GUID)))
-							)
+						else
 						{
-							internal_printf("                               Enrollment Rights\n");
+							internal_printf("{ERROR}\n");
 						}
-					} // end if ACE_OBJECT_TYPE_PRESENT
-				} // end if ADS_RIGHT_DS_CONTROL_ACCESS
+					}
+					else {
+						// if ACCESS_OBJECT_ACE, there is no ACE_OBJECT_TYPE_PRESENT and ObjectType, so it's like a GENERIC_WRITE
+						internal_printf("                              WriteProperty All Rights\n");
+					}
+				} // end if ADS_RIGHT_DS_WRITE_PROP permission
 			} // end if GetAce was successful
 		} // end for loop through ACEs (AceCount)
-
-		hr = S_OK;
 	} // end else GetAclInformation was successful
 
 	hr = S_OK;
