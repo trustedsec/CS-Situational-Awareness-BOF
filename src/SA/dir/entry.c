@@ -38,7 +38,7 @@ void listDir(char *path, unsigned short subdirs) {
 	// Query the first file
 	(hand = KERNEL32$FindFirstFileA(path, &fd));
 	if (hand == INVALID_HANDLE_VALUE) {
-		BeaconPrintf(CALLBACK_ERROR, "Couldn't open %d: Error %u", pathlen, KERNEL32$GetLastError());
+		BeaconPrintf(CALLBACK_ERROR, "Couldn't open %s: Error %u", path, KERNEL32$GetLastError());
 		KERNEL32$FindClose(hand);
 		return;
 	}
