@@ -74,7 +74,7 @@ void listDir(char *path, unsigned short subdirs) {
 			}
 			// Queue subdirectory for recursion
 			if (subdirs) {
-				nextPath = intAlloc(MSVCRT$strlen(path) + MSVCRT$strlen(fd.cFileName) + 1);
+				nextPath = intAlloc((MSVCRT$strlen(path) + MSVCRT$strlen(fd.cFileName) + 3)*2);
 				MSVCRT$strncat(nextPath, path, MSVCRT$strlen(path)-1);
 				MSVCRT$strcat(nextPath, fd.cFileName);
 				dirQueue->push(dirQueue, nextPath);
@@ -122,7 +122,7 @@ VOID go(
 	// Not positive how long path is, let's be safe
 	// At worst, we will append \* so give it four bytes (= 2 wchar_t)
 	char * realPath = intAlloc(1024);
-	MSVCRT$strncat(realPath, path, 1024);
+	MSVCRT$strncat(realPath, path, 1023);
 
 	if(!bofstart())
 	{
