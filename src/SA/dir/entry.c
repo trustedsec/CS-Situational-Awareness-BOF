@@ -3,52 +3,54 @@
 #include "base.c"
 #include "queue.c"
 
-void listDir(wchar_t *path, unsigned short subdirs) {
+void listDir(char *path, unsigned short subdirs) {
 
-	WIN32_FIND_DATAW fd = {0};
+	WIN32_FIND_DATA fd = {0};
 	HANDLE hand = NULL;
 	LARGE_INTEGER fileSize;
 	LONGLONG totalFileSize = 0;
 	int nFiles = 0;
 	int nDirs = 0;
 	Pqueue dirQueue = queueInit();
-	wchar_t * uncIndex;
+	char * uncIndex;
 	char * curitem;
-	WCHAR * nextPath;
-	int pathlen = MSVCRT$wcslen(path);
+	char * nextPath;
+	int pathlen = MSVCRT$strlen(path);
 
 	// Per MSDN: "On network shares ... you cannot use an lpFileName that points to the share itself; for example, "\\Server\Share" is not valid."
 	// Workaround: If we're using a UNC Path, there'd better be at least 4 backslashes
 	// This breaks the convention, but a `cmd /c dir \\hostname\admin$` will work, so let's replicate that functionality.
-	if (MSVCRT$_wcsnicmp(path, L"\\\\", 2) == 0) {
-		uncIndex = MSVCRT$wcsstr(path + 2, L"\\");
-		if (uncIndex != NULL && MSVCRT$wcsstr(uncIndex + 1, L"\\") == NULL) {
-			MSVCRT$wcscat(path, L"\\");
+	if (MSVCRT$_strnicmp(path, "\\\\", 2) == 0) {
+		uncIndex = MSVCRT$strstr(path + 2, "\\");
+		if (uncIndex != NULL && MSVCRT$strstr(uncIndex + 1, "\\") == NULL) {
+			MSVCRT$strcat(path, "\\");
 			pathlen = pathlen + 1;
 		}
 	}
 
 	// If the file ends in \ or is a drive (C:), throw a * on there
-	if (MSVCRT$_wcsicmp(path + pathlen - 1, L"\\") == 0) {
-		MSVCRT$wcscat(path, L"*");
-	} else if (MSVCRT$_wcsicmp(path + pathlen - 1, L":") == 0) {
-		MSVCRT$wcscat(path, L"\\*");
+	if (MSVCRT$strcmp(path + pathlen - 1, "\\") == 0) {
+		MSVCRT$strcat(path, "*");
+	} else if (MSVCRT$strcmp(path + pathlen - 1, ":") == 0) {
+		MSVCRT$strcat(path, "\\*");
 	}
 
 	// Query the first file
-	(hand = KERNEL32$FindFirstFileW(path, &fd));
+	(hand = KERNEL32$FindFirstFileA(path, &fd));
 	if (hand == INVALID_HANDLE_VALUE) {
-		BeaconPrintf(CALLBACK_ERROR, "Couldn't open %ls: Error %lu", path, KERNEL32$GetLastError());
+		BeaconPrintf(CALLBACK_ERROR, "Couldn't open %s: Error %u", path, KERNEL32$GetLastError());
+		KERNEL32$FindClose(hand);
 		return;
 	}
 	// If it's a single directory without a wildcard, re-run it with a \*
-	if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && MSVCRT$wcsstr(path, L"*") == NULL) {
-		MSVCRT$wcscat(path, L"\\*");
+	if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && MSVCRT$strstr(path, "*") == NULL) {
+		MSVCRT$strcat(path, "\\*");
 		listDir(path, subdirs);
+		KERNEL32$FindClose(hand);
 		return;
 	}
 
-	internal_printf("Contents of %ls:\n", path);
+	internal_printf("Contents of %s:\n", path);
 	do {
 		// Get file write time
 		SYSTEMTIME stUTC, stLocal;
@@ -61,31 +63,31 @@ void listDir(wchar_t *path, unsigned short subdirs) {
 		// File size (or ujust print dir)
 		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-				internal_printf("%16s %ls\n", "<junction>", fd.cFileName);
+				internal_printf("%16s %s\n", "<junction>", fd.cFileName);
 			} else {
-				internal_printf("%16s %ls\n", "<dir>", fd.cFileName);
+				internal_printf("%16s %s\n", "<dir>", fd.cFileName);
 			}
 			nDirs++;
 			// ignore . and ..
-			if (MSVCRT$wcscmp(fd.cFileName, L".") == 0 || MSVCRT$wcscmp(fd.cFileName, L"..") == 0) {
+			if (MSVCRT$strcmp(fd.cFileName, ".") == 0 || MSVCRT$strcmp(fd.cFileName, "..") == 0) {
 				continue;
 			}
 			// Queue subdirectory for recursion
 			if (subdirs) {
-				nextPath = (WCHAR *)intAlloc((MSVCRT$wcslen(path) + MSVCRT$wcslen(fd.cFileName) + 3) * 2);
-				MSVCRT$wcsncat(nextPath, path, MSVCRT$wcslen(path)-1);
-				MSVCRT$wcscat(nextPath, fd.cFileName);
+				nextPath = intAlloc((MSVCRT$strlen(path) + MSVCRT$strlen(fd.cFileName) + 3)*2);
+				MSVCRT$strncat(nextPath, path, MSVCRT$strlen(path)-1);
+				MSVCRT$strcat(nextPath, fd.cFileName);
 				dirQueue->push(dirQueue, nextPath);
 			}
 		} else {
 			fileSize.LowPart = fd.nFileSizeLow;
 			fileSize.HighPart = fd.nFileSizeHigh;
-			internal_printf("%16lld %ls\n", fileSize.QuadPart, fd.cFileName);
+			internal_printf("%16lld %s\n", fileSize.QuadPart, fd.cFileName);
 
 			nFiles++;
 			totalFileSize += fileSize.QuadPart;
 		}
-	} while(KERNEL32$FindNextFileW(hand, &fd));
+	} while(KERNEL32$FindNextFileA(hand, &fd));
 	internal_printf("\t%32lld Total File Size for %d File(s)\n", totalFileSize, nFiles);
 	internal_printf("\t%55d Dir(s)\n", nDirs);
 
@@ -99,7 +101,7 @@ void listDir(wchar_t *path, unsigned short subdirs) {
 
 	KERNEL32$FindClose(hand);
 	while((curitem = dirQueue->pop(dirQueue)) != NULL) {
-		listDir((wchar_t *)curitem, subdirs);
+		listDir(curitem, subdirs);
 		intFree(curitem);
 	}
 	dirQueue->free(dirQueue);
@@ -114,13 +116,13 @@ VOID go(
 {
 	datap parser = {0};
 	BeaconDataParse(&parser, Buffer, Length);
-	wchar_t * path = (wchar_t *)BeaconDataExtract(&parser, NULL);
+	char * path = BeaconDataExtract(&parser, NULL);
 	unsigned short subdirs = BeaconDataShort(&parser);
 
 	// Not positive how long path is, let's be safe
 	// At worst, we will append \* so give it four bytes (= 2 wchar_t)
-	wchar_t * realPath = intAlloc(1024);
-	MSVCRT$wcsncat(realPath, path, 1020);
+	char * realPath = intAlloc(1024);
+	MSVCRT$strncat(realPath, path, 1023);
 
 	if(!bofstart())
 	{

@@ -61,12 +61,13 @@ HRESULT Wmi_Initialize(WMI* pWmi)
 		NULL, 
 		COINIT_APARTMENTTHREADED
 	);
-	if (FAILED(hr))
-	{
-		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeEx failed: 0x%08lx", hr);
-		goto fail;
+	if (hr == RPC_E_CHANGED_MODE) {
+    		hr = S_OK;
+	} else if (FAILED(hr)) {
+    		BeaconPrintf(CALLBACK_ERROR, "OLE32$CoInitializeEx failed: 0x%08lx", hr);
+    		goto fail;
 	}
-		hr = OLE32$CoInitializeSecurity( //Failure of this function does not necessarily mean we failed to initialize, it will fail on repeated calls, but the values from the original call are retained
+	hr = OLE32$CoInitializeSecurity( //Failure of this function does not necessarily mean we failed to initialize, it will fail on repeated calls, but the values from the original call are retained
 			NULL,
             -1,
             NULL,

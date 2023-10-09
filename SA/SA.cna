@@ -125,7 +125,7 @@ alias dir {
 		$text = "Issuing local dir to $targetdir";
 	}
 
-	$args = bof_pack($1, "Zs", $targetdir, $subdirs);
+	$args = bof_pack($1, "zs", $targetdir, $subdirs);
 	beacon_inline_execute($1, readbof($1, "dir", $msg, $ttp), "go", $args);
 }
 
