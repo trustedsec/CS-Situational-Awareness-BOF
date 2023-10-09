@@ -164,7 +164,7 @@ Useful queries (queries are just an example, edit where necessary to make it OPS
 
 - Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))
 
-If this fails with an error about paging not being supported you can try tou se nonpagedldapsearch instead (its unregistered but has the same arguments)");
+If this fails with an error about paging not being supported you can try to use nonpagedldapsearch instead (its unregistered but has the same arguments)");
 
 alias ldapsearch {
 	local('$args $attributes $result_limit $hostname $domain');
