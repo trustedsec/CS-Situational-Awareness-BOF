@@ -28,6 +28,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |enumLocalSessions| enumLocalSessions| Enumerate currently attached user sessions both local and over RDP|
 |env| env| List process environment variables|
 |findLoadedModule| findLoadedModule [modulepart] [opt:procnamepart]| Find what processes \*modulepart\* are loaded into, optionally searching just \*procnamepart\*|
+|ghost_task| ghost_task [hostname/localhost] [operation] [taskname] [program] [argument] [username] [scheduletype] [time/second] [<day>] | GhostTask bof|
 |get_password_policy| get_password_policy [hostname]| Get target server or domain's configured password policy and lockouts|
 |ipconfig| ipconfig| List IPv4 address, hostname, and DNS server|
 |ldapsearch| ldapsearch [query] [opt: attribute] [opt: results_limit] [opt: DC hostname or IP] [opt: Distingished Name]| Execute LDAP searches (NOTE: specify *,ntsecuritydescriptor as attribute parameter if you want all attributes + base64 encoded ACL of the objects, this can then be resolved using BOFHound. Could possibly break pagination, although everything seemed fine during testing.)|

