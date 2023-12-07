@@ -337,7 +337,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	////////////////////////////
     
     dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
-    if (ERROR_SUCCESS == dwRet) {
+    if (ERROR_SUCCESS == dwRet || hostname) {
         if(!hostname){
             internal_printf("[*] targeting DC: %s\n", pdcInfo->DomainControllerName);       
         }
