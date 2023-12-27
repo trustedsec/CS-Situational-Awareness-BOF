@@ -336,15 +336,18 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	// Retrieve PDC
 	////////////////////////////
     
-    dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
-    if (ERROR_SUCCESS == dwRet) {
-        if(!hostname){
-            internal_printf("[*] targeting DC: %s\n", pdcInfo->DomainControllerName);       
-        }
+    if (hostname) {
+        BeaconPrintf(CALLBACK_OUTPUT, "[*] manually targeting DC: %s\n", hostname); 
     } else {
-        BeaconPrintf(CALLBACK_ERROR, "Failed to identify PDC, are we domain joined?");
-        goto end;
+        dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
+        if (ERROR_SUCCESS == dwRet) {
+            BeaconPrintf(CALLBACK_OUTPUT, "[*] targeting DC: %s\n", pdcInfo->DomainControllerName);       
+        } else {
+            BeaconPrintf(CALLBACK_ERROR, "Failed to identify PDC, are we domain joined?");
+            goto end;
+        }
     }
+
 
 
 	//////////////////////////////
@@ -352,7 +355,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
     // Taken from https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ldap/searching-a-directory
 	//////////////////////////////
     char * targetdc = (hostname == NULL) ? pdcInfo->DomainControllerAddress + 2 : hostname;
-    BeaconPrintf(CALLBACK_OUTPUT, "Binding to %s", targetdc);
+    BeaconPrintf(CALLBACK_OUTPUT, "Binding to %s\n", targetdc);
     pLdapConnection = InitialiseLDAPConnection(targetdc, distinguishedName);
 
     if(!pLdapConnection)
