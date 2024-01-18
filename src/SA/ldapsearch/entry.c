@@ -166,6 +166,7 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
 
 PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes, ULONG maxResults, ULONG scope_of_search){
     internal_printf("[*] Filter: %s\n",ldap_filter);
+    internal_printf("[*] Scope of search value: %lu\n",scope_of_search);
 
 	// Security descriptor flags to read nTSecurityDescriptor as low-priv domain user
 	// value taken from https://github.com/fortalice/pyldapsearch/blob/main/pyldapsearch/__main__.py (Microsoft docs mentioned XORing all possible values to get this, but that didn't work)
@@ -212,6 +213,7 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
     else if (scope_of_search == 3){
         scope = LDAP_SCOPE_SUBTREE;
     }
+    
 
    	if (aclSearch) {
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
