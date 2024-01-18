@@ -164,7 +164,7 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
     return pLdapConnection;
 }
 
-PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes, ULONG maxResults){
+PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes, ULONG maxResults, ULONG scope_of_search){
     internal_printf("[*] Filter: %s\n",ldap_filter);
 
 	// Security descriptor flags to read nTSecurityDescriptor as low-priv domain user
@@ -172,7 +172,8 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
 	int sdFlags = 0x07;
 	PLDAPControlA serverControls[2];
 	int aclSearch = 0;
-	
+    ULONG scope;
+
     ULONG errorCode = LDAP_SUCCESS;
     PLDAPSearch pSearchResult = NULL;
     PCHAR attr[MAX_ATTRIBUTES] = {0};
@@ -202,11 +203,21 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         }
     }
 
+    if (scope_of_search == 1){
+        scope = LDAP_SCOPE_BASE;
+    } 
+    else if (scope_of_search == 2){
+        scope = LDAP_SCOPE_ONELEVEL;
+    }
+    else if (scope_of_search == 3){
+        scope = LDAP_SCOPE_SUBTREE;
+    }
+
    	if (aclSearch) {
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
 		pLdapConnection,    // Session handle
 		distinguishedName,  // DN to start search
-		LDAP_SCOPE_SUBTREE, // Scope
+		scope, // Scope
 		ldap_filter,        // Filter
 		(*attr) ? attr : NULL,               // Retrieve list of attributes
 		0,                  // Get both attributes and values
@@ -222,7 +233,7 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
 		pLdapConnection,    // Session handle
 		distinguishedName,  // DN to start search
-		LDAP_SCOPE_SUBTREE, // Scope
+		scope, // Scope
 		ldap_filter,        // Filter
 		(*attr) ? attr : NULL,               // Retrieve list of attributes
 		0,                  // Get both attributes and values
@@ -295,7 +306,7 @@ void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
     }
 }
 
-void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, char * hostname, char * domain){
+void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, ULONG scope_of_search, char * hostname, char * domain){
     char szDN[1024] = {0};
 	ULONG ulSize = sizeof(szDN)/sizeof(szDN[0]);
 	
@@ -361,7 +372,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	//////////////////////////////
 	// Perform LDAP Search
 	//////////////////////////////
-	pPageHandle = ExecuteLDAPQuery(pLdapConnection, distinguishedName, ldap_filter, ldap_attributes, results_count);   
+	pPageHandle = ExecuteLDAPQuery(pLdapConnection, distinguishedName, ldap_filter, ldap_attributes, results_count, scope_of_search);   
     ULONG pagecount = 0;
     do
     {
@@ -513,11 +524,13 @@ VOID go(
     char * hostname;
     char * domain;
 	ULONG results_count;
+    ULONG scope_of_search;
 
 	BeaconDataParse(&parser, Buffer, Length);
 	ldap_filter = BeaconDataExtract(&parser, NULL);
 	ldap_attributes = BeaconDataExtract(&parser, NULL);
 	results_count = BeaconDataInt(&parser);
+	scope_of_search = BeaconDataInt(&parser);
     hostname = BeaconDataExtract(&parser, NULL);
     domain = BeaconDataExtract(&parser, NULL);
 
@@ -531,7 +544,7 @@ VOID go(
 		return;
 	}
 
-	ldapSearch(ldap_filter, ldap_attributes, results_count, hostname, domain);
+	ldapSearch(ldap_filter, ldap_attributes, results_count, scope_of_search, hostname, domain);
 
 	printoutput(TRUE);
     if(fuuidtostring != (void *)1)
@@ -563,3 +576,4 @@ int main()
 }
 
 #endif
+
