@@ -696,6 +696,29 @@ beacon_command_register(
 	"netGroupListMembers: <Group Name> <opt: servername>"
 );
 
+sub bnetlocalgroup2{
+	local('$args $server $group');
+	
+	$group = iff(-istrue $2, $2, "");
+	$server = iff(-istrue $3, $3, "");
+	
+	$args = bof_pack($1, "ZZ", $server, $group);
+	beacon_inline_execute($1, readbof($1, "netlocalgroup2", $null, "T1069.001"), "go", $args);
+}
+
+alias netLocalGroupListMembers2 {
+	bnetlocalgroup2($1, $2, $3);
+}
+
+beacon_command_register(
+	"netLocalGroupListMembers2",
+	"List the members of the specified group in this server (or specified server if given). Output is compatible with bofhound",
+	"netLocalGroupListMembers2: <opt: Group Name> <opt: servername>
+	use \"\" for group name to query all interesting local groups
+		
+Note: Output from this BOF is compatible with bofhound"
+);
+
 sub bschtasksenum{
 	local('$args');
 	$args = bof_pack($1, "Z", iff(-istrue $2, $2, ""));
@@ -1145,6 +1168,29 @@ beacon_command_register(
 	"Synopsis: netsession <computer> "
 );
 
+alias netsession2 {
+	local('$args $hostname $method $dnsserver');
+
+	$hostname = iff(-istrue $2, $2, "");
+	$method = iff(-istrue $3, $3, 0);
+	$dnsserver = iff(-istrue $4, $4, "");
+
+	$args = bof_pack($1, "Zsz", $2, $3, $4);
+	beacon_inline_execute($1, readbof($1, "get-netsession2", $null, "T1049"), "go", $args);     #T1049 is a loose match
+}
+
+beacon_command_register(
+	"netsession2",
+	"list sessions on server. Output is compatible with bofhound",
+	"Usage: netsession2 <opt: computer> <opt: Resolution Method> <opt: DNS Server>
+	Resolution methods: 
+		1 = DNS (Default)
+		2 = NetWkstaGetInfo
+
+Note: Output from this BOF is compatible with bofhound"
+);
+
+
 
 alias resources {
 	beacon_inline_execute($1, readbof($1, "resources", $null, "T1082"), "go", $null);
@@ -1449,6 +1495,21 @@ beacon_command_register(
 	"netloggedon <\\computername>"
 );
 
+alias netloggedon2{
+	local('$args $name');
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "Zi", $name, 0);
+	beacon_inline_execute($1, readbof($1, "netloggedon2", $null, "T1049"), "go", $args);
+}
+
+beacon_command_register(
+	"netloggedon2",
+	"Returns users logged on the local (or a remote) machine via NetWkstaUserEnum- administrative rights needed. Output is compatible with bofhound",
+	"Usage: netloggedon2 <opt: computername>
+	
+Note: Output from this BOF is compatible with bofhound"
+);
+
 alias netuptime{
 	local('$args $name');
 	$name = iff(-istrue $2, $2, "");
@@ -1485,3 +1546,17 @@ Note:    nettime will return the time of the localhost if target is null
 "
 );
 
+alias regsession{
+	local('$args $name');
+	$name = iff(-istrue $2, $2, "");
+	$args = bof_pack($1, "z", $name);
+	beacon_inline_execute($1, readbof($1, "regsession", $null, "T1049"), "go", $args);
+}
+
+beacon_command_register(
+	"regsession",
+	"Returns users logged on the local (or a remote) machine via the registry - administrative rights needed. Output is compatible with bofhound",
+	"Usage: regsession <opt: computername>
+	
+Note: Output from this BOF is compatible with bofhound"
+);
