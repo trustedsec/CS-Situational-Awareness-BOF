@@ -164,15 +164,17 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
     return pLdapConnection;
 }
 
-PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes, ULONG maxResults){
+PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, char * ldap_filter, char * ldap_attributes, ULONG maxResults, ULONG scope_of_search){
     internal_printf("[*] Filter: %s\n",ldap_filter);
+    internal_printf("[*] Scope of search value: %lu\n",scope_of_search);
 
 	// Security descriptor flags to read nTSecurityDescriptor as low-priv domain user
 	// value taken from https://github.com/fortalice/pyldapsearch/blob/main/pyldapsearch/__main__.py (Microsoft docs mentioned XORing all possible values to get this, but that didn't work)
 	int sdFlags = 0x07;
 	PLDAPControlA serverControls[2];
 	int aclSearch = 0;
-	
+    ULONG scope;
+
     ULONG errorCode = LDAP_SUCCESS;
     PLDAPSearch pSearchResult = NULL;
     PCHAR attr[MAX_ATTRIBUTES] = {0};
@@ -202,11 +204,22 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         }
     }
 
+    if (scope_of_search == 1){
+        scope = LDAP_SCOPE_BASE;
+    } 
+    else if (scope_of_search == 2){
+        scope = LDAP_SCOPE_ONELEVEL;
+    }
+    else if (scope_of_search == 3){
+        scope = LDAP_SCOPE_SUBTREE;
+    }
+    
+
    	if (aclSearch) {
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
 		pLdapConnection,    // Session handle
 		distinguishedName,  // DN to start search
-		LDAP_SCOPE_SUBTREE, // Scope
+		scope, // Scope
 		ldap_filter,        // Filter
 		(*attr) ? attr : NULL,               // Retrieve list of attributes
 		0,                  // Get both attributes and values
@@ -222,7 +235,7 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
 		pLdapConnection,    // Session handle
 		distinguishedName,  // DN to start search
-		LDAP_SCOPE_SUBTREE, // Scope
+		scope, // Scope
 		ldap_filter,        // Filter
 		(*attr) ? attr : NULL,               // Retrieve list of attributes
 		0,                  // Get both attributes and values
@@ -258,7 +271,7 @@ void customAttributes(PCHAR pAttribute, PCHAR pValue)
         internal_printf("%s", G);
         //RPCRT4$RpcStringFreeA(&G);       
         frpcstringfree(&G);
-    } else if (MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0) {
+    } else if (MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "auditingPolicy") == 0 || MSVCRT$strcmp(pAttribute, "dSASignature") == 0 || MSVCRT$strcmp(pAttribute, "mS-DS-CreatorSID") == 0 || MSVCRT$strcmp(pAttribute, "logonHours") == 0 || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0 || MSVCRT$strcmp(pAttribute, "mSMQDigests") == 0 || MSVCRT$strcmp(pAttribute, "mSMQSignCertificates") == 0 || MSVCRT$strcmp(pAttribute, "userCertificate") == 0 || MSVCRT$strcmp(pAttribute, "attributeSecurityGUID") == 0  ) {
 		char *encoded = NULL;
 		PBERVAL tmp = (PBERVAL)pValue;
 		ULONG len = tmp->bv_len;
@@ -267,7 +280,7 @@ void customAttributes(PCHAR pAttribute, PCHAR pValue)
 		internal_printf("%s", encoded);
 		MSVCRT$free(encoded);
 	}
-    else if(MSVCRT$strcmp(pAttribute, "objectSid") == 0)
+    else if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "securityIdentifier") == 0)
     {
         LPSTR sid = NULL;
 		//internal_printf("len of objectSID: %d\n", MSVCRT$strlen(pValue));
@@ -295,7 +308,7 @@ void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
     }
 }
 
-void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, char * hostname, char * domain){
+void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, ULONG scope_of_search, char * hostname, char * domain){
     char szDN[1024] = {0};
 	ULONG ulSize = sizeof(szDN)/sizeof(szDN[0]);
 	
@@ -337,7 +350,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	////////////////////////////
     
     dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
-    if (ERROR_SUCCESS == dwRet) {
+    if (ERROR_SUCCESS == dwRet || hostname) {
         if(!hostname){
             internal_printf("[*] targeting DC: %s\n", pdcInfo->DomainControllerName);       
         }
@@ -361,7 +374,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	//////////////////////////////
 	// Perform LDAP Search
 	//////////////////////////////
-	pPageHandle = ExecuteLDAPQuery(pLdapConnection, distinguishedName, ldap_filter, ldap_attributes, results_count);   
+	pPageHandle = ExecuteLDAPQuery(pLdapConnection, distinguishedName, ldap_filter, ldap_attributes, results_count, scope_of_search);   
     ULONG pagecount = 0;
     do
     {
@@ -417,7 +430,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
             {
                 isbinary = FALSE;
                 // Get the string values.
-				if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0 || MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0)
+                if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0 || MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "auditingPolicy") == 0 || MSVCRT$strcmp(pAttribute, "dSASignature") == 0 || MSVCRT$strcmp(pAttribute, "mS-DS-CreatorSID") == 0 || MSVCRT$strcmp(pAttribute, "logonHours") == 0 || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "mSMQDigests") == 0 || MSVCRT$strcmp(pAttribute, "mSMQSignCertificates") == 0 || MSVCRT$strcmp(pAttribute, "userCertificate") == 0 || MSVCRT$strcmp(pAttribute, "attributeSecurityGUID") == 0  )
                 {
 					//internal_printf("\n%s\n", pAttribute);
                     ppValue = (char **)WLDAP32$ldap_get_values_lenA(pLdapConnection, pEntry, pAttribute); //not really a char **
@@ -513,11 +526,13 @@ VOID go(
     char * hostname;
     char * domain;
 	ULONG results_count;
+    ULONG scope_of_search;
 
 	BeaconDataParse(&parser, Buffer, Length);
 	ldap_filter = BeaconDataExtract(&parser, NULL);
 	ldap_attributes = BeaconDataExtract(&parser, NULL);
 	results_count = BeaconDataInt(&parser);
+	scope_of_search = BeaconDataInt(&parser);
     hostname = BeaconDataExtract(&parser, NULL);
     domain = BeaconDataExtract(&parser, NULL);
 
@@ -531,7 +546,7 @@ VOID go(
 		return;
 	}
 
-	ldapSearch(ldap_filter, ldap_attributes, results_count, hostname, domain);
+	ldapSearch(ldap_filter, ldap_attributes, results_count, scope_of_search, hostname, domain);
 
 	printoutput(TRUE);
     if(fuuidtostring != (void *)1)
@@ -563,3 +578,4 @@ int main()
 }
 
 #endif
+

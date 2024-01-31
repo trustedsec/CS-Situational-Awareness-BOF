@@ -150,9 +150,9 @@ alias env {
 beacon_command_register(
 "ldapsearch", 
 "BOF - Perform LDAP search.", 
-"ldapsearch <query> [comma_separated_attributes] [result_count] [DC hostname or IP] [Distingished Name to use]
+"ldapsearch <query> [comma_separated_attributes] [result_count] [scope_of_search] [DC hostname or IP] [Distingished Name to use]
 	\"\" works as a default for attributes (get all) DC hostname / IP (use Primary DC) and distingished name (use Base domain Level)
-	0 works as default for result_count (get all)
+	0 works as default for result_count (get all). For scope_of_search, use 1 [LDAP_SCOPE_BASE], 2 [LDAP_SCOPE_ONELEVEL] or 3 [LDAP_SCOPE_SUBTREE] (3 is used by default)
 
 Important - To add in ACLs so Bloodhound can draw relationships between objects (see external BofHound tool), add nTSecurityDescriptor in the attributes list, like so:
 ldapsearch <query> *,ntsecuritydescriptor ...
@@ -167,7 +167,7 @@ Useful queries (queries are just an example, edit where necessary to make it OPS
 If this fails with an error about paging not being supported you can try to use nonpagedldapsearch instead (its unregistered but has the same arguments)");
 
 alias ldapsearch {
-	local('$args $attributes $result_limit $hostname $domain');
+	local('$args $attributes $result_limit $scope $hostname $domain');
 	
 	if(size(@_) < 2)
 	{
@@ -177,10 +177,11 @@ alias ldapsearch {
 
 	$attributes = iff(-istrue $3, $3, "");
 	$result_limit = iff(-istrue $4, $4, 0);
-	$hostname = iff(-istrue $5, $5, "");
-	$domain = iff(-istrue $6, $6, "");
+	$scope = iff(-istrue $5, $5, 3);
+	$hostname = iff(-istrue $6, $6, "");
+	$domain = iff(-istrue $7, $7, "");
 
-	$args   = bof_pack($1, "zzizz", $2, $attributes, $result_limit, $hostname, $domain);
+	$args   = bof_pack($1, "zziizz", $2, $attributes, $result_limit, $scope, $hostname, $domain);
 
 	# execute it.
 	beacon_inline_execute($1, readbof($1, "ldapsearch", $null, "T1018, T1069.002, T1087.002, T1087.003, T1087.004, T1482"), "go", $args);
