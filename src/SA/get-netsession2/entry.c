@@ -17,15 +17,15 @@ typedef PCWSTR (*myInetNtopW)(
 void query_domain(const char * domainname, unsigned short wType, const char * dnsserver, PDNS_RECORD base, PIP4_ARRAY pSrvList)
 {
     PDNS_RECORD pdns = NULL;
-    DWORD options = DNS_QUERY_WIRE_ONLY; 
+    DWORD options = DNS_QUERY_WIRE_ONLY;
+    DNS_FREE_TYPE freetype = DnsFreeRecordListDeep;
     DWORD status = 0;
     struct in_addr inaddr = {0};
     unsigned int i = 0;
     LPSTR errormsg = NULL;
 
     status = DNSAPI$DnsQuery_A(domainname, wType, options, pSrvList, &base, NULL);
-    if(pSrvList != NULL)
-        KERNEL32$LocalFree(pSrvList);
+    
     pdns = base;
     if(status != 0 || pdns == NULL)
     {
@@ -41,6 +41,8 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
         pdns = pdns->pNext;
     } while (pdns);
 
+    if(base)
+    {DNSAPI$DnsFree(base, freetype);}
 }
 
 //#pragma comment(lib, "Netapi32.lib")
@@ -63,8 +65,10 @@ void NetSessions(wchar_t* hostname, unsigned short resolveMethod, char* dnsserve
     PDNS_RECORD base = NULL;
     myInetNtopW inetntow;
     HMODULE WS = NULL;
-    DNS_FREE_TYPE freetype;
     PIP4_ARRAY pSrvList = NULL;
+
+    // for NetWkstaGetInfo
+    WKSTA_INFO_100* pInfo = NULL;
 
     if (hostname){
         pszServerName = hostname;
@@ -91,7 +95,6 @@ void NetSessions(wchar_t* hostname, unsigned short resolveMethod, char* dnsserve
             }
         }
         
-        freetype = DnsFreeRecordListDeep; //since when was a define not good enough for microsoft
         if(dnsserver != NULL) // I am assuming dnsserver is never set with cacheOnly
         {
             pSrvList = (PIP4_ARRAY)KERNEL32$LocalAlloc(LPTR, sizeof(IP4_ARRAY));
@@ -153,7 +156,7 @@ void NetSessions(wchar_t* hostname, unsigned short resolveMethod, char* dnsserve
                         clientname += 2;
                     }
 
-                    if (resolveMethod == 0)
+                    if (resolveMethod == 1)
                     {
                         
                         // if the client name is an ip, query the dns server for the hostname (in arpa format)
@@ -187,18 +190,24 @@ void NetSessions(wchar_t* hostname, unsigned short resolveMethod, char* dnsserve
                     else 
                     {
                         // resolve with NetWkstaGetInfo
-                        WKSTA_INFO_100* info = NULL;
-                        NET_API_STATUS stat = NETAPI32$NetWkstaGetInfo(clientname, 100, (LPBYTE*)&info);
+                        NET_API_STATUS stat = NETAPI32$NetWkstaGetInfo(clientname, 100, (LPBYTE*)&pInfo);
                         if (stat == NERR_Success)
                         {
-                            internal_printf("ComputerName: %S\n", info->wki100_computername);
-                            internal_printf("ComputerDomain: %S\n", info->wki100_langroup);
+                            internal_printf("ComputerName: %S\n", pInfo->wki100_computername);
+                            internal_printf("ComputerDomain: %S\n", pInfo->wki100_langroup);
                         }
                         else
                         {
                             internal_printf("ComputerName: NetWkstaGetInfo Failed; %lu\n", stat);
                             internal_printf("ComputerDomain: NetWkstaGetInfo Failed; %lu\n", stat);
                         }
+                        
+                        if (pInfo != NULL)
+                        {
+                            NETAPI32$NetApiBufferFree(pInfo);
+                            pInfo = NULL;
+                        }
+
                         
                     }
 
@@ -245,9 +254,11 @@ void NetSessions(wchar_t* hostname, unsigned short resolveMethod, char* dnsserve
 
     // DNS cleanup
     END:
-    if(base)
-    {DNSAPI$DnsFree(base, freetype);}
-    FreeLibrary(WS);
+    if(pSrvList != NULL)
+    {KERNEL32$LocalFree(pSrvList);}
+
+    if (WS)
+    {FreeLibrary(WS);}
 
 
 }
