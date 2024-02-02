@@ -1173,10 +1173,10 @@ alias netsession2 {
 	local('$args $hostname $method $dnsserver');
 
 	$hostname = iff(-istrue $2, $2, "");
-	$method = iff(-istrue $3, $3, 0);
+	$method = iff(-istrue $3, $3, 1);
 	$dnsserver = iff(-istrue $4, $4, "");
 
-	$args = bof_pack($1, "Zsz", $2, $3, $4);
+	$args = bof_pack($1, "Zsz", $hostname, $method, $dnsserver);
 	beacon_inline_execute($1, readbof($1, "get-netsession2", $null, "T1049"), "go", $args);     #T1049 is a loose match
 }
 
