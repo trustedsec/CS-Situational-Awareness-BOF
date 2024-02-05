@@ -1283,6 +1283,12 @@ alias enumLocalSessions{
 	beacon_inline_execute($1, readbof($1, "enumlocalsessions", $null, "T1033"), "go", $null);
 }
 
+beacon_command_register(
+	"enumLocalSessions",
+	"Enumerate the currently attached user sessions both local and over rdp",
+	"Usage: enumLocalSessions"
+);
+
 alias findLoadedModule{
 	local('$iswow64 $modname $procname $args');
 	if(-is64 $1 && barch($1) eq "x86")
