@@ -23,6 +23,8 @@ _RpcStringFreeA frpcstringfree = (void *)1;
 HMODULE rpcrt = (void *)1; 
 
 typedef LDAP *LDAPAPI (*ldap_init_t)(PSTR HostName, ULONG PortNumber);
+typedef ULONG LDAPAPI (*ldap_set_optionW_t)(LDAP *ld, int option, const void *invalue);
+typedef ULONG LDAPAPI (*ldap_get_optionW_t)(LDAP *ld, int option,  void *invalue);
 typedef ULONG LDAPAPI (*ldap_bind_s_t)(LDAP *ld, const PSTR dn, const PCHAR cred, ULONG method);
 typedef ULONG LDAPAPI (*ldap_unbind_t)(LDAP*);
 typedef ULONG LDAPAPI (*ldap_msgfree_t)(LDAPMessage*);
@@ -45,6 +47,8 @@ WINBERAPI INT BERAPI WLDAP32$ber_flatten(BerElement *pBerElement, PBERVAL *pBerV
 WINLDAPAPI VOID LDAPAPI WLDAP32$ber_bvfree(PBERVAL bv);
 
 #define WLDAP32$ldap_init ((ldap_init_t)DynamicLoad("WLDAP32", "ldap_init"))
+#define WLDAP32$ldap_set_optionW ((ldap_set_optionW_t)DynamicLoad("WLDAP32", "ldap_set_optionW"))
+#define WLDAP32$ldap_get_optionW ((ldap_get_optionW_t)DynamicLoad("WLDAP32", "ldap_get_optionW"))
 #define WLDAP32$ldap_bind_s ((ldap_bind_s_t)DynamicLoad("WLDAP32", "ldap_bind_s"))
 #define WLDAP32$ldap_unbind ((ldap_unbind_t)DynamicLoad("WLDAP32", "ldap_unbind"))
 #define WLDAP32$ldap_msgfree ((ldap_msgfree_t)DynamicLoad("WLDAP32", "ldap_msgfree"))
@@ -60,6 +64,12 @@ WINLDAPAPI VOID LDAPAPI WLDAP32$ber_bvfree(PBERVAL bv);
 #define WLDAP32$ldap_value_free ((ldap_value_free_t)DynamicLoad("WLDAP32", "ldap_value_free"))
 #define WLDAP32$ldap_next_attribute ((ldap_next_attribute_t)DynamicLoad("WLDAP32", "ldap_next_attribute"))
 #define WLDAP32$ldap_search_init_pageA ((ldap_search_init_pageA_t)DynamicLoad("WLDAP32", "ldap_search_init_pageA"))
+
+VERIFYSERVERCERT ServerCertCallback;
+BOOLEAN _cdecl ServerCertCallback (PLDAP Connection, PCCERT_CONTEXT pServerCert)
+{
+	return TRUE;
+}
 
 //https://learn.microsoft.com/en-us/previous-versions/windows/desktop/ldap/ldap-server-sd-flags-oid
 // Set LDAP server control flags so low-privileged domain users can read nTSecurityDescriptor attribute
@@ -131,17 +141,45 @@ int Base64encode(char* encoded, const char* string, int len) {
 	return p - encoded;
 }
 
-LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName){
+LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName, BOOL ldaps){
 	LDAP* pLdapConnection = NULL;
 
-    pLdapConnection = WLDAP32$ldap_init(hostName, 389);
+    ULONG result;
+    int portNumber = ldaps == TRUE ? 636 : 389;
+
+    pLdapConnection = WLDAP32$ldap_init(hostName, portNumber);
+
+    if(ldaps == TRUE){
+
+        ULONG version = LDAP_VERSION3;
+        result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_VERSION, (void*)&version);
+    
+        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SSL, &result);  //LDAP_OPT_SSL
+        if (result == 0){
+            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SSL, LDAP_OPT_ON);
+        }
+
+        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SIGN, &result);  //LDAP_OPT_SIGN
+        if (result == 0){
+            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SIGN, LDAP_OPT_ON);
+        }
+
+        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, &result);  //LDAP_OPT_ENCRYPT
+        if (result == 0){
+            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, LDAP_OPT_ON);
+        }
+
+        WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SERVER_CERTIFICATE, (void*)&ServerCertCallback ); //LDAP_OPT_SERVER_CERTIFICATE
+	}
+    else{
+        pLdapConnection = WLDAP32$ldap_init(hostName, 389);
+    }
     
     if (pLdapConnection == NULL)
     {
-      	BeaconPrintf(CALLBACK_ERROR, "Failed to establish LDAP connection on 389.");
+      	BeaconPrintf(CALLBACK_ERROR,"Failed to establish LDAP connection on %d.", portNumber);
         return NULL;
     }
-    ULONG Version = 3;
     //WLDAP32$ldap_set_optionA(pLdapConnection, LDAP_OPT_VERSION,&Version );
 
 	//////////////////////////////
@@ -271,7 +309,7 @@ void customAttributes(PCHAR pAttribute, PCHAR pValue)
         internal_printf("%s", G);
         //RPCRT4$RpcStringFreeA(&G);       
         frpcstringfree(&G);
-    } else if (MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "auditingPolicy") == 0 || MSVCRT$strcmp(pAttribute, "dSASignature") == 0 || MSVCRT$strcmp(pAttribute, "mS-DS-CreatorSID") == 0 || MSVCRT$strcmp(pAttribute, "logonHours") == 0 || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0 || MSVCRT$strcmp(pAttribute, "mSMQDigests") == 0 || MSVCRT$strcmp(pAttribute, "mSMQSignCertificates") == 0 || MSVCRT$strcmp(pAttribute, "userCertificate") == 0 || MSVCRT$strcmp(pAttribute, "attributeSecurityGUID") == 0  ) {
+    } else if (MSVCRT$strcmp(pAttribute, "cACertificate") == 0 || MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "auditingPolicy") == 0 || MSVCRT$strcmp(pAttribute, "dSASignature") == 0 || MSVCRT$strcmp(pAttribute, "mS-DS-CreatorSID") == 0 || MSVCRT$strcmp(pAttribute, "logonHours") == 0 || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0 || MSVCRT$strcmp(pAttribute, "mSMQDigests") == 0 || MSVCRT$strcmp(pAttribute, "mSMQSignCertificates") == 0 || MSVCRT$strcmp(pAttribute, "userCertificate") == 0 || MSVCRT$strcmp(pAttribute, "attributeSecurityGUID") == 0  ) {
 		char *encoded = NULL;
 		PBERVAL tmp = (PBERVAL)pValue;
 		ULONG len = tmp->bv_len;
@@ -308,7 +346,7 @@ void printAttribute(PCHAR pAttribute, PCHAR* ppValue){
     }
 }
 
-void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, ULONG scope_of_search, char * hostname, char * domain){
+void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count, ULONG scope_of_search, char * hostname, char * domain, BOOL ldaps){
     char szDN[1024] = {0};
 	ULONG ulSize = sizeof(szDN)/sizeof(szDN[0]);
 	
@@ -366,7 +404,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	//////////////////////////////
     char * targetdc = (hostname == NULL) ? pdcInfo->DomainControllerAddress + 2 : hostname;
     BeaconPrintf(CALLBACK_OUTPUT, "Binding to %s", targetdc);
-    pLdapConnection = InitialiseLDAPConnection(targetdc, distinguishedName);
+    pLdapConnection = InitialiseLDAPConnection(targetdc, distinguishedName, ldaps);
 
     if(!pLdapConnection)
         {goto end;}
@@ -430,7 +468,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
             {
                 isbinary = FALSE;
                 // Get the string values.
-                if(MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0 || MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "auditingPolicy") == 0 || MSVCRT$strcmp(pAttribute, "dSASignature") == 0 || MSVCRT$strcmp(pAttribute, "mS-DS-CreatorSID") == 0 || MSVCRT$strcmp(pAttribute, "logonHours") == 0 || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "mSMQDigests") == 0 || MSVCRT$strcmp(pAttribute, "mSMQSignCertificates") == 0 || MSVCRT$strcmp(pAttribute, "userCertificate") == 0 || MSVCRT$strcmp(pAttribute, "attributeSecurityGUID") == 0  )
+                if(MSVCRT$strcmp(pAttribute, "cACertificate") == 0 || MSVCRT$strcmp(pAttribute, "objectSid") == 0 || MSVCRT$strcmp(pAttribute, "objectGUID") == 0 || MSVCRT$strcmp(pAttribute, "nTSecurityDescriptor") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "auditingPolicy") == 0 || MSVCRT$strcmp(pAttribute, "dSASignature") == 0 || MSVCRT$strcmp(pAttribute, "mS-DS-CreatorSID") == 0 || MSVCRT$strcmp(pAttribute, "logonHours") == 0 || MSVCRT$strcmp(pAttribute, "schemaIDGUID") == 0 || MSVCRT$strcmp(pAttribute, "msDS-AllowedToActOnBehalfOfOtherIdentity") == 0 || MSVCRT$strcmp(pAttribute, "msDS-GenerationId") == 0 || MSVCRT$strcmp(pAttribute, "mSMQDigests") == 0 || MSVCRT$strcmp(pAttribute, "mSMQSignCertificates") == 0 || MSVCRT$strcmp(pAttribute, "userCertificate") == 0 || MSVCRT$strcmp(pAttribute, "attributeSecurityGUID") == 0  )
                 {
 					//internal_printf("\n%s\n", pAttribute);
                     ppValue = (char **)WLDAP32$ldap_get_values_lenA(pLdapConnection, pEntry, pAttribute); //not really a char **
@@ -527,6 +565,7 @@ VOID go(
     char * domain;
 	ULONG results_count;
     ULONG scope_of_search;
+    ULONG ldaps;
 
 	BeaconDataParse(&parser, Buffer, Length);
 	ldap_filter = BeaconDataExtract(&parser, NULL);
@@ -535,6 +574,7 @@ VOID go(
 	scope_of_search = BeaconDataInt(&parser);
     hostname = BeaconDataExtract(&parser, NULL);
     domain = BeaconDataExtract(&parser, NULL);
+    ldaps = BeaconDataInt(&parser);
 
     ldap_attributes = *ldap_attributes == 0 ? NULL : ldap_attributes;
     hostname = *hostname == 0 ? NULL : hostname;
@@ -546,7 +586,7 @@ VOID go(
 		return;
 	}
 
-	ldapSearch(ldap_filter, ldap_attributes, results_count, scope_of_search, hostname, domain);
+	ldapSearch(ldap_filter, ldap_attributes, results_count, scope_of_search, hostname, domain, ldaps==1);
 
 	printoutput(TRUE);
     if(fuuidtostring != (void *)1)
@@ -568,12 +608,12 @@ int main()
     char asdf1[] = "asdf";
     char asdf2[] = "asdf";
     char asdf3[] = "asdf";
-    ldapSearch(a, NULL, 0, NULL, NULL);
-    ldapSearch(d, NULL, 248, NULL, NULL);
-    ldapSearch(c, attr, 0, NULL, NULL);
-    ldapSearch(b, asdf1, 0, NULL, NULL);
-    ldapSearch(b, asdf2, 0, "TrashMaster", NULL);
-    ldapSearch(b, asdf3, 0, NULL, "TrashMaster");
+    ldapSearch(a, NULL, 0, NULL, NULL, FALSE);
+    ldapSearch(d, NULL, 248, NULL, NULL, TRUE);
+    ldapSearch(c, attr, 0, NULL, NULL, TRUE);
+    ldapSearch(b, asdf1, 0, NULL, NULL, FALSE);
+    ldapSearch(b, asdf2, 0, "TrashMaster", NULL, FALSE);
+    ldapSearch(b, asdf3, 0, NULL, "TrashMaster", FALSE);
     return 1;
 }
 
