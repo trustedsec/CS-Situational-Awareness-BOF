@@ -204,17 +204,20 @@ PLDAPSearch ExecuteLDAPQuery(LDAP* pLdapConnection, PCHAR distinguishedName, cha
         }
     }
 
-    if (scope_of_search == 1){
-        scope = LDAP_SCOPE_BASE;
-    } 
-    else if (scope_of_search == 2){
-        scope = LDAP_SCOPE_ONELEVEL;
+    switch (scope_of_search) {
+        case 1:
+            scope = LDAP_SCOPE_BASE;
+            break;
+        case 2:
+            scope = LDAP_SCOPE_ONELEVEL;
+            break;
+        case 3:
+            scope = LDAP_SCOPE_SUBTREE;
+            break;
+        default:
+            scope = LDAP_SCOPE_SUBTREE; // Default scope
+            break;
     }
-    else if (scope_of_search == 3){
-        scope = LDAP_SCOPE_SUBTREE;
-    }
-    
-
    	if (aclSearch) {
 		pSearchResult = WLDAP32$ldap_search_init_pageA(
 		pLdapConnection,    // Session handle
