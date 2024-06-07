@@ -12,10 +12,6 @@ char ** ERegTypes = 1;
 char * gHiveName = 1;
 #pragma GCC diagnostic pop
 //const char * hostname, HKEY hivekey, DWORD Arch, const char* keystring, int depth, int maxdepth)
-DECLSPEC_IMPORT WINAPI LSTATUS ADVAPI32$RegQueryInfoKeyA(HKEY hKey, LPSTR lpClass, LPDWORD lpcchClass, LPDWORD lpReserved, LPDWORD lpcSubKeys, LPDWORD lpcbMaxSubKeyLen,
-                                LPDWORD lpcbMaxClassLen, LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor, PFILETIME lpftLastWriteTime);
-DECLSPEC_IMPORT WINAPI BOOL KERNEL32$FileTimeToSystemTime(const FILETIME *lpFileTime, LPSYSTEMTIME   lpSystemTime);
-DECLSPEC_IMPORT WINAPI int SHLWAPI$SHFormatDateTimeA(const FILETIME *pft, DWORD *pdwFlags, LPSTR *pszBuf, UINT cchBuf);
 WINBASEAPI void* WINAPI MSVCRT$malloc(SIZE_T);
 
 typedef struct _regkeyval{
