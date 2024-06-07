@@ -77,31 +77,54 @@ void free_regkey(pregkeyval val)
     }
 }
 
-void Reg_InternalPrintKey(char * data, const char * valuename, DWORD type, DWORD datalen, HKEY key){
-    char default_name[] = {'[', 'N', 'U', 'L', 'L', ']', 0};
-    int i = 0;
+LPSTR* Reg_KeyToTimestamp(HKEY key) {
     int ret = 0;
     FILETIME mytime;
     PFILETIME pmytime = &mytime;
     DWORD pdwFlags = FDTF_SHORTTIME | FDTF_SHORTDATE | FDTF_NOAUTOREADINGORDER;                   // https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-shformatdatetimea
     UINT cchBuf;
+    LSTATUS stat;
+
+    stat = ADVAPI32$RegQueryInfoKeyA(key, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, pmytime);
+    if(stat != ERROR_SUCCESS) {
+        BeaconPrintf(CALLBACK_ERROR, "Error calling RegQueryInfoKeyA with error code %d\n", stat);
+        return NULL;
+    }
+    #pragma GCC diagnostic ignored "-Wint-conversion";
+    ret = SHLWAPI$SHFormatDateTimeA( pmytime, &pdwFlags, NULL, &cchBuf);
+    LPSTR *pszBuf = (LPSTR*) MSVCRT$malloc( (cchBuf * sizeof(TCHAR)) + 1);
+    ret = SHLWAPI$SHFormatDateTimeA( &mytime, &pdwFlags, pszBuf, &cchBuf);
+    return pszBuf;
+
+}
+
+void Reg_InternalPrintKey(char * data, const char * valuename, DWORD type, DWORD datalen, HKEY key){
+    char default_name[] = {'[', 'N', 'U', 'L', 'L', ']', 0};
+    int i = 0;
+    LPSTR *pszBuf = Reg_KeyToTimestamp(key);
 
     if(valuename == NULL)
     {
         valuename = default_name;
     }
-    ADVAPI32$RegQueryInfoKeyA(key, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, pmytime);
-    #pragma GCC diagnostic ignored "-Wint-conversion";
-    ret = SHLWAPI$SHFormatDateTimeA( pmytime, &pdwFlags, NULL, &cchBuf);
-    LPSTR *pszBuf = (LPSTR*) MSVCRT$malloc( (cchBuf * sizeof(TCHAR)) + 1);
-    ret = SHLWAPI$SHFormatDateTimeA( &mytime, &pdwFlags, pszBuf, &cchBuf);
+
     if(type == REG_BINARY)
     {
         for(i = 0; i < datalen; i++)
         {
-            if(i % 16 == 0)
+            if(i % 16 == 0) 
+            {
                 internal_printf("\n");
-            internal_printf("\t%-24s %-20s   %-15s %2.2x\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data[i] & 0xff);  
+            }
+
+            if(i == 0) 
+            {
+                internal_printf("\t%-24s %-20s   %-15s %2.2x", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data[i] & 0xff);
+            } 
+            else 
+            {
+                internal_printf("\t%-24s %-20s   %-15s %2.2x", "", "", "", data[i] & 0xff);
+            }
         }
     }
     else if ((type == REG_DWORD || type == REG_DWORD_BIG_ENDIAN) && datalen == 4)
@@ -112,10 +135,20 @@ void Reg_InternalPrintKey(char * data, const char * valuename, DWORD type, DWORD
         internal_printf("\t%-24s %-20s   %-15s %s\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data);
     else if (type == REG_MULTI_SZ)
     {
+        i = 0;
         while(data[0] != '\0')
         {
+            if(i == 0) 
+            {
             DWORD len = MSVCRT$strlen(data)+1;
-            internal_printf("\t%-24s %-20s   %-15s %s%s\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data, (data[len]) ? "\\0" : "");
+                internal_printf(              "\t%-24s %-20s   %-15s %s%s\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data, (data[len]) ? "\\0" : "");
+            } 
+            else 
+            {
+            DWORD len = MSVCRT$strlen(data)+1;
+                internal_printf(            "\t%-24s %-20s   %-15s %s%s\n", "", "", "", data, (data[len]) ? "\\0" : "");
+            }
+            i++;
             data += MSVCRT$strlen(data)+1;
         }
     }
@@ -286,8 +319,8 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
                     (LPBYTE)currentdata,
                     &cchData);
                 if (retCode == ERROR_SUCCESS ) 
-                { 
-                        Reg_InternalPrintKey(currentdata, currentvaluename, regType, cchData, curitem->hreg);
+                {
+                    Reg_InternalPrintKey(currentdata, currentvaluename, regType, cchData, (HKEY) curitem->hreg);
                 } 
                 
             }
@@ -320,7 +353,8 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
                     }
                     else
                     {
-                        internal_printf("%s%s\\%s\n", gHiveName, curitem->keypath, currentkeyname);
+                        LPSTR* mytime = Reg_KeyToTimestamp(curitem->hreg);
+                        internal_printf("%-24s %s\\%s\\%s\n", mytime, gHiveName, curitem->keypath, currentkeyname);
                     }
                 }
             }
