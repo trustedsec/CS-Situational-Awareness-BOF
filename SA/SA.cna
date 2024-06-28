@@ -188,7 +188,7 @@ alias ldapsearch {
 
 	if($base_len > $total_mandatory_len){
 		$data = substr($0, $total_mandatory_len);
-		@args = split(' ', $data);
+		@args = split('--', $data);
 	}
 	else{
 		@args = @();
@@ -196,7 +196,7 @@ alias ldapsearch {
 
 	local('$query $attributes $result_limit $scope $hostname $dn $ldaps');
 
-	$query = $2;
+	$query = replaceQuotes($2);
 	$attributes = "*";
 	$result_limit = 0;
 	$scope = 3;
@@ -204,45 +204,32 @@ alias ldapsearch {
 	$dn = "";
 	$ldaps = 0;
 
-	@CliOptions = @("--attributes", "--count", "--dn", "--hostname", "--scope", "--ldaps", "--output");
+    for ($i = 1; $i < size(@args); $i++) {
+        $arg = @args[$i];
+		$option = split(' ', $arg)[0];
+		$value = substr($arg, strlen($option));
+		$value = replaceQuotes($value);
 
-	for ($i = 0; $i < size(@args); $i++){
-		println("i: ".$i." value: ".@args[$i]);
-		if (@args[$i] iswm "--ldaps"){
-         $ldaps = 1;
-		}
-		else if(@args[$i] iswm "--dn"){
-			$i = $i + 1;
-			$count = 0;
-			for ($j = $i; $j < size(@args); $j++){
-				if(@args[$j] in @CliOptions){
-					break;
-				}
-				else{
-					$dn = $dn.' '.@args[$j];
-					$count = $count + 1;
-				}
-			}
-			$i = $i + $count - 1;
-		}
-		else if(@args[$i] iswm "--attributes"){
-			$i = $i + 1;
-			$attributes = @args[$i];
-		}
-		else if(@args[$i] iswm "--hostname"){
-			$i = $i + 1;
-			$hostname = @args[$i];
-		}
-		else if(@args[$i] iswm "--scope"){
-			$i = $i + 1;
-			$scope = @args[$i];
-		}
-		else if(@args[$i] iswm "--count"){
-			$i = $i + 1;
-			$result_limit = @args[$i];
-		}
+        if ($option iswm "attributes") {
+            $attributes = $value;
+        }
+        else if ($option iswm "count") {
+            $count = $value;
+        }
+        else if ($option iswm "scope") {
+            $scope = $value;
+        }
+        else if ($option iswm "hostname") {
+            $hostname = $value;
+        }
+        else if ($option iswm "dn") {
+            $dn = $value;
+        }
+        else if ($option iswm "ldaps") {
+            $ldaps = 1;
+        }
 		else{
-			berror($1, "Unknown argument: ".@args[$i]);
+			berror($1, "Unknown argument: " . $arg);
 			berror($1, beacon_command_detail("ldapsearch"));
 			return;
 		}
@@ -253,6 +240,27 @@ alias ldapsearch {
 	# execute it.
 	beacon_inline_execute($1, readbof($1, "ldapsearch", $null, "T1018, T1069.002, T1087.002, T1087.003, T1087.004, T1482"), "go", $args);
 }
+
+# Helper function to remove surrounding quotes and spaces
+sub replaceQuotes {
+    local('$str');
+	$str = $1;
+    $str = trim($str);
+    if ($str ismatch"^\".*\"$" || $str ismatch "^'.*'$") {
+        return substr($str, 1, size($str) - 1);
+    }
+    return $str;
+}
+
+# Helper function to trim spaces
+sub trim {
+    local('$str');
+	$str = $1;
+    $str = replace($str, "^\\s+", "");
+    $str = replace($str, "\\s+$", "");
+    return $str;
+}
+
 
 alias nonpagedldapsearch
 {
