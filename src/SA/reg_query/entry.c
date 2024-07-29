@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <process.h>
-#include <shlwapi.h>
 #include "bofdefs.h"
 #include "base.c"
 #include "anticrash.c"
@@ -77,86 +76,67 @@ void free_regkey(pregkeyval val)
     }
 }
 
-LPSTR* Reg_KeyToTimestamp(HKEY key) {
+void Reg_KeyToTimestamp(HKEY key, char *stringDate) {
     int ret = 0;
     FILETIME mytime;
     PFILETIME pmytime = &mytime;
     DWORD pdwFlags = FDTF_SHORTTIME | FDTF_SHORTDATE | FDTF_NOAUTOREADINGORDER;                   // https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-shformatdatetimea
     UINT cchBuf;
     LSTATUS stat;
+    SYSTEMTIME sAsystemTime, stLocal;
 
-    stat = ADVAPI32$RegQueryInfoKeyA(key, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, pmytime);
+    stat = ADVAPI32$RegQueryInfoKeyA(key, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, (PFILETIME) &mytime);
     if(stat != ERROR_SUCCESS) {
         BeaconPrintf(CALLBACK_ERROR, "Error calling RegQueryInfoKeyA with error code %d\n", stat);
-        return NULL;
+        return;
     }
-    #pragma GCC diagnostic ignored "-Wint-conversion";
-    ret = SHLWAPI$SHFormatDateTimeA( pmytime, &pdwFlags, NULL, &cchBuf);
-    LPSTR *pszBuf = (LPSTR*) MSVCRT$malloc( (cchBuf * sizeof(TCHAR)) + 1);
-    ret = SHLWAPI$SHFormatDateTimeA( &mytime, &pdwFlags, pszBuf, &cchBuf);
-    return pszBuf;
 
+    KERNEL32$FileTimeToSystemTime(&mytime, &sAsystemTime);
+    KERNEL32$SystemTimeToTzSpecificLocalTime(NULL, &sAsystemTime, &stLocal);
+
+    MSVCRT$sprintf(stringDate, "%02i/%02i/%04i %02i:%02i:%02i", stLocal.wMonth, stLocal.wDay, stLocal.wYear, stLocal.wHour, stLocal.wMinute, stLocal.wSecond);
 }
 
 void Reg_InternalPrintKey(char * data, const char * valuename, DWORD type, DWORD datalen, HKEY key){
     char default_name[] = {'[', 'N', 'U', 'L', 'L', ']', 0};
     int i = 0;
-    LPSTR *pszBuf = Reg_KeyToTimestamp(key);
 
     if(valuename == NULL)
     {
         valuename = default_name;
     }
+    internal_printf("\t%-20s   %-15s ", valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN");
 
     if(type == REG_BINARY)
     {
         for(i = 0; i < datalen; i++)
         {
-            if(i % 16 == 0) 
-            {
+            if(i % 16 == 0)
                 internal_printf("\n");
-            }
-
-            if(i == 0) 
-            {
-                internal_printf("\t%-24s %-20s   %-15s %2.2x", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data[i] & 0xff);
-            } 
-            else 
-            {
-                internal_printf("\t%-24s %-20s   %-15s %2.2x", "", "", "", data[i] & 0xff);
-            }
+            internal_printf(" %2.2x ", data[i] & 0xff);  
         }
+        internal_printf("\n");
     }
     else if ((type == REG_DWORD || type == REG_DWORD_BIG_ENDIAN) && datalen == 4)
-        internal_printf("\t%-24s %-20s   %-15s %lu\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", *(DWORD *)data);
+        internal_printf("%lu\n", *(DWORD *)data);
     else if (type == REG_QWORD && datalen == 8)
-        internal_printf("\t%-24s %-20s   %-15s %llu\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", *(QWORD *)data);
+        internal_printf("%llu\n", *(QWORD *)data);
     else if (type == REG_SZ || type == REG_EXPAND_SZ)
-        internal_printf("\t%-24s %-20s   %-15s %s\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data);
+        internal_printf("%s\n", data);
     else if (type == REG_MULTI_SZ)
     {
-        i = 0;
         while(data[0] != '\0')
         {
-            if(i == 0) 
-            {
             DWORD len = MSVCRT$strlen(data)+1;
-                internal_printf(              "\t%-24s %-20s   %-15s %s%s\n", pszBuf, valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", data, (data[len]) ? "\\0" : "");
-            } 
-            else 
-            {
-            DWORD len = MSVCRT$strlen(data)+1;
-                internal_printf(            "\t%-24s %-20s   %-15s %s%s\n", "", "", "", data, (data[len]) ? "\\0" : "");
-            }
-            i++;
+            internal_printf("%s%s", data, (data[len]) ? "\\0" : "");
             data += MSVCRT$strlen(data)+1;
         }
+        internal_printf("\n");
     }
     else
     {
-        internal_printf("\t%-24s %-20s   %-15s None data type, or unhandled\n", valuename, (type >= 0 && type <= 11) ? ERegTypes[type] : "UNKNOWN", pszBuf);
+        internal_printf("None data type, or unhandled\n");
     }
-    MSVCRT$free(pszBuf);
 }
 
 DWORD Reg_GetValue(const char * hostname, HKEY hivekey, DWORD Arch, const char* keystring, const char* value){
@@ -280,8 +260,10 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
     keyStack->push(keyStack, init_regkey(keystring, MSVCRT$strlen(keystring), NULL, 0, rootkey));
     while((curitem = keyStack->pop(keyStack)) != NULL)
     {
+        char stringDate[19];
+        Reg_KeyToTimestamp(curitem->hreg, stringDate);
         
-        internal_printf("%s\\%s\n", gHiveName, curitem->keypath);
+        internal_printf("%-24s %s\\%s\n", stringDate, gHiveName, curitem->keypath);
         // Get the class name and the value count.
         dwresult = ADVAPI32$RegQueryInfoKeyA(
             curitem->hreg,                    // key handle 
@@ -353,8 +335,7 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
                     }
                     else
                     {
-                        LPSTR* mytime = Reg_KeyToTimestamp(curitem->hreg);
-                        internal_printf("%-24s %s\\%s\\%s\n", mytime, gHiveName, curitem->keypath, currentkeyname);
+                        internal_printf("%s\\%s\\%s\n", gHiveName, curitem->keypath, currentkeyname);
                     }
                 }
             }
