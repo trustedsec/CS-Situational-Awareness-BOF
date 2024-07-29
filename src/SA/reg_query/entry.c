@@ -195,7 +195,9 @@ DWORD Reg_GetValue(const char * hostname, HKEY hivekey, DWORD Arch, const char* 
     );
 	if(!dwRet)
 	{
-        internal_printf("%s\\%s\n", gHiveName, keystring);
+        char stringDate[19];
+        Reg_KeyToTimestamp(curitem->hreg, stringDate);
+        internal_printf("%24s %s\\%s\n", stringDate, gHiveName, keystring);
         Reg_InternalPrintKey(ValueData, value, type, size, key);
 	}
     END:
