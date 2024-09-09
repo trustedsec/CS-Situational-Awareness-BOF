@@ -146,13 +146,18 @@ alias env {
 	beacon_inline_execute($1, readbof($1, "env", $null, "T1082"), "go");
 }
 
-
 beacon_command_register(
 "ldapsearch", 
 "BOF - Perform LDAP search.", 
-"ldapsearch <query> [comma_separated_attributes] [result_count] [scope_of_search] [DC hostname or IP] [Distingished Name to use]
-	\"\" works as a default for attributes (get all) DC hostname / IP (use Primary DC) and distingished name (use Base domain Level)
-	0 works as default for result_count (get all). For scope_of_search, use 1 [LDAP_SCOPE_BASE], 2 [LDAP_SCOPE_ONELEVEL] or 3 [LDAP_SCOPE_SUBTREE] (3 is used by default)
+"ldapsearch <query> [--attributes] [--count] [--scope] [--hostname] [--dn] [--ldaps]
+	with :
+		query => the LDAP query to be performed
+		--attributes [comma_separated_attributes] => the attributes to retrieve (default: *)
+		--count [count] => the result max size (default: None)
+		--scope [scope] => the scope to use [1 = BASE, 2 = LEVEL, 3 = SUBTREE] (default: 3)
+		--hostname [hostname] => hostname or IP to perform the LDAP connection on (default: automatic DC resolution)
+		--dn [dn] => the LDAP query base
+		--ldaps => use of ldaps
 
 Important - To add in ACLs so Bloodhound can draw relationships between objects (see external BofHound tool), add nTSecurityDescriptor in the attributes list, like so:
 ldapsearch <query> *,ntsecuritydescriptor ...
@@ -175,17 +180,87 @@ alias ldapsearch {
 		return;
 	}
 
-	$attributes = iff(-istrue $3, $3, "");
-	$result_limit = iff(-istrue $4, $4, 0);
-	$scope = iff(-istrue $5, $5, 3);
-	$hostname = iff(-istrue $6, $6, "");
-	$domain = iff(-istrue $7, $7, "");
 
-	$args   = bof_pack($1, "zziizz", $2, $attributes, $result_limit, $scope, $hostname, $domain);
+	$ldapsearch_len = 11;
+	$query_len = strlen($2) + 1;
+	$total_mandatory_len = $ldapsearch_len + $query_len;
+	$base_len = strlen($0);
+
+	if($base_len > $total_mandatory_len){
+		$data = substr($0, $total_mandatory_len);
+		@args = split('--', $data);
+	}
+	else{
+		@args = @();
+	}
+
+	local('$query $attributes $scope $hostname $dn $ldaps');
+
+	$query = replaceQuotes($2);
+	$attributes = "*";
+	$result_limit = 0;
+	$scope = 3;
+	$hostname = "";
+	$dn = "";
+	$ldaps = 0;
+
+    for ($i = 1; $i < size(@args); $i++) {
+        $arg = @args[$i];
+		$option = split(' ', $arg)[0];
+		$value = substr($arg, strlen($option));
+		$value = replaceQuotes($value);
+
+        if ($option iswm "attributes") {
+            $attributes = $value;
+        }
+        else if ($option iswm "count") {
+            $result_limit = $value;
+        }
+        else if ($option iswm "scope") {
+            $scope = $value;
+        }
+        else if ($option iswm "hostname") {
+            $hostname = $value;
+        }
+        else if ($option iswm "dn") {
+            $dn = $value;
+        }
+        else if ($option iswm "ldaps") {
+            $ldaps = 1;
+        }
+		else{
+			berror($1, "Unknown argument: " . $arg);
+			berror($1, beacon_command_detail("ldapsearch"));
+			return;
+		}
+	}
+
+	$args   = bof_pack($1, "zziizzi", $query, $attributes, $result_limit, $scope, $hostname, $dn, $ldaps);
 
 	# execute it.
 	beacon_inline_execute($1, readbof($1, "ldapsearch", $null, "T1018, T1069.002, T1087.002, T1087.003, T1087.004, T1482"), "go", $args);
 }
+
+# Helper function to remove surrounding quotes and spaces
+sub replaceQuotes {
+    local('$str');
+	$str = $1;
+    $str = trim($str);
+    if ($str ismatch"^\".*\"$" || $str ismatch "^'.*'$") {
+        return substr($str, 1, size($str) - 1);
+    }
+    return $str;
+}
+
+# Helper function to trim spaces
+sub trim {
+    local('$str');
+	$str = $1;
+    $str = replace($str, "^\\s+", "");
+    $str = replace($str, "\\s+$", "");
+    return $str;
+}
+
 
 alias nonpagedldapsearch
 {
