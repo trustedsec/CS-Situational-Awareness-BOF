@@ -171,9 +171,6 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName, BOOL lda
 
         WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SERVER_CERTIFICATE, (void*)&ServerCertCallback ); //LDAP_OPT_SERVER_CERTIFICATE
 	}
-    else{
-        pLdapConnection = WLDAP32$ldap_init(hostName, 389);
-    }
     
     if (pLdapConnection == NULL)
     {

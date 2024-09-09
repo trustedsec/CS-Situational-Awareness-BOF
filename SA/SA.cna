@@ -194,7 +194,7 @@ alias ldapsearch {
 		@args = @();
 	}
 
-	local('$query $attributes $result_limit $scope $hostname $dn $ldaps');
+	local('$query $attributes $scope $hostname $dn $ldaps');
 
 	$query = replaceQuotes($2);
 	$attributes = "*";
@@ -214,7 +214,7 @@ alias ldapsearch {
             $attributes = $value;
         }
         else if ($option iswm "count") {
-            $count = $value;
+            $result_limit = $value;
         }
         else if ($option iswm "scope") {
             $scope = $value;
