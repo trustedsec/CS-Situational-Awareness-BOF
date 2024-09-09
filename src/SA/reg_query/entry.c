@@ -11,7 +11,6 @@ char ** ERegTypes = 1;
 char * gHiveName = 1;
 #pragma GCC diagnostic pop
 //const char * hostname, HKEY hivekey, DWORD Arch, const char* keystring, int depth, int maxdepth)
-WINBASEAPI void* WINAPI MSVCRT$malloc(SIZE_T);
 
 typedef struct _regkeyval{
     char * keypath;
@@ -77,11 +76,7 @@ void free_regkey(pregkeyval val)
 }
 
 void Reg_KeyToTimestamp(HKEY key, char *stringDate) {
-    int ret = 0;
     FILETIME mytime;
-    PFILETIME pmytime = &mytime;
-    DWORD pdwFlags = FDTF_SHORTTIME | FDTF_SHORTDATE | FDTF_NOAUTOREADINGORDER;                   // https://learn.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-shformatdatetimea
-    UINT cchBuf;
     LSTATUS stat;
     SYSTEMTIME sAsystemTime, stLocal;
 
@@ -337,7 +332,11 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
                     }
                     else
                     {
-                        internal_printf("%s\\%s\\%s\n", gHiveName, curitem->keypath, currentkeyname);
+                        curKey = NULL;
+                        dwresult = ADVAPI32$RegOpenKeyExA(curitem->hreg, currentkeyname, 0, KEY_READ, &curKey);
+                        if(curKey)
+                            Reg_KeyToTimestamp(curKey, stringDate);
+                        internal_printf("%-24s %s\\%s\\%s\n", (curKey) ? stringDate : "Unable to get time", gHiveName, curitem->keypath, currentkeyname);
                     }
                 }
             }
