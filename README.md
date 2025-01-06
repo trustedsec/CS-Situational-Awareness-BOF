@@ -89,3 +89,7 @@ Precompiled BOF's are provided in this project and are compiled using a recent v
 
 ## System Support
 These BOF's are written with support for Windows Vista+ in mind. A new branch called [winxp_2003](https://github.com/trustedsec/CS-Situational-Awareness-BOF/tree/winxp_2003) has been created if you need to use the main set of BOF's on those older systems. This branch will remain in a less supported state. It will be functional, but not updated with every new push / feature that we may add.
+
+## Want to Learn More?
+If you've found these beacon object files helpful and want to write some of your own bofs following a similar style we invite you to check out our [Beacon Object File (BOF) Development](https://learn.trustedsec.com/courses/cd84409a-36af-4507-be2c-ca7ad1e9fd2d) course.  
+The course gives a breif overview of the history of beacon object files and then dives into a variety of challenge problems that aim to teach you how to leverage a variety of windows technologies when developing your own beacon object files.
