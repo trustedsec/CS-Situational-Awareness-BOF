@@ -203,6 +203,7 @@ WINUSERAPI LRESULT WINAPI USER32$SendMessageA (HWND hwnd, UINT Msg, WPARAM wPara
 WINUSERAPI int WINAPI USER32$GetWindowTextA(HWND  hWnd, LPSTR lpString, int nMaxCount);
 WINUSERAPI int WINAPI USER32$GetClassNameA(HWND hWnd, LPTSTR lpClassName, int nMaxCount);
 WINUSERAPI BOOL WINAPI USER32$EnumChildWindows(HWND hWndParent, WNDENUMPROC lpEnumFunc, LPARAM lParam);
+WINBASEAPI WINBOOL WINAPI USER32$GetLastInputInfo (PLASTINPUTINFO plii);
 
 //secur32
 WINBASEAPI BOOLEAN WINAPI SECUR32$GetUserNameExA (int NameFormat, LPSTR lpNameBuffer, PULONG nSize);
@@ -628,6 +629,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define USER32$GetWindowTextA GetWindowTextA
 #define USER32$GetClassNameA GetClassNameA
 #define USER32$EnumChildWindows EnumChildWindows
+#define USER32$GetLastInputInfo GetLastInputInfo
 #define SECUR32$GetUserNameExA  GetUserNameExA 
 #define SHLWAPI$StrStrIA StrStrIA
 #define SHLWAPI$SHFormatDateTimeA SHFormatDateTimeA
