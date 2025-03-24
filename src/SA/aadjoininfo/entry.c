@@ -35,27 +35,47 @@ void GetAadJoinInfo()
 		//internal_printf("%-20s: %S\n", "MDM Terms of Use URL", pJoinInfo->pszMdmTermsOfUseUrl);
 		//internal_printf("%-20s: %S\n", "MDM Compliance URL", pJoinInfo->pszMdmComplianceUrl);
 		//internal_printf("%-20s: %S\n", "User Setting Sync URL", pJoinInfo->pszUserSettingSyncUrl);
-		internal_printf("%-20s: %S\n", "User Email", pJoinInfo->pUserInfo->pszUserEmail);
-		internal_printf("%-20s: %S\n", "User Key ID", pJoinInfo->pUserInfo->pszUserKeyId);
 		
-		// Extract User SID from pszUserKeyName
-		// internal_printf("%-20s: %S\n", "User Key Name", pJoinInfo->pUserInfo->pszUserKeyName);
-		if (pJoinInfo->pUserInfo->pszUserKeyName != NULL)
+		//
+		// Only get join user info if type is DSREG_DEVICE_JOIN
+		//
+		if (pJoinInfo->joinType == DSREG_DEVICE_JOIN)
 		{
-			WCHAR userSid[256] = {0};
-			WCHAR *slashPos = MSVCRT$wcschr(pJoinInfo->pUserInfo->pszUserKeyName, L'/');
-			if (slashPos != NULL)
+			internal_printf("\n====================== Join User Info ======================\n");
+			internal_printf("%-20s: %S\n", "User Email", pJoinInfo->pUserInfo->pszUserEmail);
+			internal_printf("%-20s: %S\n", "User Key ID", pJoinInfo->pUserInfo->pszUserKeyId);
+			
+			//
+			// Extract User SID from pszUserKeyName
+			//
+
+			// internal_printf("%-20s: %S\n", "User Key Name", pJoinInfo->pUserInfo->pszUserKeyName);
+			if (pJoinInfo->pUserInfo->pszUserKeyName != NULL)
 			{
-				size_t sidLength = slashPos - pJoinInfo->pUserInfo->pszUserKeyName;
-				MSVCRT$wcsncpy_s(userSid, sizeof(userSid) / sizeof(WCHAR), pJoinInfo->pUserInfo->pszUserKeyName, sidLength);
-				internal_printf("%-20s: %S\n", "User SID", userSid);
+				WCHAR userSid[256] = {0};
+				WCHAR *slashPos = MSVCRT$wcschr(pJoinInfo->pUserInfo->pszUserKeyName, L'/');
+				if (slashPos != NULL)
+				{
+					size_t sidLength = slashPos - pJoinInfo->pUserInfo->pszUserKeyName;
+					MSVCRT$wcsncpy_s(userSid, sizeof(userSid) / sizeof(WCHAR), pJoinInfo->pUserInfo->pszUserKeyName, sidLength);
+					internal_printf("%-20s: %S\n", "User SID", userSid);
+				}
 			}
+		} else {
+			internal_printf("\n[-] Device not joined to AAD, skipping join user info\n");
 		}
+	
+	//
+	// NetGetAadJoinInformation failed 
+	//
 	} else {
 		internal_printf("[-] Error: %d\n", res);
 		internal_printf("[-] Host may not be cloud joined\n");
 	}
 
+	//
+	// Free the join info
+	//
 	if (pJoinInfo != NULL)
 	{
 		NETAPI32$NetFreeAadJoinInformation(pJoinInfo);
