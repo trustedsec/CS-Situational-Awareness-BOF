@@ -1,4 +1,4 @@
-BOFNAME := YOUNAMEHERE
+BOFNAME := get_session_info
 COMINCLUDE := -I ../../common
 LIBINCLUDE := 
 CC_x64 := x86_64-w64-mingw32-gcc

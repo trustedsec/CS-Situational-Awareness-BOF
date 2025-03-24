@@ -13,6 +13,7 @@
 #include <winnetwk.h>
 #include <wtsapi32.h>
 #include <shlwapi.h>
+#include <ntsecapi.h>
 
 //KERNEL32
 #ifdef BOF
@@ -207,6 +208,8 @@ WINBASEAPI WINBOOL WINAPI USER32$GetLastInputInfo (PLASTINPUTINFO plii);
 
 //secur32
 WINBASEAPI BOOLEAN WINAPI SECUR32$GetUserNameExA (int NameFormat, LPSTR lpNameBuffer, PULONG nSize);
+WINBASEAPI NTSTATUS NTAPI SECUR32$LsaGetLogonSessionData(PLUID LogonId,PSECURITY_LOGON_SESSION_DATA *ppLogonSessionData);
+WINBASEAPI NTSTATUS NTAPI SECUR32$LsaFreeReturnBuffer (PVOID Buffer);
 
 //shlwapi
 WINBASEAPI LPSTR WINAPI SHLWAPI$StrStrIA(LPCSTR lpFirst,LPCSTR lpSrch);
@@ -442,6 +445,7 @@ DECLSPEC_IMPORT DWORD WINAPI PSAPI$GetModuleFileNameExA(HANDLE hProcess, HMODULE
 DECLSPEC_IMPORT DWORD WINAPI VERSION$GetFileVersionInfoSizeA(LPCSTR lptstrFilenamea ,LPDWORD lpdwHandle);
 DECLSPEC_IMPORT WINBOOL WINAPI VERSION$GetFileVersionInfoA(LPCSTR lptstrFilename, DWORD dwHandle, DWORD dwLen, LPVOID lpData);
 DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen);
+
 
 
 

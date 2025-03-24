@@ -1653,3 +1653,7 @@ beacon_command_register(
 	
 Note: Output from this BOF is compatible with bofhound"
 );
+
+alias get_session_info{
+	beacon_inline_execute($1, readbof($1, "get_session_info"), "go", $null);
+}
