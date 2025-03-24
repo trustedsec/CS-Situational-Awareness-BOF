@@ -1289,6 +1289,17 @@ beacon_command_register(
 
 
 
+alias useridletime {
+	beacon_inline_execute($1, readbof($1, "useridletime", $null, "T1082"), "go", $null);
+}
+
+beacon_command_register(
+"useridletime",
+"Shows the user's idle time",
+"Usage: useridletime");
+
+
+
 alias enum_filter_driver{
 	local('$args $system');
 
