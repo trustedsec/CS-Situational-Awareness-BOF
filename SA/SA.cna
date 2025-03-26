@@ -1657,3 +1657,9 @@ Note: Output from this BOF is compatible with bofhound"
 alias get_session_info{
 	beacon_inline_execute($1, readbof($1, "get_session_info"), "go", $null);
 }
+
+beacon_command_register(
+	"get_session_info",
+	"Returns the auth package, logon server, and current session id of the user you are operating as",
+	"Usage: get_session_info"
+);
