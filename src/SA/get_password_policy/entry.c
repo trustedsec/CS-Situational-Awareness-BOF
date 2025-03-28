@@ -93,7 +93,7 @@ VOID go(
 
 int main()
 {
-//code for standalone exe for scanbuild / leak checks
+   get_password_policy(L"localhost");
 }
 
 #endif

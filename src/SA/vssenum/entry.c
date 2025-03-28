@@ -132,7 +132,7 @@ VOID go(
 
 int main()
 {
-//code for standalone exe for scanbuild / leak checks
+	EnumSnapshots(L"localhost", L"share");
 }
 
 #endif
