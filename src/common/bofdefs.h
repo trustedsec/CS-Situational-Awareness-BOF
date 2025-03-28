@@ -512,6 +512,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define KERNEL32$HeapReAlloc HeapReAlloc
 #define KERNEL32$HeapFree HeapFree
 #define MSVCRT$memset memset
+#define MSVCRT$_ultoa _ultoa
 #define KERNEL32$GlobalAlloc GlobalAlloc
 #define KERNEL32$GlobalFree GlobalFree
 #define KERNEL32$GetEnvironmentStrings GetEnvironmentStrings
@@ -694,6 +695,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define ADVAPI32$RegQueryInfoKeyA RegQueryInfoKeyA
 #define NTDLL$NtCreateFile NtCreateFile
 #define NTDLL$NtClose NtClose
+#define NTDLL$NtFsControlFile NtFsControlFile
 #define IMAGEHLP$ImageEnumerateCertificates ImageEnumerateCertificates
 #define IMAGEHLP$ImageGetCertificateHeader ImageGetCertificateHeader
 #define IMAGEHLP$ImageGetCertificateData ImageGetCertificateData
@@ -773,6 +775,10 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 
 
 #define DBGHELP$MiniDumpWriteDump MiniDumpWriteDump
+
+#define SECUR32$LsaGetLogonSessionData LsaGetLogonSessionData
+#define SECUR32$LsaFreeReturnBuffer LsaFreeReturnBuffer
+
 #define WLDAP32$ldap_init ldap_init
 #define WLDAP32$ldap_bind_s ldap_bind_s
 #define WLDAP32$ldap_search_s ldap_search_s

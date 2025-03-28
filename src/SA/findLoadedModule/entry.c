@@ -99,6 +99,7 @@ int main()
 {
 ListProcesses("explorer", "ntdll");
 ListProcesses(NULL, "Kernel32.dll");
+ListProcesses(NULL, "amsi.dll");
 ListProcesses(NULL, "asdfasdfadsf");
 }
 

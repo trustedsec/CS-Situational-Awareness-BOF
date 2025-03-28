@@ -3,7 +3,7 @@
 #include "bofdefs.h"
 #include "base.c"
 
-#ifdef BOF
+
 //DECLSPEC_IMPORT ULONG WINAPI IPHLPAPI$GetIpNetTable(PMIB_IPNETTABLE IpNetTable,PULONG SizePointer, BOOL Order);
 
 void print_ip_from_int(unsigned int addr)
@@ -107,6 +107,8 @@ void arp()
 		if(ipNetTableInfo){ intFree(ipNetTableInfo);}	
 }
 
+#ifdef BOF
+
 VOID go( 
 	IN PCHAR Buffer, 
 	IN ULONG Length 
@@ -124,7 +126,7 @@ VOID go(
 
 int main()
 {
-//code for standalone exe for scanbuild / leak checks
+	arp();
 }
 
 #endif

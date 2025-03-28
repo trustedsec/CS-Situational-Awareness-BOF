@@ -1,6 +1,6 @@
 BOFNAME := arp
 COMINCLUDE := -I ../../common
-LIBINCLUDE := 
+LIBINCLUDE := -l iphlpapi
 CC_x64 := x86_64-w64-mingw32-gcc
 CC_x86 := i686-w64-mingw32-gcc
 CC=x86_64-w64-mingw32-clang
