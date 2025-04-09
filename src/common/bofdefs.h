@@ -117,6 +117,7 @@ WINBASEAPI void __cdecl MSVCRT$memset(void *dest, int c, size_t count);
 WINBASEAPI int __cdecl MSVCRT$sprintf(char *__stream, const char *__format, ...);
 WINBASEAPI int __cdecl MSVCRT$vsnprintf(char * __restrict__ d,size_t n,const char * __restrict__ format,va_list arg);
 WINBASEAPI int __cdecl MSVCRT$_snwprintf(wchar_t * __restrict__ _Dest,size_t _Count,const wchar_t * __restrict__ _Format,...);
+WINBASEAPI errno_t __cdecl MSVCRT$wcsncpy_s(wchar_t *_Dst, rsize_t _SizeInWords, const wchar_t *_Src, rsize_t _MaxCount);
 WINBASEAPI errno_t __cdecl MSVCRT$wcscpy_s(wchar_t *_Dst, rsize_t _DstSize, const wchar_t *_Src);
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
 WINBASEAPI size_t __cdecl MSVCRT$wcstombs(char * __restrict__ _Dest,const wchar_t * __restrict__ _Source,size_t _MaxCount);
@@ -181,6 +182,8 @@ WINBASEAPI DWORD WINAPI NETAPI32$NetWkstaUserEnum(LMSTR servername,DWORD level,L
 WINBASEAPI DWORD WINAPI NETAPI32$NetWkstaGetInfo(LMSTR servername,DWORD level,LPBYTE *bufptr);
 WINBASEAPI DWORD WINAPI NETAPI32$NetStatisticsGet(LMSTR server,LMSTR service,DWORD level,DWORD options,LPBYTE *bufptr);
 WINBASEAPI DWORD WINAPI NETAPI32$NetRemoteTOD(LPCWSTR UncServerName,LPBYTE  *BufferPtr);
+WINBASEAPI DWORD WINAPI NETAPI32$NetGetAadJoinInformation(LPCWSTR pcszTenantId, PDSREG_JOIN_INFO *ppJoinInfo);
+WINBASEAPI VOID WINAPI  NETAPI32$NetFreeAadJoinInformation(PDSREG_JOIN_INFO pJoinInfo);
 
 //mpr
 WINBASEAPI DWORD WINAPI MPR$WNetOpenEnumW(DWORD dwScope, DWORD dwType, DWORD dwUsage, LPNETRESOURCEW lpNetResource, LPHANDLE lphEnum);
@@ -550,6 +553,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define MSVCRT$sprintf sprintf
 #define MSVCRT$vsnprintf vsnprintf
 #define MSVCRT$_snwprintf _snwprintf
+#define MSVCRT$wcsncpy_s wcsncpy_s
 #define MSVCRT$wcscpy_s wcscpy_s
 #define MSVCRT$wcslen wcslen
 #define MSVCRT$wcstombs wcstombs
@@ -614,6 +618,8 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define NETAPI32$NetStatisticsGet NetStatisticsGet
 #define NETAPI32$NetApiBufferFree NetApiBufferFree
 #define NETAPI32$NetSessionEnum NetSessionEnum
+#define NETAPI32$NetGetAadJoinInformation NetGetAadJoinInformation
+#define NETAPI32$NetFreeAadJoinInformation NetFreeAadJoinInformation
 #define MPR$WNetOpenEnumW WNetOpenEnumW
 #define MPR$WNetEnumResourceW WNetEnumResourceW
 #define MPR$WNetCloseEnum WNetCloseEnum
