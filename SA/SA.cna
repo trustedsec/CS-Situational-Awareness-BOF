@@ -1663,3 +1663,7 @@ beacon_command_register (
 	"Retrieve Azure AD/Entra ID join information",
 	"Usage: aadjoininfo"
 );
+
+alias get_session_info{
+	beacon_inline_execute($1, readbof($1, "get_session_info"), "go", $null);
+}
