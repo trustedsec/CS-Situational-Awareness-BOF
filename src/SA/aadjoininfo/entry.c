@@ -39,7 +39,8 @@ void GetAadJoinInfo()
 		//
 		// Only get join user info if type is DSREG_DEVICE_JOIN
 		//
-		if (pJoinInfo->joinType == DSREG_DEVICE_JOIN)
+		
+		if (pJoinInfo->joinType == DSREG_DEVICE_JOIN && pJoinInfo->pUserInfo != NULL)
 		{
 			internal_printf("\n====================== Join User Info ======================\n");
 			internal_printf("%-20s: %S\n", "User Email", pJoinInfo->pUserInfo->pszUserEmail);
@@ -62,8 +63,8 @@ void GetAadJoinInfo()
 				}
 			}
 		} else {
-			internal_printf("\n[-] Device not joined to AAD, skipping join user info\n");
-		}
+			internal_printf("\n[-] Join user info was null or host is not device joined\n");
+		}	
 	
 	//
 	// NetGetAadJoinInformation failed 
