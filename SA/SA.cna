@@ -1654,6 +1654,16 @@ beacon_command_register(
 Note: Output from this BOF is compatible with bofhound"
 );
 
+alias aadjoininfo {
+	beacon_inline_execute($1, readbof($1, "aadjoininfo", $null, "T1082"), "go", $null);
+}
+
+beacon_command_register (
+	"aadjoininfo",
+	"Retrieve Azure AD/Entra ID join information",
+	"Usage: aadjoininfo"
+);
+
 alias get_session_info{
 	beacon_inline_execute($1, readbof($1, "get_session_info"), "go", $null);
 }
