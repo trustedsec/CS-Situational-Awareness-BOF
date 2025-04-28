@@ -14,7 +14,6 @@
 #include <wtsapi32.h>
 #include <shlwapi.h>
 #include <ntsecapi.h>
-
 //KERNEL32
 #ifdef BOF
 WINBASEAPI void * WINAPI KERNEL32$VirtualAlloc (LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
@@ -182,8 +181,6 @@ WINBASEAPI DWORD WINAPI NETAPI32$NetWkstaUserEnum(LMSTR servername,DWORD level,L
 WINBASEAPI DWORD WINAPI NETAPI32$NetWkstaGetInfo(LMSTR servername,DWORD level,LPBYTE *bufptr);
 WINBASEAPI DWORD WINAPI NETAPI32$NetStatisticsGet(LMSTR server,LMSTR service,DWORD level,DWORD options,LPBYTE *bufptr);
 WINBASEAPI DWORD WINAPI NETAPI32$NetRemoteTOD(LPCWSTR UncServerName,LPBYTE  *BufferPtr);
-WINBASEAPI DWORD WINAPI NETAPI32$NetGetAadJoinInformation(LPCWSTR pcszTenantId, PDSREG_JOIN_INFO *ppJoinInfo);
-WINBASEAPI VOID WINAPI  NETAPI32$NetFreeAadJoinInformation(PDSREG_JOIN_INFO pJoinInfo);
 
 //mpr
 WINBASEAPI DWORD WINAPI MPR$WNetOpenEnumW(DWORD dwScope, DWORD dwType, DWORD dwUsage, LPNETRESOURCEW lpNetResource, LPHANDLE lphEnum);
