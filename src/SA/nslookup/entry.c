@@ -171,7 +171,7 @@ void query_domain(const char * domainname, unsigned short wType, const char * dn
                             if (i != 15)
                                     internal_printf(".");
                     }
-                    internal_printf("]");
+                    internal_printf("]\n");
             }else if(pdns->wType == DNS_TYPE_SRV){
 
                     internal_printf("SRV %s %s port:%d prior:%d weight:%d\n", pdns->pName, pdns->Data.SRV.pNameTarget, pdns->Data.SRV.wPort, pdns->Data.SRV.wPriority, pdns->Data.SRV.wWeight);
