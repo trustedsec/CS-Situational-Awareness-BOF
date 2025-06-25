@@ -362,9 +362,6 @@ DWORD Reg_EnumKey(const char * hostname, HKEY hivekey, DWORD Arch, const char* k
     } // end While
 
 	END:
-	if(rootkey){
-    	ADVAPI32$RegCloseKey(rootkey);
-	}
     if(currentkeyname != NULL)
         intFree(currentkeyname);
     if(currentvaluename != NULL)
