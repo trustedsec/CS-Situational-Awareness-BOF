@@ -7,8 +7,8 @@
 
 void PrintTimeUTC(const char * prefix, LARGE_INTEGER logonTime)
 {
-    FILETIME ftUtc;
-    SYSTEMTIME stUtc;
+    FILETIME ftUtc = {0};
+    SYSTEMTIME stUtc = {0};
 	if(logonTime.LowPart == 0 && logonTime.HighPart == 0 ||
 	logonTime.LowPart == UINT_MAX && logonTime.HighPart == INT_MAX)
 	{
@@ -59,8 +59,8 @@ const char* LogonTypeToString(SECURITY_LOGON_TYPE type)
 
 void get_logon_data()
 {
-	HANDLE token;
-    DWORD len;
+	HANDLE token = NULL;
+    DWORD len = 0;
 	PSECURITY_LOGON_SESSION_DATA pLogonSessionData = NULL;
 
     if (!ADVAPI32$OpenProcessToken(KERNEL32$GetCurrentProcess(), TOKEN_QUERY, &token)) {
@@ -68,7 +68,7 @@ void get_logon_data()
         goto cleanup;
     }
 
-    TOKEN_STATISTICS stats;
+    TOKEN_STATISTICS stats = {0};
     if (!ADVAPI32$GetTokenInformation(token, TokenStatistics, &stats, sizeof(stats), &len)) {
         BeaconPrintf(CALLBACK_ERROR, "GetTokenInformation failed. Error: %lu\n", KERNEL32$GetLastError());
         goto cleanup;
