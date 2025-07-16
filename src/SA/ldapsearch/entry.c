@@ -511,7 +511,7 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
     }while(stat == LDAP_SUCCESS);
 
     end: 
-    internal_printf("\nretreived %lu results total\n", totalResults);
+    internal_printf("\nretrieved %lu results total\n", totalResults);
     if(pPageHandle)
     {
         searchDone(pLdapConnection, pPageHandle);
