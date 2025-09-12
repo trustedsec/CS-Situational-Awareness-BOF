@@ -37,22 +37,22 @@ void listSharesAdmin( wchar_t *servername)
 
 void listSharesUser( wchar_t *servername)
 {
-	PSHARE_INFO_0 output = NULL, current = NULL;
+	PSHARE_INFO_1 output = NULL, current = NULL;
 	DWORD entries = 0, pos = 0, totalentrieshint = 0; 
 	DWORD resume = 0;
 	NET_API_STATUS stat = 0;
 	//System allocated data automatically, we free it later with NetApiBufferFree Must free even on fail
-   internal_printf("Share: \n");
+   internal_printf("Share:              Remark:\n");
    internal_printf("---------------------%S----------------------------------\n", servername == NULL ? L"(Local)" : servername);
 
 	do{
-		stat = NETAPI32$NetShareEnum(servername, 0, (LPBYTE *) &output, MAX_PREFERRED_LENGTH, &entries, &totalentrieshint, &resume);
+		stat = NETAPI32$NetShareEnum(servername, 1, (LPBYTE *) &output, MAX_PREFERRED_LENGTH, &entries, &totalentrieshint, &resume);
 		if(stat == ERROR_SUCCESS || stat == ERROR_MORE_DATA)
 		{
 			current = output;
 			for(pos = 0; pos < entries; pos++)
 			{
-				internal_printf("%S\n",current->shi0_netname);
+				internal_printf("%-20S%S\n", current->shi1_netname, current->shi1_remark);
 				current++;
 			}
 		}
