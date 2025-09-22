@@ -399,8 +399,8 @@ void ldapSearch(char * ldap_filter, char * ldap_attributes,	ULONG results_count,
 	// Initialise LDAP Session
     // Taken from https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ldap/searching-a-directory
 	//////////////////////////////
-    char * targetdc = (hostname == NULL) ? pdcInfo->DomainControllerAddress + 2 : hostname;
-    BeaconPrintf(CALLBACK_OUTPUT, "Binding to %s", targetdc);
+    char * targetdc = (hostname == NULL) ? pdcInfo->DomainControllerName + 2: hostname;
+    internal_printf("[*] Binding to %s\n", targetdc);
     pLdapConnection = InitialiseLDAPConnection(targetdc, distinguishedName, ldaps);
 
     if(!pLdapConnection)
