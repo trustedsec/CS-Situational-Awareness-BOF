@@ -1673,3 +1673,25 @@ beacon_command_register(
 	"Returns the auth package, logon server, and current session id of the user you are operating as",
 	"Usage: get_session_info"
 );
+
+
+alias sha256 {
+	local('$barch $handle $data $filename $args');
+    if(size(@_) == 2)
+    {
+        $filename = $2;
+    }else
+    {
+        berror($1, "Inavlid usage");
+        berror($1, beacon_command_detail("sha256"));
+        return;
+    }
+    $data = readbof($1, "sha256");
+    $args = bof_pack($1, "z", $filename);
+    beacon_inline_execute($1, $data, "go", $args);
+}
+beacon_command_register(
+	"sha256", 
+	"Returns the SHA-256 hash of the selected file for integirty checks.", 
+	"Usage: sha254 <filename>"
+);
