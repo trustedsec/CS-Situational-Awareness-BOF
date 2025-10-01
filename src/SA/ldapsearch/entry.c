@@ -143,41 +143,54 @@ int Base64encode(char* encoded, const char* string, int len) {
 
 LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName, BOOL ldaps){
 	LDAP* pLdapConnection = NULL;
-
     ULONG result;
     int portNumber = ldaps == TRUE ? 636 : 389;
 
     pLdapConnection = WLDAP32$ldap_init(hostName, portNumber);
 
-    if(ldaps == TRUE){
-
-        ULONG version = LDAP_VERSION3;
-        result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_VERSION, (void*)&version);
-    
-        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SSL, &result);  //LDAP_OPT_SSL
-        if (result == 0){
-            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SSL, LDAP_OPT_ON);
-        }
-
-        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SIGN, &result);  //LDAP_OPT_SIGN
-        if (result == 0){
-            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SIGN, LDAP_OPT_ON);
-        }
-
-        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, &result);  //LDAP_OPT_ENCRYPT
-        if (result == 0){
-            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, LDAP_OPT_ON);
-        }
-
-        WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SERVER_CERTIFICATE, (void*)&ServerCertCallback ); //LDAP_OPT_SERVER_CERTIFICATE
-	}
-    
     if (pLdapConnection == NULL)
     {
-      	BeaconPrintf(CALLBACK_ERROR,"Failed to establish LDAP connection on %d.", portNumber);
+      	BeaconPrintf(CALLBACK_ERROR,"[-] Failed to establish LDAP connection on %d.\n", portNumber);
         return NULL;
     }
-    //WLDAP32$ldap_set_optionA(pLdapConnection, LDAP_OPT_VERSION,&Version );
+
+    // Set LDAP version to 3 (required for many security features)
+    ULONG version = LDAP_VERSION3;
+    result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_VERSION, (void*)&version);
+    if (result != LDAP_SUCCESS) {
+        BeaconPrintf(CALLBACK_ERROR, "[-] Failed to set LDAP version: %lu\n", result);
+    }
+
+    if(ldaps == TRUE){
+        // For LDAPS (port 636), we need SSL
+        result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SSL, LDAP_OPT_ON);
+        if (result != LDAP_SUCCESS) {
+            BeaconPrintf(CALLBACK_ERROR, "[-] Failed to enable SSL: %lu\n", result);
+        }
+
+        // Set the certificate callback for SSL/TLS
+        result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SERVER_CERTIFICATE, (void*)&ServerCertCallback);
+        if (result != LDAP_SUCCESS) {
+            BeaconPrintf(CALLBACK_ERROR, "[-] Failed to set certificate callback: %lu\n", result);
+        }
+    }
+    else {
+        // For regular LDAP (port 389), enable signing and sealing if using LDAP_AUTH_NEGOTIATE
+        // These options need to be set BEFORE binding when using Negotiate auth
+
+        // Enable LDAP signing (integrity)
+        void* value = LDAP_OPT_ON;
+        result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SIGN, &value);
+        if (result != LDAP_SUCCESS) {
+            internal_printf("[!] Warning: Failed to enable LDAP signing: %lu\n", result);
+        }
+
+        // Enable LDAP sealing (encryption) - this provides confidentiality
+        result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, &value);
+        if (result != LDAP_SUCCESS) {
+            internal_printf("[!] Warning: Failed to enable LDAP sealing: %lu\n", result);
+        }
+    }
 
 	//////////////////////////////
 	// Bind to DC
@@ -188,14 +201,27 @@ LDAP* InitialiseLDAPConnection(PCHAR hostName, PCHAR distinguishedName, BOOL lda
                 pLdapConnection,      // Session Handle
                 distinguishedName,    // Domain DN
                 NULL,                 // Credential structure
-                LDAP_AUTH_NEGOTIATE); // Auth mode
+                LDAP_AUTH_NEGOTIATE); // Auth mode - uses current user credentials with Kerberos/NTLM
 
     if(lRtn != LDAP_SUCCESS)
     {
-    	BeaconPrintf(CALLBACK_ERROR, "Bind Failed: %lu", lRtn);
+        // Provide more detailed error information
+        if (lRtn == LDAP_STRONG_AUTH_REQUIRED) {
+            BeaconPrintf(CALLBACK_ERROR, "[-] Bind Failed: Strong authentication required (LDAP signing may be enforced by server)\n");
+        } else if (lRtn == LDAP_INVALID_CREDENTIALS) {
+            BeaconPrintf(CALLBACK_ERROR, "[-] Bind Failed: Invalid credentials\n");
+        } else if (lRtn == LDAP_UNWILLING_TO_PERFORM) {
+            BeaconPrintf(CALLBACK_ERROR, "[-] Bind Failed: Server unwilling to perform operation (check security requirements)\n");
+        } else {
+            BeaconPrintf(CALLBACK_ERROR, "[-] Bind Failed with error: %lu\n", lRtn);
+        }
         WLDAP32$ldap_unbind(pLdapConnection);
-        pLdapConnection = NULL; 
+        pLdapConnection = NULL;
     }
+    else {
+        internal_printf("[+] Successfully bound to LDAP server\n");
+    }
+
     return pLdapConnection;
 }
 
