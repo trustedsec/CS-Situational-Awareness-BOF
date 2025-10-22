@@ -1693,5 +1693,5 @@ alias sha256 {
 beacon_command_register(
 	"sha256", 
 	"Returns the SHA-256 hash of the selected file for integirty checks.", 
-	"Usage: sha254 <filename>"
+	"Usage: sha256 <filename>"
 );

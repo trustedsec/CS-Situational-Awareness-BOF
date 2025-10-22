@@ -15,7 +15,7 @@ BOOL SHAFile(LPCSTR lpszFile) {
     BYTE		bSHA[32]; // 32 Bytes, 256 bits
 
 	// Open existing file, if it does not exist the call will fail and alert user.
-    hFile = KERNEL32$CreateFileA(lpszFile, FILE_READ_ACCESS, 0, 0, OPEN_EXISTING, 0, 0);
+    hFile = KERNEL32$CreateFileA(lpszFile, FILE_READ_ACCESS, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
     if (hFile == INVALID_HANDLE_VALUE) {
         BeaconPrintf(CALLBACK_ERROR, "Error: Could not find file \"%s\"", lpszFile);
         return(FALSE);
