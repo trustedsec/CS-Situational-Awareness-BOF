@@ -71,6 +71,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |sc_query| sc_query [opt: service name] [opt: server]| sc query implementation in BOF|
 |schtasksenum| schtasksenum [opt: server]| Enumerate scheduled tasks on the local or remote computer|
 |schtasksquery| schtasksquery [opt: server] [taskpath]| Query the given task on the local or remote computer|
+|sha256 | sha256 [filename] | Hash filename using sha256 |
 |tasklist| tasklist [opt: server]| List running processes including PID, PPID, and ComandLine (uses wmi)|
 |uptime| uptime| List system boot time and how long it has been running|
 |useridletime| useridletime| Shows how long the user as been idle, displayed in seconds, minutes, hours and days.|
