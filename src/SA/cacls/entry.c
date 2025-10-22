@@ -291,7 +291,7 @@ BuildSidString:
 PrintSpecialAccess:
                                 internal_printf("%s", IDS_SPECIAL_ACCESS);
                                 /* print the special access rights */
-                                x = 26;
+                                x = 25;
                                 while (x >= 0)
                                 {
                                     if ((Ace->Mask & AccessRights[x].Access) == AccessRights[x].Access)

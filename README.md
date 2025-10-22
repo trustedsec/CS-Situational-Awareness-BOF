@@ -28,6 +28,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |enumLocalSessions| enumLocalSessions| Enumerate currently attached user sessions both local and over RDP|
 |env| env| List process environment variables|
 |findLoadedModule| findLoadedModule [modulepart] [opt:procnamepart]| Find what processes \*modulepart\* are loaded into, optionally searching just \*procnamepart\*|
+|get_dpapi_system| get_dpapi_system | Get the DPAPI_SYSTEM key and bootkey |
 |get_password_policy| get_password_policy [hostname]| Get target server or domain's configured password policy and lockouts|
 |get_session_info| get_session_info | prints out information related to the current users logon session |
 |ipconfig| ipconfig| List IPv4 address, hostname, and DNS server|
