@@ -294,6 +294,16 @@ beacon_command_register(
 "Synopsis: ipconfig \n\nLists out adapters, system hostname and configured dns server");
 
 
+alias get_dpapi_system {
+
+	beacon_inline_execute($1, readbof($1, "get_dpapi_system"), "go", $null);
+}
+
+beacon_command_register(
+"get_dpapi_system", 
+"Print DPAPI_SYSTEM and boot key if able", 
+"Synopsis: get_dpapi_system \n\nPrint DPAPI_SYSTEM and boot key if able");
+
 alias arp {
 	beacon_inline_execute($1,readbof($1,'arp', $null, "T1016, T1018"),"go",$null);
 }
