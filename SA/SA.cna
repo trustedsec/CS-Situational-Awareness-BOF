@@ -294,6 +294,16 @@ beacon_command_register(
 "Synopsis: ipconfig \n\nLists out adapters, system hostname and configured dns server");
 
 
+alias get_dpapi_system {
+
+	beacon_inline_execute($1, readbof($1, "get_dpapi_system"), "go", $null);
+}
+
+beacon_command_register(
+"get_dpapi_system", 
+"Print DPAPI_SYSTEM and boot key if able", 
+"Synopsis: get_dpapi_system \n\nPrint DPAPI_SYSTEM and boot key if able");
+
 alias arp {
 	beacon_inline_execute($1,readbof($1,'arp', $null, "T1016, T1018"),"go",$null);
 }
@@ -1702,4 +1712,24 @@ Examples:
 
 Note: This command will generate Event ID 2889 on the target DC when LDAP
       signing is required but not used."
+
+alias sha256 {
+	local('$barch $handle $data $filename $args');
+    if(size(@_) == 2)
+    {
+        $filename = $2;
+    }else
+    {
+        berror($1, "Inavlid usage");
+        berror($1, beacon_command_detail("sha256"));
+        return;
+    }
+    $data = readbof($1, "sha256");
+    $args = bof_pack($1, "z", $filename);
+    beacon_inline_execute($1, $data, "go", $args);
+}
+beacon_command_register(
+	"sha256", 
+	"Returns the SHA-256 hash of the selected file for integirty checks.", 
+	"Usage: sha256 <filename>"
 );
