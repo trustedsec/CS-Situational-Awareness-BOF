@@ -32,6 +32,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |get_session_info| get_session_info | prints out information related to the current users logon session |
 |ipconfig| ipconfig| List IPv4 address, hostname, and DNS server|
 |ldapsearch| ldapsearch <query> [--attributes] [--count] [--scope] [--hostname] [--dn] [--ldaps] | Execute LDAP searches (NOTE: specify *,ntsecuritydescriptor as attribute parameter if you want all attributes + base64 encoded ACL of the objects, this can then be resolved using BOFHound. Could possibly break pagination, although everything seemed fine during testing.)|
+|ldapsecuritycheck| ldapsecuritycheck [opt:dc]| Check LDAP signing and LDAPS channel binding requirements on domain controllers. Performs authentication tests to detect security configurations. Auto-discovers the DC when omitted and derives the LDAP SPN automatically. Generates Event ID 2889 when LDAP signing is required but not used.|
 |listdns| listdns| List DNS cache entries. Attempt to query and resolve each|
 |list_firewall_rules| list_firewall_rules| List Windows firewall rules|
 |listmods| listmods [opt: pid]| List process modules (DLL). Target current process if PID is empty. Complement to driversigs to determine if our process was injected by AV/EDR|

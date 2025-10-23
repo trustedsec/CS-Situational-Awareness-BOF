@@ -121,6 +121,7 @@ WINBASEAPI errno_t __cdecl MSVCRT$wcscpy_s(wchar_t *_Dst, rsize_t _DstSize, cons
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *_Str);
 WINBASEAPI size_t __cdecl MSVCRT$wcstombs(char * __restrict__ _Dest,const wchar_t * __restrict__ _Source,size_t _MaxCount);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcscmp(const wchar_t *_lhs,const wchar_t *_rhs);
+DECLSPEC_IMPORT int WINAPI MSVCRT$swprintf_s(wchar_t*, size_t, const wchar_t*, ...);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcstok(wchar_t * __restrict__ _Str,const wchar_t * __restrict__ _Delim);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcstok_s(wchar_t *_Str,const wchar_t *_Delim,wchar_t **_Context);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcsstr(const wchar_t *_Str,const wchar_t *_SubStr);
@@ -210,6 +211,8 @@ WINBASEAPI WINBOOL WINAPI USER32$GetLastInputInfo (PLASTINPUTINFO plii);
 WINBASEAPI BOOLEAN WINAPI SECUR32$GetUserNameExA (int NameFormat, LPSTR lpNameBuffer, PULONG nSize);
 WINBASEAPI NTSTATUS NTAPI SECUR32$LsaGetLogonSessionData(PLUID LogonId,PSECURITY_LOGON_SESSION_DATA *ppLogonSessionData);
 WINBASEAPI NTSTATUS NTAPI SECUR32$LsaFreeReturnBuffer (PVOID Buffer);
+DECLSPEC_IMPORT SECURITY_STATUS WINAPI SECUR32$AcquireCredentialsHandleW(SEC_WCHAR*, SEC_WCHAR*, ULONG, PLUID, PVOID, SEC_GET_KEY_FN, PVOID, PCredHandle, PTimeStamp);
+DECLSPEC_IMPORT SECURITY_STATUS WINAPI SECUR32$InitializeSecurityContextW(PCredHandle, PCtxtHandle, SEC_WCHAR*, ULONG, ULONG, ULONG, PSecBufferDesc, ULONG, PCtxtHandle, PSecBufferDesc, PULONG, PTimeStamp);
 
 //shlwapi
 WINBASEAPI LPSTR WINAPI SHLWAPI$StrStrIA(LPCSTR lpFirst,LPCSTR lpSrch);
@@ -433,6 +436,12 @@ WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind(LDAP*);
 WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_unbind_s(LDAP*);
 WINLDAPAPI ULONG LDAPAPI WLDAP32$ldap_msgfree(LDAPMessage*);
 
+DECLSPEC_IMPORT LDAP *LDAPAPI WLDAP32$ldap_initW(const PWSTR HostName, ULONG PortNumber);
+DECLSPEC_IMPORT ULONG LDAPAPI WLDAP32$ldap_connect(LDAP *ld, LDAP_TIMEVAL *timeout);
+DECLSPEC_IMPORT ULONG LDAPAPI WLDAP32$ldap_set_optionW(LDAP *ld, int option, const void *invalue);
+DECLSPEC_IMPORT ULONG LDAPAPI WLDAP32$ldap_get_optionW(LDAP *ld, int option,  void *invalue);
+DECLSPEC_IMPORT ULONG LDAPAPI WLDAP32$ldap_sasl_bind_sW(LDAP *ld, const PWCHAR dn, const PWCHAR mechanism, const BERVAL *cred, PLDAPControlW *serverctrls, PLDAPControlW *clientctrls, PBERVAL *serverdata);
+
 //RPCRT4
 RPCRTAPI RPC_STATUS RPC_ENTRY RPCRT4$UuidToStringA(UUID *Uuid,RPC_CSTR *StringUuid);
 RPCRTAPI RPC_STATUS RPC_ENTRY RPCRT4$RpcStringFreeA(RPC_CSTR *String);
@@ -581,6 +590,7 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define MSVCRT$strtok strtok
 #define MSVCRT$strtok_s strtok_s
 #define MSVCRT$strtoul strtoul
+#define MSVCRT$swprintf_s swprintf_s
 #define DNSAPI$DnsQuery_A DnsQuery_A
 #define DNSAPI$DnsFree DnsFree
 #define WSOCK32$inet_addr inet_addr
@@ -639,6 +649,8 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define USER32$EnumChildWindows EnumChildWindows
 #define USER32$GetLastInputInfo GetLastInputInfo
 #define SECUR32$GetUserNameExA  GetUserNameExA 
+#define SECUR32$AcquireCredentialsHandleW AcquireCredentialsHandleW
+#define SECUR32$InitializeSecurityContextW InitializeSecurityContextW
 #define SHLWAPI$StrStrIA StrStrIA
 #define SHLWAPI$SHFormatDateTimeA SHFormatDateTimeA
 #define ADVAPI32$OpenProcessToken  OpenProcessToken 
@@ -804,6 +816,11 @@ DECLSPEC_IMPORT WINBOOL WINAPI VERSION$VerQueryValueA(LPCVOID pBlock, LPCSTR lpS
 #define WLDAP32$ldap_unbind ldap_unbind
 #define WLDAP32$ldap_unbind_s ldap_unbind_s
 #define WLDAP32$ldap_msgfree ldap_msgfree
+#define WLDAP32$ldap_initW ldap_initW
+#define WLDAP32$ldap_connect ldap_connect
+#define WLDAP32$ldap_set_optionW ldap_set_optionW
+#define WLDAP32$ldap_get_optionW ldap_get_optionW
+#define WLDAP32$ldap_sasl_bind_sW ldap_sasl_bind_sW
 #define RPCRT4$UuidToStringA UuidToStringA
 #define RPCRT4$RpcStringFreeA RpcStringFreeA
 #define PSAPI$EnumProcessModulesEx EnumProcessModulesEx
