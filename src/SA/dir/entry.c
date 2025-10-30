@@ -3,6 +3,49 @@
 #include "base.c"
 #include "queue.c"
 
+char* longPathToShortPath(char *path) {
+    char *shortpath = NULL;
+    DWORD shortpathlen = 0;
+	char *realpath = NULL;
+	DWORD pathlen = MSVCRT$strlen(path);
+
+	// we have to try to strip the wildcards off so that GetShortPathNameA handles it correctly
+	realpath = intAlloc(pathlen);
+	if( *(path + pathlen - 1) == '*' ) {
+		MSVCRT$strncpy(realpath, path, pathlen - 2);
+		realpath[pathlen - 2 ] = '\0';
+	} else {
+		realpath = path;
+	}
+
+	// Get the short path name length
+    shortpathlen = KERNEL32$GetShortPathNameA(realpath, NULL, 0);
+    if (shortpathlen == 0) {
+		DWORD err = KERNEL32$GetLastError();
+        BeaconPrintf(CALLBACK_ERROR, "Error getting short path name length: %lu (%s) starting with %s", err, realpath, path);
+        return NULL;
+    }
+	// allocate space for the short path
+    shortpath =  intAlloc(shortpathlen);
+
+    // Now simply call again using same long path and size
+    shortpathlen = KERNEL32$GetShortPathNameA(realpath, shortpath, shortpathlen);
+    if (shortpathlen == 0) {
+        BeaconPrintf(CALLBACK_ERROR, "Error convert %s to a short string: ", realpath);
+		intFree(shortpath);
+		intFree(realpath);
+		return NULL;
+    }
+
+	intFree(realpath);
+	if(MSVCRT$strlen(shortpath) == 0) { 
+		intFree(shortpath);
+		return NULL; 
+	}
+
+	return shortpath;
+}
+
 void listDir(char *path, unsigned short subdirs) {
 
 	WIN32_FIND_DATA fd = {0};
@@ -16,6 +59,9 @@ void listDir(char *path, unsigned short subdirs) {
 	char * curitem;
 	char * nextPath;
 	int pathlen = MSVCRT$strlen(path);
+    char *shortpath = NULL;
+
+	shortpath = longPathToShortPath(path);	 // attempt before path is modified for wildcards
 
 	// Per MSDN: "On network shares ... you cannot use an lpFileName that points to the share itself; for example, "\\Server\Share" is not valid."
 	// Workaround: If we're using a UNC Path, there'd better be at least 4 backslashes
@@ -50,7 +96,11 @@ void listDir(char *path, unsigned short subdirs) {
 		return;
 	}
 
-	internal_printf("Contents of %s:\n", path);
+	if(shortpath != NULL ) { 
+		internal_printf("Contents of %s (%s):\n", path, shortpath);
+	} else {
+		internal_printf("Contents of %s:\n", path);
+	}
 	do {
 		// Get file write time
 		SYSTEMTIME stUTC, stLocal;
@@ -63,10 +113,15 @@ void listDir(char *path, unsigned short subdirs) {
 		// File size (or ujust print dir)
 		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
-				internal_printf("%16s %s\n", "<junction>", fd.cFileName);
+				internal_printf("%16s %s", "<junction>", fd.cFileName);
+
 			} else {
-				internal_printf("%16s %s\n", "<dir>", fd.cFileName);
+				internal_printf("%16s %s", "<dir>", fd.cFileName);
 			}
+			if(MSVCRT$strlen(fd.cAlternateFileName) != 0 ) {
+				internal_printf(" (%s)", fd.cAlternateFileName);
+			}
+			internal_printf("\n");
 			nDirs++;
 			// ignore . and ..
 			if (MSVCRT$strcmp(fd.cFileName, ".") == 0 || MSVCRT$strcmp(fd.cFileName, "..") == 0) {
@@ -82,7 +137,11 @@ void listDir(char *path, unsigned short subdirs) {
 		} else {
 			fileSize.LowPart = fd.nFileSizeLow;
 			fileSize.HighPart = fd.nFileSizeHigh;
-			internal_printf("%16lld %s\n", fileSize.QuadPart, fd.cFileName);
+			internal_printf("%16lld %s", fileSize.QuadPart, fd.cFileName);
+			if(MSVCRT$strlen(fd.cAlternateFileName) != 0 ) {
+				internal_printf(" (%s)", fd.cAlternateFileName);
+			}
+			internal_printf("\n");
 
 			nFiles++;
 			totalFileSize += fileSize.QuadPart;
