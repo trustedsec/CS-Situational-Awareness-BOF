@@ -1,0 +1,39 @@
+name: Build and Release Beacon Object Files
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: freefirex2/ts_bof_builder:latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build beacon object files
+        run: |
+          cp SA/SA.cna .
+          rm -rf SA/
+          /bin/bash make_all.sh
+          cp SA.cna SA/SA.cna
+
+      - name: Create release
+        id: release_name
+        run: |
+          zip -r SA.zip SA
+          echo "release_name=$(date -u '+%Y-%m-%d_%H-%M')" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: Build_${{ env.release_name }}
+          name: "Automated build ${{ env.release_name }}"
+          files: SA.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
