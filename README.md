@@ -89,7 +89,7 @@ The driversigs codebase comes from https://gist.github.com/jthuraisamy/4c4c751df
 Thanks all of the contributors listed under contributors. Each of you have contributed something meaningful to this repository and dealt with me and my review processes. I appreciate each and every one of you for teaching me and helping make this BOF repository the best it can be!
 
 ##### Compiler used
-Precompiled BOF's are provided in this project and are compiled using a recent version of Mingw-w64 typically installed from Brew.
+BOF's are built against [freefirex2/ts_bof_builder:latest](https://hub.docker.com/r/freefirex2/ts_bof_builder)
 
 ## System Support
 These BOF's are written with support for Windows Vista+ in mind. A new branch called [winxp_2003](https://github.com/trustedsec/CS-Situational-Awareness-BOF/tree/winxp_2003) has been created if you need to use the main set of BOF's on those older systems. This branch will remain in a less supported state. It will be functional, but not updated with every new push / feature that we may add.
