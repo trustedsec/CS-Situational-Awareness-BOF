@@ -1702,6 +1702,27 @@ alias sha256 {
 }
 beacon_command_register(
 	"sha256", 
-	"Returns the SHA-256 hash of the selected file for integirty checks.", 
+	"Returns the SHA-256 hash of the selected file for integrity checks.", 
 	"Usage: sha256 <filename>"
+);
+
+alias md5 {
+	local('$barch $handle $data $filename $args');
+    if(size(@_) == 2)
+    {
+        $filename = $2;
+    }else
+    {
+        berror($1, "Inavlid usage");
+        berror($1, beacon_command_detail("md5"));
+        return;
+    }
+    $data = readbof($1, "md5");
+    $args = bof_pack($1, "z", $filename);
+    beacon_inline_execute($1, $data, "go", $args);
+}
+beacon_command_register(
+	"md5", 
+	"Returns the md5 hash of the selected file for integrity checks.", 
+	"Usage: md5 <filename>"
 );
