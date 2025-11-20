@@ -57,6 +57,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |netuse_list| netuse_list [opt:target]| List all bound share resources or info about target local resource|
 |netview| netview| List reachable computers in the current domain|
 |nslookup| nslookup [hostname] [opt:dns server] [opt: record type]| Make a DNS query.<br/>  DNS server is the server you want to query (do not specify or 0 for default) <br/>record type is something like A, AAAA, or ANY. Some situations are limited due to observed crashes|
+| md5 | md5 [filename] | Hash filename using md5 |
 |probe| probe [host] [port]| Check if a specific port is open|
 |regsession| regsession [opt: hostname]| Return logged on user SIDs by enumerating HKEY_USERS. BOFHound compatible|
 |reg_query| [opt:hostname] [hive] [path] [opt: value to query]| Query a registry value or enumerate a single key|
