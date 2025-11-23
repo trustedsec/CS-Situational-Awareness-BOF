@@ -1726,3 +1726,24 @@ beacon_command_register(
 	"Returns the md5 hash of the selected file for integrity checks.", 
 	"Usage: md5 <filename>"
 );
+
+alias sha1 {
+	local('$barch $handle $data $filename $args');
+    if(size(@_) == 2)
+    {
+        $filename = $2;
+    }else
+    {
+        berror($1, "Inavlid usage");
+        berror($1, beacon_command_detail("sha1"));
+        return;
+    }
+    $data = readbof($1, "sha1");
+    $args = bof_pack($1, "z", $filename);
+    beacon_inline_execute($1, $data, "go", $args);
+}
+beacon_command_register(
+	"sha1", 
+	"Returns the sha1 hash of the selected file for integrity checks.", 
+	"Usage: sha1 <filename>"
+);
