@@ -12,5 +12,4 @@ HRESULT _adcs_enum_ca_permissions(PSECURITY_DESCRIPTOR pSD);
 HRESULT _adcs_enum_cert_type(HCERTTYPE hCertType);
 HRESULT _adcs_enum_cert_type_permissions(PSECURITY_DESCRIPTOR pSD);
 
-HRESULT adcs_enum();
-
+HRESULT adcs_enum(wchar_t* domain);
