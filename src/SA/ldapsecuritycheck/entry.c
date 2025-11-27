@@ -7,14 +7,25 @@
 #include "../../common/bofdefs.h"
 
 VERIFYSERVERCERT ServerCertCallback;
-BOOLEAN _cdecl ServerCertCallback (PLDAP Connection, PCCERT_CONTEXT pServerCert)
-{
+BOOLEAN _cdecl ServerCertCallback(PLDAP Connection, PCCERT_CONTEXT pServerCert) {
 	return TRUE;
 }
 
-BOOL checkLDAP(wchar_t* dc, wchar_t* spn, BOOL ssl)
-{
+BOOL checkLDAP(wchar_t* dc, wchar_t* spn, BOOL ssl) {
+	// Track what needs cleanup
 	CredHandle hCredential;
+	BOOL credHandleAcquired = FALSE;
+	BOOL contextInitialized = FALSE;
+	LDAP* pLdapConnection = NULL;
+	struct berval* servresp = NULL;
+	SecBuffer secbufPointer = { 0, SECBUFFER_TOKEN, NULL };
+	SecBufferDesc output = { SECBUFFER_VERSION, 1, &secbufPointer };
+	SecBuffer secbufPointer2 = { 0, SECBUFFER_TOKEN, NULL };  // Fixed: separate buffer for output2
+	SecBufferDesc output2 = { SECBUFFER_VERSION, 1, &secbufPointer2 };  // Fixed: points to secbufPointer2
+	CtxtHandle newContext;
+	BOOL retVal = FALSE;
+
+	// Acquire credentials handle
 	TimeStamp tsExpiry;
 	SECURITY_STATUS getHandle = SECUR32$AcquireCredentialsHandleW(
 		NULL,
@@ -28,80 +39,66 @@ BOOL checkLDAP(wchar_t* dc, wchar_t* spn, BOOL ssl)
 		&tsExpiry
 	);
 
-	if (getHandle != SEC_E_OK)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "[-] AcquireCredentialsHandleW failed: %lu\n", getHandle);
+	if (getHandle != SEC_E_OK) {
+		BeaconPrintf(CALLBACK_ERROR, "[-] AcquireCredentialsHandleW failed: %d\n", getHandle);  // Fixed: %d instead of %lu
 		return FALSE;
 	}
+	credHandleAcquired = TRUE;  // Mark for cleanup
 
-	//ldap
+	// Initialize LDAP connection
 	ULONG result;
-	LDAP* pLdapConnection = NULL;
-
-	if(ssl == TRUE){
+	if (ssl == TRUE) {
 		pLdapConnection = WLDAP32$ldap_initW(dc, 636);
-	}else{
+	}
+	else {
 		pLdapConnection = WLDAP32$ldap_initW(dc, 389);
 	}
-	if (pLdapConnection == NULL)
-	{
+
+	if (pLdapConnection == NULL) {
 		BeaconPrintf(CALLBACK_ERROR, "[-] Failed to establish LDAP connection");
-		return FALSE;
+		goto cleanup;  // Fixed: use goto instead of return
 	}
 
 	const int version = LDAP_VERSION3;
 	result = WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_VERSION, (void*)&version);
 
-	if(ssl == TRUE){
-        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SSL, &result);  //LDAP_OPT_SSL
-        if (result == 0)
-            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SSL, LDAP_OPT_ON);
+	if (ssl == TRUE) {
+		WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SSL, &result);
+		if (result == 0)
+			WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SSL, LDAP_OPT_ON);
 
-        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SIGN, &result);  //LDAP_OPT_SIGN
-        if (result == 0)
-            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SIGN, LDAP_OPT_ON);
+		WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_SIGN, &result);
+		if (result == 0)
+			WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SIGN, LDAP_OPT_ON);
 
-        WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, &result);  //LDAP_OPT_ENCRYPT
-        if (result == 0)
-            WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, LDAP_OPT_ON);
+		WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, &result);
+		if (result == 0)
+			WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_ENCRYPT, LDAP_OPT_ON);
 
-        WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SERVER_CERTIFICATE, (void*)&ServerCertCallback ); //LDAP_OPT_SERVER_CERTIFICATE
+		WLDAP32$ldap_set_optionW(pLdapConnection, LDAP_OPT_SERVER_CERTIFICATE, (void*)&ServerCertCallback);
 	}
 
 	result = WLDAP32$ldap_connect(pLdapConnection, NULL);
-	if (result != LDAP_SUCCESS)
-	{
-		BeaconPrintf(CALLBACK_ERROR, "[-] ldap_connect failed:");
-		return FALSE;
+	if (result != LDAP_SUCCESS) {
+		BeaconPrintf(CALLBACK_ERROR, "[-] ldap_connect failed: %lu", result);
+		goto cleanup;  // Fixed: use goto instead of return
 	}
 
 	ULONG res;
-	struct berval* servresp = NULL;
-
-	SecBufferDesc InBuffDesc;
-	SecBuffer InSecBuff;
-
 	SECURITY_STATUS initSecurity;
-	CtxtHandle newContext;
-
-	SecBuffer secbufPointer = { 0, SECBUFFER_TOKEN, NULL };
-	SecBufferDesc output = { SECBUFFER_VERSION, 1, &secbufPointer };
-
-	SecBuffer secbufPointer3 = { 0, SECBUFFER_TOKEN, NULL };
-	SecBufferDesc output2 = { SECBUFFER_VERSION, 1, &secbufPointer };
-
 	ULONG contextAttr;
 	TimeStamp expiry;
-
 	PSecBuffer ticket;
 	int count = 0;
-	//loop
+
+	// Main authentication loop
 	do {
-		if(count > 5){
+		if (count > 5) {
 			BeaconPrintf(CALLBACK_ERROR, "[-] stuck in loop");
 			break;
 		}
 		count++;
+
 		if (servresp == NULL) {
 			initSecurity = SECUR32$InitializeSecurityContextW(
 				&hCredential,
@@ -117,39 +114,57 @@ BOOL checkLDAP(wchar_t* dc, wchar_t* spn, BOOL ssl)
 				&contextAttr,
 				&expiry);
 
-			ticket = output.pBuffers;
-			//BeaconPrintf(CALLBACK_OUTPUT, "[-] size : %d\n", (DWORD)ticket->cbBuffer);
-
-			if (ticket->pvBuffer == NULL) {
-				BeaconPrintf(CALLBACK_ERROR, "[-] InitializeSecurityContextW failed: %S\n", initSecurity);
-				return FALSE;
+			// Fixed: Check return value for errors
+			if (initSecurity != SEC_E_OK &&
+				initSecurity != SEC_I_CONTINUE_NEEDED &&
+				initSecurity != SEC_I_COMPLETE_NEEDED &&
+				initSecurity != SEC_I_COMPLETE_AND_CONTINUE) {
+				BeaconPrintf(CALLBACK_ERROR, "[-] InitializeSecurityContextW failed: 0x%08x\n", initSecurity);
+				goto cleanup;
 			}
 
+			ticket = output.pBuffers;
+
+			// Fixed: Check ticket is not NULL before dereferencing
+			if (ticket == NULL || ticket->pvBuffer == NULL) {
+				BeaconPrintf(CALLBACK_ERROR, "[-] InitializeSecurityContextW returned no token: %d\n", initSecurity);  // Fixed: %d
+				goto cleanup;
+			}
+			contextInitialized = TRUE;  // Mark for cleanup
 		}
 		else {
-			SecBuffer secbufPointer2 = { servresp->bv_len, SECBUFFER_TOKEN, servresp->bv_val };
-			SecBufferDesc input = { SECBUFFER_VERSION, 1, &secbufPointer2 };
+			SecBuffer serverResponseToken = { servresp->bv_len, SECBUFFER_TOKEN, servresp->bv_val };
+			SecBufferDesc input = { SECBUFFER_VERSION, 1, &serverResponseToken };
 
 			initSecurity = SECUR32$InitializeSecurityContextW(
 				&hCredential,
-				&newContext, //pass cred handle
+				&newContext,
 				(SEC_WCHAR*)spn,
 				ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_MUTUAL_AUTH | ISC_REQ_DELEGATE,
 				0,
 				SECURITY_NATIVE_DREP,
-				&input, //pass Sec Buffer
+				&input,
 				0,
 				&newContext,
 				&output2,
 				&contextAttr,
 				&expiry);
 
-			ticket = output2.pBuffers;
-			//BeaconPrintf(CALLBACK_OUTPUT, "[-] size : %d\n", (DWORD)ticket->cbBuffer);
+			// Fixed: Check return value for errors
+			if (initSecurity != SEC_E_OK &&
+				initSecurity != SEC_I_CONTINUE_NEEDED &&
+				initSecurity != SEC_I_COMPLETE_NEEDED &&
+				initSecurity != SEC_I_COMPLETE_AND_CONTINUE) {
+				BeaconPrintf(CALLBACK_ERROR, "[-] InitializeSecurityContextW failed: 0x%08x\n", initSecurity);
+				goto cleanup;
+			}
 
-			if (ticket->pvBuffer == NULL) {
-				BeaconPrintf(CALLBACK_ERROR, "[-] InitializeSecurityContextW failed: %S\n", initSecurity);
-				return FALSE;
+			ticket = output2.pBuffers;
+
+			// Fixed: Check ticket is not NULL before dereferencing
+			if (ticket == NULL || ticket->pvBuffer == NULL) {
+				BeaconPrintf(CALLBACK_ERROR, "[-] InitializeSecurityContextW returned no token: %d\n", initSecurity);  // Fixed: %d
+				goto cleanup;
 			}
 		}
 
@@ -157,80 +172,100 @@ BOOL checkLDAP(wchar_t* dc, wchar_t* spn, BOOL ssl)
 		cred.bv_len = ticket->cbBuffer;
 		cred.bv_val = (char*)ticket->pvBuffer;
 
-		//connect
+		// Perform SASL bind
 		WLDAP32$ldap_sasl_bind_sW(
-			pLdapConnection, // Session Handle
-			L"",    // Domain DN
-			L"GSSAPI", //auth type
-			&cred, //auth
-			NULL, //ctrl
-			NULL,  //ctrl
-			&servresp); // response
+			pLdapConnection,
+			L"",
+			L"GSSAPI",
+			&cred,
+			NULL,
+			NULL,
+			&servresp);
 		WLDAP32$ldap_get_optionW(pLdapConnection, LDAP_OPT_ERROR_NUMBER, &res);
 
-		// take token from ldap_sasl_bind_sW
-		if(servresp->bv_val != NULL){
-			output.pBuffers->cbBuffer = servresp->bv_len;
-			output.pBuffers->pvBuffer = servresp->bv_val;
-		}else{
+		// Check for response token
+		if (servresp == NULL || servresp->bv_val == NULL) {
 			BeaconPrintf(CALLBACK_ERROR, "[-] no token back from ldap_sasl_bind_sW");
-			return FALSE;
+			goto cleanup;
 		}
 
-		//BeaconPrintf(CALLBACK_OUTPUT, "ldap_sasl_bind: %D", result);
-		//BeaconPrintf(CALLBACK_OUTPUT, "LDAP_OPT_ERROR_NUMBER: %d\n", res);
-
-		if(ssl == TRUE){
-			if (res == LDAP_INVALID_CREDENTIALS)
-			{
+		// Check results based on connection type
+		if (ssl == TRUE) {
+			if (res == LDAP_INVALID_CREDENTIALS) {
 				BeaconPrintf(CALLBACK_OUTPUT, "[-] LDAPS://%S REQUIRES channel binding (LDAP_INVALID_CREDENTIALS)\n", dc ? dc : L"target");
-				WLDAP32$ldap_unbind_s(pLdapConnection);
-				return TRUE;
+				retVal = TRUE;
+				goto cleanup;
 			}
-			else if (res == LDAP_SUCCESS)
-			{
+			else if (res == LDAP_SUCCESS) {
 				BeaconPrintf(CALLBACK_OUTPUT, "[+] LDAPS://%S does NOT require channel binding (bind succeeded)\n", dc ? dc : L"target");
-				WLDAP32$ldap_unbind_s(pLdapConnection);
-				return FALSE;
+				retVal = FALSE;
+				goto cleanup;
 			}
-			else if (res == LDAP_SASL_BIND_IN_PROGRESS)
-			{
+			else if (res == LDAP_SASL_BIND_IN_PROGRESS) {
 				continue;
 			}
-			else{
+			else {
 				BeaconPrintf(CALLBACK_ERROR, "[-] LDAPS unknown issue (error: %lu)\n", res);
-				return FALSE;
+				goto cleanup;
 			}
-		}else{
-			if (res == LDAP_STRONG_AUTH_REQUIRED)
-			{
+		}
+		else {
+			if (res == LDAP_STRONG_AUTH_REQUIRED) {
 				BeaconPrintf(CALLBACK_OUTPUT, "[-] LDAP://%S REQUIRES signing\n", dc ? dc : L"target");
-				WLDAP32$ldap_unbind_s(pLdapConnection);
-				return TRUE;
+				retVal = TRUE;
+				goto cleanup;
 			}
-			else if (res == LDAP_SUCCESS)
-			{
+			else if (res == LDAP_SUCCESS) {
 				BeaconPrintf(CALLBACK_OUTPUT, "[+] LDAP://%S does NOT require signing\n", dc ? dc : L"target");
-				WLDAP32$ldap_unbind_s(pLdapConnection);
-				return FALSE;
+				retVal = FALSE;
+				goto cleanup;
 			}
-			else if (res == LDAP_SASL_BIND_IN_PROGRESS)
-			{
+			else if (res == LDAP_SASL_BIND_IN_PROGRESS) {
 				continue;
 			}
-			else{
+			else {
 				BeaconPrintf(CALLBACK_ERROR, "[-] LDAP unknown issue (error: %lu)\n", res);
-				return FALSE;
+				goto cleanup;
 			}
 		}
 
 	} while (res == LDAP_SASL_BIND_IN_PROGRESS);
 
-	return TRUE;
+	retVal = TRUE;
+
+cleanup:
+	// Fixed: Free servresp if allocated
+	if (servresp) {
+		WLDAP32$ber_bvfree(servresp);
+	}
+
+	// Fixed: Delete security context if initialized
+	if (contextInitialized) {
+		SECUR32$DeleteSecurityContext(&newContext);
+	}
+
+	// Fixed: Free buffers allocated by InitializeSecurityContextW
+	if (output.pBuffers && output.pBuffers->pvBuffer) {
+		SECUR32$FreeContextBuffer(output.pBuffers->pvBuffer);
+	}
+	if (output2.pBuffers && output2.pBuffers->pvBuffer) {
+		SECUR32$FreeContextBuffer(output2.pBuffers->pvBuffer);
+	}
+
+	// Fixed: Unbind LDAP connection
+	if (pLdapConnection) {
+		WLDAP32$ldap_unbind_s(pLdapConnection);
+	}
+
+	// Fixed: Free credentials handle
+	if (credHandleAcquired) {
+		SECUR32$FreeCredentialsHandle(&hCredential);
+	}
+
+	return retVal;
 }
 
-void go(char* args, int len)
-{
+void go(char* args, int len) {
 	datap parser;
 	PDOMAIN_CONTROLLER_INFOA pdcInfo = NULL;
 	DWORD dwRet = 0;
@@ -239,39 +274,41 @@ void go(char* args, int len)
 
 	wchar_t* targetDC = NULL;
 
-	// Extract DC argument if provided
 	if (len > 0) {
 		targetDC = (wchar_t*)BeaconDataExtract(&parser, NULL);
 	}
 
-	wchar_t finalDC[256] = {0};
-	wchar_t finalSPN[256] = {0};
+	wchar_t finalDC[256] = { 0 };
+	wchar_t finalSPN[256] = { 0 };
 
-	// Auto-discover DC if not provided
 	if (!targetDC || targetDC[0] == L'\0') {
 		BeaconPrintf(CALLBACK_OUTPUT, "[*] No DC specified, attempting auto-discovery...\n");
 
 		dwRet = NETAPI32$DsGetDcNameA(NULL, NULL, NULL, NULL, 0, &pdcInfo);
 		if (dwRet == ERROR_SUCCESS && pdcInfo) {
-			// Skip the "\\" prefix from DomainControllerName
-			char* dcName = pdcInfo->DomainControllerName + 2;
+			char* dcName = pdcInfo->DomainControllerName;
+			if (dcName && dcName[0] == '\\' && dcName[1] == '\\') {
+				dcName += 2;
+			}
 			MSVCRT$swprintf_s(finalDC, 256, L"%hs", dcName);
 			BeaconPrintf(CALLBACK_OUTPUT, "[*] Auto-discovered DC: %S\n", finalDC);
-		} else {
+		}
+		else {
 			BeaconPrintf(CALLBACK_ERROR, "[-] Failed to auto-discover DC (error: %d)\n", dwRet);
 			BeaconPrintf(CALLBACK_ERROR, "[-] Please specify DC manually: ldapsecuritycheck <DC>\n");
 			goto cleanup;
 		}
-	} else {
-		MSVCRT$wcscpy(finalDC, targetDC);
+	}
+	else {
+		MSVCRT$wcsncpy(finalDC, targetDC, 255);
+		finalDC[255] = L'\0';
 	}
 
-	// Always auto-generate SPN from DC
-	MSVCRT$wcscpy(finalSPN, L"ldap/");
-	MSVCRT$wcscat(finalSPN, finalDC);
+	MSVCRT$_snwprintf(finalSPN, 256, L"ldap/%s", finalDC);
+	finalSPN[255] = L'\0';
 
-	BeaconPrintf(CALLBACK_OUTPUT,"[+] Target DC: %S\n", finalDC);
-	BeaconPrintf(CALLBACK_OUTPUT,"[+] Target SPN: %S\n", finalSPN);
+	BeaconPrintf(CALLBACK_OUTPUT, "[+] Target DC: %S\n", finalDC);
+	BeaconPrintf(CALLBACK_OUTPUT, "[+] Target SPN: %S\n", finalSPN);
 
 	KERNEL32$LoadLibraryA("WLDAP32");
 
@@ -282,7 +319,6 @@ void go(char* args, int len)
 	checkLDAP(finalDC, finalSPN, TRUE);
 
 cleanup:
-	// Free the DC info buffer if allocated
 	if (pdcInfo) {
 		NETAPI32$NetApiBufferFree(pdcInfo);
 	}
