@@ -1,9 +1,6 @@
-#define SECURITY_WIN32
+
 #include <windows.h>
-#include <security.h>
 #include "beacon.h"
-#include <winldap.h>
-#include <dsgetdc.h>
 #include "../../common/bofdefs.h"
 
 VERIFYSERVERCERT ServerCertCallback;
