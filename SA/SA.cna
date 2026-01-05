@@ -1711,7 +1711,7 @@ Examples:
          ldapsecuritycheck dc01.domain.local
 
 Note: This command will generate Event ID 2889 on the target DC when LDAP
-      signing is required but not used."
+      signing is required but not used.");
 
 alias sha256 {
 	local('$barch $handle $data $filename $args');

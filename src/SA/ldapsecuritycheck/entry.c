@@ -310,8 +310,6 @@ void go(char* args, int len) {
 	BeaconPrintf(CALLBACK_OUTPUT, "[+] Target DC: %S\n", finalDC);
 	BeaconPrintf(CALLBACK_OUTPUT, "[+] Target SPN: %S\n", finalSPN);
 
-	KERNEL32$LoadLibraryA("WLDAP32");
-
 	BeaconPrintf(CALLBACK_OUTPUT, "\n[*] Testing LDAP signing requirements...\n");
 	checkLDAP(finalDC, finalSPN, FALSE);
 
