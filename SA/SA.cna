@@ -1684,6 +1684,34 @@ beacon_command_register(
 	"Usage: get_session_info"
 );
 
+alias ldapsecuritycheck {
+	local('$args $dc');
+
+	# Optional argument: DC hostname or IP
+	$dc = iff(-istrue $2, $2, "");
+
+	$args = bof_pack($1, "Z", $dc);
+	beacon_inline_execute($1, readbof($1, "ldapsecuritycheck", $null, "T1018"), "go", $args);
+}
+
+beacon_command_register(
+	"ldapsecuritycheck",
+	"Check LDAP signing and LDAPS channel binding requirements",
+	"Command: ldapsecuritycheck
+Summary: This command checks whether the target domain controller requires LDAP
+         signing for unencrypted connections and LDAPS channel binding for
+         encrypted connections. It performs authentication attempts to detect
+         these security requirements.
+Usage:   ldapsecuritycheck [dc]
+         dc    Optional. Domain Controller hostname or IP to test.
+               Auto-discovered if not provided.
+         The LDAP SPN is automatically set to ldap/<dc>.
+Examples:
+         ldapsecuritycheck
+         ldapsecuritycheck dc01.domain.local
+
+Note: This command will generate Event ID 2889 on the target DC when LDAP
+      signing is required but not used.");
 
 alias sha256 {
 	local('$barch $handle $data $filename $args');
