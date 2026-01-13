@@ -92,10 +92,9 @@ sub readbof {
 	}
 	
 	$ttp = iff( ($4 eq $null || $4 eq ""), "", $4);
-	$msg = iff( ($3 eq $null || $3 eq ""), "Running $2", $3);
+	$msg = iff( ($3 eq $null || $3 eq ""), "Tasked beacon to run $2 BOF", $3);
 	$msg = iff( ($ttp ne $null && $ttp ne ""), $msg . " (" . $ttp . ")", $msg);
 	# announce what we're doing
-	blog($1, $msg);
 	btask($1, $msg, $ttp);
 	return $data;
 }
@@ -132,14 +131,16 @@ alias dir {
 beacon_command_register(
 	"dir",
 	"Lists a target directory using BOF.",
-	"Usage: dir [directory] [/s]"
+	"Usage: dir [directory] [/s]",
+	"bof"
 );
 
 
 beacon_command_register(
 "env", 
 "Print environment variables.", 
-"env - Print environment variables for current process");
+"env - Print environment variables for current process",
+"bof");
 
 alias env {
 	# execute it.
@@ -169,7 +170,8 @@ Useful queries (queries are just an example, edit where necessary to make it OPS
 
 - Passwords stored with reversible encryption:\n(&(objectClass=user)(objectCategory=user)(userAccountControl:1.2.840.113556.1.4.803:=128))
 
-If this fails with an error about paging not being supported you can try to use nonpagedldapsearch instead (its unregistered but has the same arguments)");
+If this fails with an error about paging not being supported you can try to use nonpagedldapsearch instead (its unregistered but has the same arguments)",
+"bof");
 
 alias ldapsearch {
 	local('$args $attributes $result_limit $scope $hostname $domain');
@@ -291,7 +293,8 @@ alias ipconfig {
 beacon_command_register(
 "ipconfig", 
 "runs an internal ipconfig command", 
-"Synopsis: ipconfig \n\nLists out adapters, system hostname and configured dns server");
+"Synopsis: ipconfig \n\nLists out adapters, system hostname and configured dns server",
+"bof");
 
 
 alias get_dpapi_system {
@@ -302,7 +305,8 @@ alias get_dpapi_system {
 beacon_command_register(
 "get_dpapi_system", 
 "Print DPAPI_SYSTEM and boot key if able", 
-"Synopsis: get_dpapi_system \n\nPrint DPAPI_SYSTEM and boot key if able");
+"Synopsis: get_dpapi_system \n\nPrint DPAPI_SYSTEM and boot key if able",
+"bof");
 
 alias arp {
 	beacon_inline_execute($1,readbof($1,'arp', $null, "T1016, T1018"),"go",$null);
@@ -310,7 +314,8 @@ alias arp {
 
 beacon_command_register("arp", 
 "Runs an internal ARP command", 
-"Synopsis: arp \n\nLists out ARP table");
+"Synopsis: arp \n\nLists out ARP table",
+"bof");
 
 alias nslookup {
 	local('$args $barch $lookup $server $type');
@@ -340,7 +345,8 @@ alias nslookup {
 beacon_command_register(
 	"nslookup", 
 	"internally perform a dns query", 
-	"Synopsis: nslookup <lookup value> <lookup server> <TYPE> \n\nPerform a DNS Query:\n<lookup value> is the ip or hostname you want to query\n<lookup server> is the server you want to query (use 0 or exclude for system default)\n<TYPE> record type to query");
+	"Synopsis: nslookup <lookup value> <lookup server> <TYPE> \n\nPerform a DNS Query:\n<lookup value> is the ip or hostname you want to query\n<lookup server> is the server you want to query (use 0 or exclude for system default)\n<TYPE> record type to query",
+	"bof");
 
 alias netview {
 	local('$args $domain');
@@ -355,7 +361,8 @@ beacon_command_register(
 	"lists local workstations and servers",
 	"Synopsis: netview <optional netbios domain name>
 	
-hint: use netview_list if you want to map shares of a remote machine"
+hint: use netview_list if you want to map shares of a remote machine",
+	"bof"
 );
 
 alias listdns {
@@ -366,7 +373,8 @@ alias listdns {
 beacon_command_register(
 	"listdns",
 	"lists dns cache entries",
-	"Synopsis: listdns (does not take arguments)  Note this will query each found hostname for its ip address"
+	"Synopsis: listdns (does not take arguments)  Note this will query each found hostname for its ip address",
+	"bof"
 );
 
 alias listmods {
@@ -380,7 +388,8 @@ alias listmods {
 beacon_command_register(
 	"listmods",
 	"lists process modules",
-	"Synopsis: listmods <opt: pid> "
+	"Synopsis: listmods <opt: pid> ",
+	"bof"
 );
 
 alias locale {
@@ -390,7 +399,8 @@ alias locale {
 
 beacon_command_register("locale", 
 "Retrieve System Locale Information, Date Format, and Country", 
-"Synopsis: locale \n\nPrints locale information");
+"Synopsis: locale \n\nPrints locale information",
+"bof");
 
 alias notepad {
 	btask($1, "Searching for open notepad windows", "T1552");
@@ -399,7 +409,8 @@ alias notepad {
 
 beacon_command_register("notepad", 
 "Search for open notepad and notepad++ windows and grab text from the editor control object", 
-"Synopsis: notepad \n\nPrints any observed open notepad or notepad++ sessions and prints their contents. Not reliant on clipboard. Not reliant on window being non-minimized");
+"Synopsis: notepad \n\nPrints any observed open notepad or notepad++ sessions and prints their contents. Not reliant on clipboard. Not reliant on window being non-minimized",
+"bof");
 
 alias netuse_add {
 	local('$args $device $share $user $password $persist $requireencrypt %params');
@@ -455,7 +466,8 @@ Example:
 
 	Map a persistent share in the current user context
 		netuse_add \\\\fileshare.somedomain.local\\userdrive \"\" \"\" /PERSIST
-"
+",
+	"bof"
 );
 
 alias netuse_list {
@@ -494,7 +506,8 @@ Examples:
 
 	List all info about Y:
 		netuse_list Y:
-"
+",
+	"bof"
 );
 
 alias netuse_delete {
@@ -542,7 +555,8 @@ Examples:
 		netuse_delete F /PERSIST
 
 Note if the share has a local device name mapped you must delete using the local name
-"
+",
+	"bof"
 );
 
 
@@ -560,7 +574,8 @@ alias netuser {
 beacon_command_register(
 	"netuser",
 	"list user info",
-	"Synopsis: netuser <username> <optional: dns or netbios domain name, if not given run against local computer>"
+	"Synopsis: netuser <username> <optional: dns or netbios domain name, if not given run against local computer>",
+	"bof"
 );
 
 alias windowlist {
@@ -571,7 +586,8 @@ beacon_command_register(
 	"windowlist",
 	"list visible windows",
 	"Synopsis: List windows visible on the users desktop
-	optionally specify \"all\" as an argument to see every possible window"
+	optionally specify \"all\" as an argument to see every possible window",
+	"bof"
 );
 
 alias netstat {
@@ -581,7 +597,8 @@ alias netstat {
 beacon_command_register(
 	"netstat",
 	"get local ipv4 udp/tcp listening and connected ports",
-	"Synopsis: List listening and connected ipv4 udp and tcp connections"
+	"Synopsis: List listening and connected ipv4 udp and tcp connections",
+	"bof"
 );
 
 alias routeprint {
@@ -591,7 +608,8 @@ alias routeprint {
 beacon_command_register(
 	"routeprint",
 	"prints ipv4 routes on the machine",
-	"Synopsis: Lists targets ipv4 routes"
+	"Synopsis: Lists targets ipv4 routes",
+	"bof"
 );
 
 alias whoami {
@@ -601,7 +619,8 @@ alias whoami {
 beacon_command_register (
 	"whoami",
 	"internal version of whoami /all",
-	"run this to get the info from whoami /all without starting cmd.exe"
+	"run this to get the info from whoami /all without starting cmd.exe",
+	"bof"
 );
 
 alias userenum {
@@ -651,7 +670,8 @@ beacon_command_register(
 	"list usersaccounts in the current domain",
 	"This command lists out domain user accounts
 	You may specify one of (all, active, locked, disabled) to filter accounts returned
-	defaults to all if not specified;"
+	defaults to all if not specified;",
+	"bof"
 );
 
 beacon_command_register(
@@ -659,7 +679,8 @@ beacon_command_register(
 	"List computer user accounts",
 	"This command lists user accounts on the current computer
 	You may specify one of (all, active, locked, disabled) to filter accounts returned
-	defaults to all if not specified;"
+	defaults to all if not specified;",
+	"bof"
 );
 
 alias driversigs {
@@ -669,7 +690,8 @@ alias driversigs {
 beacon_command_register(
 	"driversigs",
 	"checks drivers for known edr vendor names",
-	"Run the command and we will accept enumerate services and check the binary signatures for known edr vendor names"
+	"Run the command and we will accept enumerate services and check the binary signatures for known edr vendor names",
+	"bof"
 );
 
 alias netshares{
@@ -682,7 +704,8 @@ alias netshares{
 beacon_command_register(
 	"netshares",
 	"list shares on local or remote computer",
-	"netshares <\\computername>"
+	"netshares <\\computername>",
+	"bof"
 );
 
 alias netsharesAdmin{
@@ -695,7 +718,8 @@ alias netsharesAdmin{
 beacon_command_register(
 	"netsharesAdmin",
 	"list shares on local or remote computer and gets more info then standard netshares(requires admin)",
-	"netsharesAdmin <\\computername>"
+	"netsharesAdmin <\\computername>",
+	"bof"
 );
 
 sub bnetgroup{
@@ -731,13 +755,15 @@ alias netGroupListMembers {
 beacon_command_register(
 	"netGroupList",
 	"List Groups in this domain (or specified domain if given)",
-	"netGroupList: <opt: domainname>"
+	"netGroupList: <opt: domainname>",
+	"bof"
 );
 
 beacon_command_register(
 	"netGroupListMembers",
 	"List the members of the specified group in this domain (or specified domain if given)",
-	"netGroupListMembers: <Group Name> <opt: domainname>"
+	"netGroupListMembers: <Group Name> <opt: domainname>",
+	"bof"
 );
 
 sub bnetlocalgroup{
@@ -773,13 +799,15 @@ alias netLocalGroupListMembers {
 beacon_command_register(
 	"netLocalGroupList",
 	"List Groups in this server (or specified server if given)",
-	"netGroupList: <opt: servername>"
+	"netGroupList: <opt: servername>",
+	"bof"
 );
 
 beacon_command_register(
 	"netLocalGroupListMembers",
 	"List the members of the specified group in this server (or specified server if given)",
-	"netGroupListMembers: <Group Name> <opt: servername>"
+	"netGroupListMembers: <Group Name> <opt: servername>",
+	"bof"
 );
 
 sub bnetlocalgroup2{
@@ -802,7 +830,8 @@ beacon_command_register(
 	"netLocalGroupListMembers2: <opt: Group Name> <opt: servername>
 	use \"\" for group name to query all interesting local groups
 		
-Note: Output from this BOF is compatible with bofhound"
+Note: Output from this BOF is compatible with bofhound",
+	"bof"
 );
 
 sub bschtasksenum{
@@ -818,7 +847,8 @@ alias schtasksenum{
 beacon_command_register(
 	"schtasksenum",
 	"enumerates all scheduled tasks on the local or target machine",
-	"schtasksenum <opt:target>"
+	"schtasksenum <opt:target>",
+	"bof"
 );
 
 
@@ -858,7 +888,8 @@ beacon_command_register(
 	"lists the details of the requested task",
 	"schtasksquery <opt:server> <taskname>
 	Note the task name must be given by full path including taskname, ex. 
-	schtasksquery \\Microsoft\\Windows\\MUI\\LpRemove"
+	schtasksquery \\Microsoft\\Windows\\MUI\\LpRemove",
+	"bof"
 );
 
 sub bcacls{
@@ -887,7 +918,8 @@ beacon_command_register(
 		F: Full access
 		R: Read & Execute access
 		C: Read, Write, Execute, Delete
-		W: Write access"
+		W: Write access",
+	"bof"
 );
 
 alias sc_query {
@@ -918,7 +950,8 @@ beacon_command_register(
 give no parameters to enumerate all services
 Give just a service name to query just that service
 Give \"\" as the service name and a remote host to enumerate all services on a remote host
-Give both to query a specific service on a remote host"
+Give both to query a specific service on a remote host",
+	"bof"
 );
 
 alias sc_qc {
@@ -950,7 +983,8 @@ beacon_command_register(
 	"sc_qc", 
 	"queries a services configuration", 
 	"Synopsis: sc_qc  <service name> <opt: hostname>
-	 hostname is optional, and the local system is targeted if it is not found"
+	 hostname is optional, and the local system is targeted if it is not found",
+	"bof"
 );
 
 
@@ -982,7 +1016,8 @@ beacon_command_register(
 	"sc_qdescription", 
 	"queries a services description", 
 	"Synopsis: sc_qdescription <service name> <opt: hostname>
-	hostname is optional, and the local system is targeted if it is not found");
+	hostname is optional, and the local system is targeted if it is not found",
+	"bof");
 
 #2 = hostname
 #3 = servicename
@@ -1014,7 +1049,8 @@ alias sc_qfailure{
 beacon_command_register(
 	"sc_qfailure",
 	"list service failure actions",
-	"usage: sc_qfailure [servicename] [opt: hostname]"
+	"usage: sc_qfailure [servicename] [opt: hostname]",
+	"bof"
 );
 
 sub bsc_qtriggerinfo{
@@ -1045,7 +1081,8 @@ alias sc_qtriggerinfo{
 beacon_command_register(
 	"sc_qtriggerinfo",
 	"lists service triggers",
-	"usage: sc_qtriggers [servicename] [opt: hostname]"
+	"usage: sc_qtriggers [servicename] [opt: hostname]",
+	"bof"
 );
 
 
@@ -1057,7 +1094,8 @@ alias sc_enum{
 beacon_command_register(
 	"sc_enum",
 	"Enumerate all service configs in depth",
-	"usage: sc_enum [opt: hostname]"
+	"usage: sc_enum [opt: hostname]",
+	"bof"
 );
 
 alias reg_query
@@ -1119,7 +1157,8 @@ hive should be one of:
 	HKCU
 	HKU
 	HKCR
-If a value to query is not specified, that one key is enumerated");
+If a value to query is not specified, that one key is enumerated",
+	"bof");
 
 alias reg_query_recursive{
 	local('$hostname $hive $path $i');
@@ -1167,7 +1206,8 @@ hive should be one of:
 	HKCU
 	HKU
 	HKCR
-If a value to query is not specified, that one key is enumerated");
+If a value to query is not specified, that one key is enumerated",
+	"bof");
 
 
 alias tasklist{
@@ -1199,7 +1239,8 @@ Usage:   tasklist (system)
 						be run on the local system.
 Note:	You must have a valid login token for the system specified if not
 		 local. This token can be obtained using make_token.
-"
+",
+	"bof"
 );
 
 
@@ -1237,7 +1278,8 @@ Usage:   wmi_query [query] (system) (namespace)
 						defaults to root\\cimv2 if not specified.
 Note:	You must have a valid login token for the system specified if not
 		 local. This token can be obtained using make_token.
-"
+",
+	"bof"
 );
 
 
@@ -1251,7 +1293,8 @@ alias netsession {
 beacon_command_register(
 	"netsession",
 	"list sessions on server",
-	"Synopsis: netsession <computer> "
+	"Synopsis: netsession <computer> ",
+	"bof"
 );
 
 alias netsession2 {
@@ -1273,7 +1316,8 @@ beacon_command_register(
 		1 = DNS (Default)
 		2 = NetWkstaGetInfo
 
-Note: Output from this BOF is compatible with bofhound"
+Note: Output from this BOF is compatible with bofhound",
+	"bof"
 );
 
 
@@ -1285,7 +1329,8 @@ alias resources {
 beacon_command_register(
 "resources",
 "List available memory and space on the primary disk drive",
-"Usage: resources");
+"Usage: resources",
+"bof");
 
 
 alias uptime {
@@ -1295,7 +1340,8 @@ alias uptime {
 beacon_command_register(
 "uptime",
 "Lists system boot time",
-"Usage: uptime");
+"Usage: uptime",
+"bof");
 
 
 
@@ -1306,7 +1352,8 @@ alias useridletime {
 beacon_command_register(
 "useridletime",
 "Shows the user's idle time",
-"Usage: useridletime");
+"Usage: useridletime",
+"bof");
 
 
 
@@ -1340,7 +1387,8 @@ Usage:   enum_filter_driver <opt:system>
                    run on the local system.
 Note:    You must have a valid login token for the system specified if not 
          local. This token can be obtained using make_token.
-"
+",
+	"bof"
 );
 
 
@@ -1361,7 +1409,8 @@ Command: adv_audit_policies
 Summary: This command retrieves the advanced security audit policies set in the
          group policy of the local system and/or domain.
 Usage:   adv_audit_policies
-"
+",
+	"bof"
 );
 
 alias listpipes
@@ -1373,7 +1422,8 @@ alias listpipes
 beacon_command_register(
 	"listpipes",
 	"Lists local named pipes",
-	"Usage: listpipes"
+	"Usage: listpipes",
+	"bof"
 );
 alias enumLocalSessions{
 	beacon_inline_execute($1, readbof($1, "enumlocalsessions", $null, "T1033"), "go", $null);
@@ -1382,7 +1432,8 @@ alias enumLocalSessions{
 beacon_command_register(
 	"enumLocalSessions",
 	"Enumerate the currently attached user sessions both local and over rdp",
-	"Usage: enumLocalSessions"
+	"Usage: enumLocalSessions",
+	"bof"
 );
 
 alias findLoadedModule{
@@ -1410,7 +1461,8 @@ beacon_command_register(
 	findLoadedModule <part dll name> [opt: part proc name]
 	
 	Searches are done in *<part>* manner, so partial matches will hit
-	If you specify a proc name then only processes matching that partial hit will be searched"
+	If you specify a proc name then only processes matching that partial hit will be searched",
+	"bof"
 );
 
 
@@ -1435,7 +1487,8 @@ Summary: This command enumerates the certificate authorities and certificate
          templates.
 Usage:   adcs_enum (domain)
 		 domain		Optional. Specified domain otherwise uses current domain.
-"
+",
+	"bof"
 );
 
 
@@ -1457,7 +1510,8 @@ Summary: This command enumerates the certificate authorities and certificate
          objects. It displays basic information as well as the CA cert, flags, 
          permissions, and similar information for the templates.
 Usage:   adcs_enum_com
-"
+",
+	"bof"
 );
 
 
@@ -1481,7 +1535,8 @@ Summary: This command enumerates the certificate authorities and certificate
          well as the CA cert, flags, permissions, and similar information for
          the templates.
 Usage:   adcs_enum_com2
-"
+",
+	"bof"
 );
 
 alias vssenum{
@@ -1496,7 +1551,6 @@ alias vssenum{
 	$hostname = $2;
 	$sharename = iff(-istrue $3, $3, "C$");
 	$args = bof_pack($1, "ZZ", $hostname, $sharename);
-	blog($1, $hostname);
 	beacon_inline_execute($1, readbof($1, "vssenum", $null, $null), "go", $args);			# backups and snapshots are referenced but not discovery
 
 }
@@ -1513,7 +1567,8 @@ see https://techcommunity.microsoft.com/t5/storage-at-microsoft/vss-for-smb-file
 
 Usage: vssenum [hostname] (opt: sharename)
 
-sharename defaults to C$ if not specified"
+sharename defaults to C$ if not specified",
+	"bof"
 );
 
 alias get_password_policy
@@ -1539,7 +1594,8 @@ Basically re-implements net accounts excluding calling out Computer role
 If you target a DC with this it will be domain policies, otherwise its the policy for that local server
 target \"\" for the local computer
 
-Usage: get_password_policy [hostname]"
+Usage: get_password_policy [hostname]",
+	"bof"
 );
 
 alias probe
@@ -1569,7 +1625,8 @@ beacon_command_register(
 	"Check if a port is open",
 	"Command: probe
 
-Usage: probe <host> <port>"
+Usage: probe <host> <port>",
+	"bof"
 );
 
 alias list_firewall_rules
@@ -1582,7 +1639,8 @@ beacon_command_register(
 	"List all windows firewall rules",
 	"Command: list_firewall_rules
 
-Usage: list_firewall_rules"
+Usage: list_firewall_rules",
+	"bof"
 );
 
 alias netloggedon{
@@ -1595,7 +1653,8 @@ alias netloggedon{
 beacon_command_register(
 	"netloggedon",
 	"Returns users logged on the local (or a remote) machine - administrative rights needed",
-	"netloggedon <\\computername>"
+	"netloggedon <\\computername>",
+	"bof"
 );
 
 alias netloggedon2{
@@ -1610,7 +1669,8 @@ beacon_command_register(
 	"Returns users logged on the local (or a remote) machine via NetWkstaUserEnum- administrative rights needed. Output is compatible with bofhound",
 	"Usage: netloggedon2 <opt: computername>
 	
-Note: Output from this BOF is compatible with bofhound"
+Note: Output from this BOF is compatible with bofhound",
+	"bof"
 );
 
 alias netuptime{
@@ -1623,7 +1683,8 @@ alias netuptime{
 beacon_command_register(
 	"netuptime",
 	"Returns information about the boot time on the local (or a remote) machine",
-	"netuptime <\\computername>"
+	"netuptime <\\computername>",
+	"bof"
 );
 
 
@@ -1646,7 +1707,8 @@ Usage:   enum_filter_driver <target>
          nettime  
 
 Note:    nettime will return the time of the localhost if target is null
-"
+",
+	"bof"
 );
 
 alias regsession{
@@ -1661,7 +1723,8 @@ beacon_command_register(
 	"Returns users logged on the local (or a remote) machine via the registry - administrative rights needed. Output is compatible with bofhound",
 	"Usage: regsession <opt: computername>
 	
-Note: Output from this BOF is compatible with bofhound"
+Note: Output from this BOF is compatible with bofhound",
+	"bof"
 );
 
 alias aadjoininfo {
@@ -1671,7 +1734,8 @@ alias aadjoininfo {
 beacon_command_register (
 	"aadjoininfo",
 	"Retrieve Azure AD/Entra ID join information",
-	"Usage: aadjoininfo"
+	"Usage: aadjoininfo",
+	"bof"
 );
 
 alias get_session_info{
@@ -1681,7 +1745,8 @@ alias get_session_info{
 beacon_command_register(
 	"get_session_info",
 	"Returns the auth package, logon server, and current session id of the user you are operating as",
-	"Usage: get_session_info"
+	"Usage: get_session_info",
+	"bof"
 );
 
 alias ldapsecuritycheck {
@@ -1711,7 +1776,8 @@ Examples:
          ldapsecuritycheck dc01.domain.local
 
 Note: This command will generate Event ID 2889 on the target DC when LDAP
-      signing is required but not used.");
+      signing is required but not used.",
+	"bof");
 
 alias sha256 {
 	local('$barch $handle $data $filename $args');
@@ -1731,7 +1797,8 @@ alias sha256 {
 beacon_command_register(
 	"sha256", 
 	"Returns the SHA-256 hash of the selected file for integrity checks.", 
-	"Usage: sha256 <filename>"
+	"Usage: sha256 <filename>",
+	"bof"
 );
 
 alias md5 {
@@ -1752,7 +1819,8 @@ alias md5 {
 beacon_command_register(
 	"md5", 
 	"Returns the md5 hash of the selected file for integrity checks.", 
-	"Usage: md5 <filename>"
+	"Usage: md5 <filename>",
+	"bof"
 );
 
 alias sha1 {
@@ -1773,5 +1841,6 @@ alias sha1 {
 beacon_command_register(
 	"sha1", 
 	"Returns the sha1 hash of the selected file for integrity checks.", 
-	"Usage: sha1 <filename>"
+	"Usage: sha1 <filename>",
+	"bof"
 );
