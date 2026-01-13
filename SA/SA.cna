@@ -92,7 +92,7 @@ sub readbof {
 	}
 	
 	$ttp = iff( ($4 eq $null || $4 eq ""), "", $4);
-	$msg = iff( ($3 eq $null || $3 eq ""), "Running $2", $3);
+	$msg = iff( ($3 eq $null || $3 eq ""), "Tasked beacon to run $2 BOF", $3);
 	$msg = iff( ($ttp ne $null && $ttp ne ""), $msg . " (" . $ttp . ")", $msg);
 	# announce what we're doing
 	btask($1, $msg, $ttp);
