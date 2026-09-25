@@ -172,7 +172,10 @@ void Net_use_list(LPWSTR pswzDeviceName)
 	do
 	{
 		// Initialize the buffer
+		cbBuffer = BIG_BUFFER_SIZE;
 		intZeroMemory(lpnrLocal, cbBuffer);
+		cEntries = -1;
+
 
 		// Call the WNetEnumResource function to continue the enumeration
 		dwResult = MPR$WNetEnumResourceW(
@@ -199,7 +202,7 @@ void Net_use_list(LPWSTR pswzDeviceName)
 				lpnrRemote = NULL;
 				dwResourceInformationLength = BIG_BUFFER_SIZE;
 				lpSystem = NULL;
-				dwszUserNameLength = SMALL_BUFFER_SIZE;
+				dwszUserNameLength = MAX_PATH;
 				intZeroMemory(pwszStatus, SMALL_BUFFER_SIZE);
 				intZeroMemory(pwszDriveType, SMALL_BUFFER_SIZE);
 				intZeroMemory(pwszUserName, MAX_PATH);
