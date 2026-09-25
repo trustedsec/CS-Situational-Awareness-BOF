@@ -2026,3 +2026,14 @@ beacon_command_register(
 	"Usage: sha512 <filename>",
 	"bof"
 );
+
+alias winver{
+	beacon_inline_execute($1, readbof($1, "winver"), "go", $null);
+}
+
+beacon_command_register(
+	"winver",
+	"Get the windows build version info",
+	"Usage: winver",
+	"bof"
+)

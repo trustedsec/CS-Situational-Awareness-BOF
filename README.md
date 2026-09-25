@@ -88,6 +88,7 @@ Realistically, this could be compressed into a helper script, but those steps we
 |vssenum| vssenum [hostname] [opt:sharename]| Enumerate Shadow Copies on some Server 2012+ servers|
 |whoami| whoami| List whoami /all|
 |windowlist| windowlist [opt:all]| List visible windows in the current user session|
+|winver| winver| Return windows build number |
 |wmi_query| wmi_query query [opt: server] [opt: namespace]| Run a wmi query and display results in CSV format|
 
 Note the reason for including reg_query when CS has a built in reg query(v) command is because this one can target remote computers and has the ability to recursively enumerate a whole key.
